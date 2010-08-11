@@ -1,0 +1,10 @@
+(load-cnf '../lib/libylmath.so 'yllibylmath_register)
+(interpret-file '../yls/math.yl)
+(interpret-file '../yls/test_math.yl)
+(load-cnf '../lib/libylsystem.so 'yllibylsystem_register)
+(interpret-file '../yls/test_system.yl)
+(load-cnf '../lib/libylstring.so 'yllibylstring_register)
+(load-cnf '../lib/libylstring.so 'yllibylstring_re_register)
+(interpret-file '../yls/test_string.yl)
+(interpret-file '../yls/util.yl
+                '../yls/test_util.yl)

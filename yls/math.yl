@@ -1,0 +1,11 @@
+(defun math.fuzzy-eq (v1 v2 epsilon)
+"math.fuzzy-eq <val1> <val2> <epsilon>
+    -compare double value with epsilon. 
+     This can/should be used to compare fraction part of number
+    @valN [Double]: value
+    @epsilon [Double] : maximum allowable-errata.
+"
+    (let ((x 0))
+        (set 'x (- v1 v2))
+        (cond ((< x 0) (set 'x (* -1 x))))
+        (> epsilon x)))

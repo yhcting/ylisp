@@ -1,0 +1,170 @@
+/*****************************************************************************
+ *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
+ *    
+ *    This file is part of YLISP.
+ *
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as
+ *    published by the Free Software Foundation either version 3 of the 
+ *    License, or (at your option) any later version.
+ *    
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU Lesser General Public License 
+ *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
+
+
+/**
+ * Public header for interpreter users
+ */
+
+#ifndef ___YLISp_h___
+#define ___YLISp_h___
+
+
+typedef enum {
+    YLOk,
+    YLErr_unknown,
+
+    /* fail to initialization */
+    YLErr_init,
+
+    YLErr_internal,
+
+    YLErr_cnf_register,
+
+    YLErr_syntax_unknown,
+
+    YLErr_syntax_escape,
+
+    YLErr_syntax_parenthesis,
+
+    YLErr_syntax_single_quote,
+
+    /*
+     * single quoted symbol/yllist SHOULD NOT be evaluated.
+     */
+    YLErr_eval_squoted,
+
+    /* 
+     * LErr_eval_xxx : 
+     *    from starting evaluation to before doing functional operation 
+     */
+    /* evaluated number is out of range */
+    YLErr_eval_range,
+
+    /* ylinterpret_undefined symbol */
+    YLErr_eval_undefined,
+
+    /* first element of yllist should be function */
+    YLErr_eval_function_expected,
+    
+    /* assert false! */
+    YLErr_eval_assert,
+
+    /* 
+     * LErr_func_xxx : 
+     *    error inside function. - function specific.
+     */
+    YLErr_func_invalid_param,
+
+    /* fail to execute native function */
+    YLErr_func_fail,
+
+} ylerr_t;
+
+typedef enum {
+    YLLog_verb = 0,
+    YLLog_dev,
+    YLLog_info,
+    YLLog_warn,
+    YLLog_output,
+    YLLog_err,
+} ylloglv_t;
+
+
+/**
+ * All members are mendatory!
+ */
+typedef struct {
+    /* logging level */
+    ylloglv_t    loglv;
+    
+    /* 'printf'-like system print function */
+    int        (*print)(const char* format, ...);
+
+    /* assert. "assert(0)" means, "module meent unrecoverable error!" */
+    void       (*assert)(int);
+
+    /* memory allocation - to get centralized control about memory statistic */
+    void*      (*malloc)(unsigned int);
+
+    /* memory free */
+    void       (*free)(void*);
+} ylsys_t; /* system parameter  */
+
+
+
+const ylsys_t* ylsysv();
+
+#define ylassert(x) ylsysv()->assert((int)(x))
+#define ylmalloc(x) ylsysv()->malloc(x)
+#define ylfree(x)   ylsysv()->free(x)
+#define ylprint(x)  ylsysv()->print x
+
+/*
+ * set system log level
+ */
+extern void
+ylset_loglv(ylloglv_t lv);
+
+/* 
+ * this SHOULD BE called firstly before using module.
+ */
+extern ylerr_t
+ylinit(ylsys_t* sysv);
+
+/*
+ * clean ylisp structure
+ */
+extern void
+yldeinit();
+
+extern ylerr_t
+ylinterpret(const char* stream, unsigned int streamsz);
+
+
+/**
+ * get more symbols to make longest prefix.
+ * @return: 
+ *    0 : success and we meet the branch. 
+ *    1 : success and meet the leaf. 
+ *    2 : cannot find node which matchs prefix.
+ *    <0 : error (ex. not enough buffer size)
+ */
+extern int
+ylget_more_possible_prefix(const char* prefix, char* buf, unsigned int bufsz);
+
+/**
+ * @max_symlen: [out] max symbol length of candidates(based on 'sizeof(char)' - excluding prefix.
+ * @return: <0 : internal error.
+ */
+extern int
+ylget_candidates_num(const char* prefix, unsigned int* max_symlen);
+
+/**
+ * @return: <0: error. Otherwise number of candidates found.
+ */
+extern int
+ylget_candidates(const char* prefix, 
+                 char** ppbuf,       /* in/out */
+                 unsigned int ppbsz, /* size of ppbuf - regarding 'ppbuf[i]' */
+                 unsigned int pbsz); /* size of pbuf - regarding 'ppbuf[0][x]' */
+
+#endif /* ___YLISp_h___ */

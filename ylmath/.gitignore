@@ -1,0 +1,12 @@
+.*
+*~
+*.o
+*.a
+*.so
+ylmath
+GPATH
+GRTAGS
+GSYMS
+GTAGS
+ID
+

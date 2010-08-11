@@ -1,0 +1,82 @@
+; ==============================
+; = Define Utility Functions
+; ==============================
+(defun util.bsort (cmp le)
+"util.bsort <cmp func> <list exp>
+    -sort by using bubble sort alorithm (descending order)
+     NOTE!: Passed list itself is changed! - sorted.
+    @cmp func [Symbol]:   function used to compare.
+                          function should be like '(<func> e1 e2)'.
+                          This should return 'not nil' if 1st parameter is greater than 2nd parameter, otherwise nil.
+    @list exp [list]:     list expression.
+"
+    (let ( (etmp '()) (ei le) (ej '()) )
+        (while (not (null (cdr ei)))
+            (set 'ej le)
+            (while (not (null (cdr ej)))
+                (cond 
+                    ( (eq '() (cmp (car ej) (cadr ej)))
+                        (progn
+                            (set 'etmp (car ej))
+                            (setcar ej (cadr ej))
+                            (setcar (cdr ej) etmp))))
+                (set 'ej (cdr ej)))
+            (set 'ei (cdr ei)))
+        le))
+
+(defun util.pl.create ()
+"util.pl.create
+    -create pair-list.
+     This will have (nil . nil) pair as a head of list. 
+     And this will be a sentinel of the list.
+"
+    (cons '() '()))
+
+(defun util.pl.add (pl key value)
+"util.pl.add <pair-list> <key> <value>
+    -add pair data to the pair list at the first position.
+     This returns nil if fail, otherwise not nil.
+     ('pl' means 'pair list')
+    @pl: Pair List. This should be the one returned by 'util.pl.create'.
+"
+    (setcdr pl (cons (list key value) (cdr pl))))
+
+(defun util.pl.is-in (pl key)
+"util.pl.is-in <pair-list> <key>
+    -check whether <key> is in the pair-list or not.
+     nil is returns if cannot be found. Otherwise not nil is returned.
+"
+    (cond ((null (cdr pl)) '())
+          ((equal key (caadr pl)) 't)
+          ('t (util.pl.is-in (cdr pl) key))))
+
+(defun util.pl.del (pl key)
+"util.pl.del <pair-list> <key>
+    -delete pair data whose key is <key>.
+     If there is more than one, front-most-pair is deleted.
+"
+    (cond ((null pl) '())
+          ((equal key (caadr pl)) 
+              (setcdr pl (cddr pl)))
+          ('t (util.pl.del (cdr pl) key))))
+
+(defun util.pl.get (pl key)
+"util.pl.get <pair list> <key>
+    -find and get matching value.
+     @return: nil if fails.
+"
+    (cond ((null (cdr pl)) '())
+          ((equal key (caadr pl)) (cadadr pl))
+          ('t (util.pl.get (cdr pl) key))))
+
+
+(defun util.pl.size (pl)
+"util.pl.size <pair-list>
+    -return number of pairs
+"
+    (let ((n 0) (pr (cdr pl)))
+        (while (not (null pr))
+            (set 'n (+ n 1))
+            (set 'pr (cdr pr)))
+        n))
+        

@@ -1,0 +1,150 @@
+/*****************************************************************************
+ *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
+ *    
+ *    This file is part of YLISP.
+ *
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as
+ *    published by the Free Software Foundation either version 3 of the 
+ *    License, or (at your option) any later version.
+ *    
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU Lesser General Public License 
+ *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
+
+
+NFUNC(f_cond,         "f-cond",          YLANfunc,
+    "f-cond  <arg1> <arg2> ...\n"
+    "    -function version of 'COND' of S-Expression\n"
+    "    @argN: (<cond>, <exp>) form.\n"
+    "    *ex\n"
+    "        (set 'cond-arg1 '(arg1 (car '(x y))))\n"
+    "        (f-cond arg1 '(arg2 (cadr '(x y))))\n")
+
+/* To implement lazy-evaluation, and/or should be bare-nfunc! */
+NFUNC(f_and,          "f-and",           YLANfunc,
+    "f-and  <exp1> <exp2> ...\n"
+    "    -function version of 'AND' of S-Expression\n"
+    "     'f-and' uses lazy evaluation mechanism.\n")
+
+NFUNC(f_or,           "f-or",            YLANfunc,
+    "f-or  <exp1> <exp2> ...\n"
+    "    -function version of 'OR' of S-Expression\n"
+    "     'f-or' uses lazy evaluation mechanism.\n")
+
+NFUNC(f_let,          "f-let",           YLANfunc,
+    "f-let <vars> <exp1> <exp2> ...\n"
+    "    -function version of 'let.\n"
+    "    @vars:  ((<var1> <init value1>) (<var2> <init value2>) ...)\n"
+    "    @expN:  Expressions to execute.\n")
+
+
+NFUNC(f_while,        "f-while",         YLANfunc,
+    "f-while <cond_exp> <exp1> <exp2> ...\n"
+    "    -function version of while\n"
+    "     loop while (eval <cond_exp>) is not nil.\n")
+
+NFUNC(atom,           "atom",            YLANfunc,
+    "atom <exp> : [t/nil]\n"
+    "    -check whether <exp> is atom or not.\n")
+
+NFUNC(clone,          "clone",           YLANfunc,
+    "clone <exp> : [exp]\n"
+    "    -return cloned exp (deep copied one).\n")
+
+NFUNC(car,            "car",             YLANfunc,
+    "car <exp>\n")
+
+NFUNC(cdr,            "cdr",             YLANfunc,
+    "cdr <exp>\n")
+
+NFUNC(setcar,         "setcar",          YLANfunc,
+    "setcar <exp> <new car>\n"
+    "    -Changes car value(reference) of <exp>\n"
+    "     This may make very serious problem. This changes reference directly.\n"
+    "     So, be careful when you use this!\n")
+
+NFUNC(setcdr,         "setcdr",          YLANfunc,
+    "setcdr <exp> <new cdr>\n"
+    "    -changes cdr value(reference) of <exp>\n"
+    "     This may make very serious problem. This changes reference directly.\n"
+    "     So, be careful when you use this!\n")
+
+NFUNC(cons,           "cons",            YLANfunc,
+    "cons <exp1> <exp2>\n")
+
+NFUNC(null,           "null",            YLANfunc,
+    "null <exp> : [t/nil]\n"
+    "    -check whether <exp> is nil or not.\n")
+
+NFUNC(list,           "list",            YLANfunc,
+    "list <exp1> <exp2> <exp3> ...: [exp]\n"
+    "    -construct list expression with argumented expressions.\n"
+    "    *ex\n"
+    "        (list 'a 'b '(c d)); => (a b (c d))\n")
+
+NFUNC(assert,         "assert",          YLANfunc,
+    "assert <exp>\n"
+    "    -assert if <exp> is nil\n"
+    "    *ex\n"
+    "        (assert (eq 'a 'b))\n")
+
+NFUNC(exit,           "exit",            YLANfunc,
+    "assert <exp>\n"
+    "    -exit from interpreting input stream\n"
+    "    *ex\n"
+    "        (exit)\n")
+
+NFUNC(print,          "print",           YLANfunc,
+    "print <exp1> <exp2> ...\n"
+    "    -print expression detail values.\n")
+
+/* Functions for simple calculation*/
+NFUNC(add,            "+",               YLANfunc,
+    "+ <value1> <value2> ... : [Double]\n"
+    "    -adds all values and returns result.\n"
+    "    @valueN [Double]: values\n"
+    "    *ex\n"
+    "        (+ 1 2 3 4 5); => 15\n")
+
+NFUNC(sub,            "-",               YLANfunc,
+    "+ <value1> <value2> ... : [Double]\n"
+    "    -subtracts all other values from the 1st argument.\n"
+    "    @valueN [Double]: values\n"
+    "    *ex\n"
+    "        (- 10 2 3 ); => 10 - 2 - 3 = 5\n")
+
+NFUNC(mul,            "*",               YLANfunc,
+    "* <value1> <value2> ... : [Double]\n"
+    "    -see '+' for more details.\n")
+
+NFUNC(div,            "/",               YLANfunc,
+    "/ <value1> <value2> ... : [Double]\n"
+    "    -see '-' for more details.\n")
+
+NFUNC(mod,            "%",               YLANfunc,
+    "% <val1> <val2> : [Double]\n"
+    "    -same with '%' in C.\n"
+    "     Only integer parts are used. Fraction parts are ignored\n"
+    "    @valN [Double]\n"
+    "    *ex\n"
+    "        (mod 7 3); => 1.\n"
+    "        (mod 7.5 3.9); => (mod 7 3) => 1.\n")
+
+NFUNC(gt,             ">",               YLANfunc,
+    "> <exp1> <exp2> : [t/nil]\n"
+    "    -'<exp1> > <exp2>'.\n"
+    "     In case of Symbol, 'strcmp' is used.\n"
+    "    @expN [Double | Symbol]\n")
+
+NFUNC(lt,             "<",               YLANfunc,
+    "< <exp1> <exp2> : [t/nil]\n"
+    "    -'<exp1> < <exp2>'.\n"
+    "     see '>' for more details\n")

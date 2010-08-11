@@ -1,0 +1,379 @@
+; ==============================
+; Define basic S-Functions!!!
+; ==============================
+(mset defun 
+    (mlambda (nAME aRG dESC bODY)
+        (mset nAME
+            (lambda aRG bODY)
+            dESC))
+"defun <name> <args> <desc> <body>:
+    -macro to define function.
+    @name [Symbol]: function name.
+    @args [list]:   argument list.
+    @desc [Symbol]: description.
+    @body [exp]:    function body
+    *ex
+        (defun caar (e)
+            \"caar\"
+            (if (or (atom e) (atom (car e)))
+                '()
+                (car (car e))); define 'caar' as function
+")
+
+(mset defmacro
+    (mlambda (nAME aRG dESC bODY)
+        (mset nAME
+            (mlambda aRG bODY)
+            dESC))
+"defmacro <name> <args> <desc> <body>:
+    -macro to define macro.
+    @name [Symbol]: macro name.
+    @args [list]:   argument list.
+    @desc [Symbol]: description.
+    @body [exp]:    macro body
+    *ex
+        (defmacro if (test tRUE fALSE)
+            \"Traditional C-like if/else\"
+            (cond (test tRUE) ('t fALSE)))
+")
+
+(mset cond
+    (mlambda () (apply f-cond))
+"cond <arg1> <arg2> ...
+    -COND of S-Expression.
+    @argN: (<cond> <exp>) form.
+")
+
+(mset and
+    (mlambda () (apply f-and))
+"and <exp1> <exp2> ...
+    -eval [exp1] && eval [exp2] && ...
+")
+
+(mset or
+    (mlambda () (apply f-or))
+"or <exp1> <exp2> ...
+    -eval [exp1] || eval [exp2] || ...
+")
+
+(mset let
+    (mlambda () (apply f-let))
+"let <vars> <exp1> <exp2> ...
+    -let* in CL.
+    @vars: form such that ((<var1> <init value>) (<var2> <init value>) ...).
+           Each vars are locally defined.
+    @expN: expression to execute.
+    *ex
+        (set 'x 'a)
+        (let ((x 'a))
+            (set 'x 'f)
+            (print 'x)); 'f' is printed
+        (print 'x); 'a' is printed
+")
+
+(mset progn
+    (mlambda () (let ()))
+"progn <exp1> <exp2> ...
+    -evaluate expression sequencially.
+")
+
+(mset while
+    (mlambda () (apply f-while))
+"while <cond_exp> <exp1> <exp2>
+    -loop while eval [cond_exp] is not nil.
+    *ex
+        (set 'i 10)
+        (while (< i 10)
+            (print i)
+            (set 'i (+ i 1)))
+")
+
+(defmacro if (test tRUE fALSE)
+"if <cond> <exp-than> <exp-else>
+    -Traditional C-like if/else.
+"
+    (cond (test tRUE) ('t fALSE)))
+
+; ===========================
+; = Define cx...r series - START
+; ===========================
+; ===========================
+; = cxxr (4 funcs)
+; ===========================
+(defun caar (e)
+"caar\n"
+    (if (or (atom e) (atom (car e)))
+        '() 
+        (car (car e))))
+
+(defun cadr (e)
+"cadr\n"
+    (if (or (atom e) (atom (cdr e)))
+        '() 
+        (car (cdr e))))
+
+(defun cdar (e)
+"cdar\n"
+    (if (or (atom e) (atom (car e)))
+        '() 
+        (cdr (car e))))
+
+(defun cddr (e)
+"cddr\n"
+    (if (or (atom e) (atom (cdr e)))
+        '() 
+        (cdr (cdr e))))
+
+; ===========================
+; = cxxxr (8 funcs)
+; ===========================
+(defun caaar (e)
+"caaar\n"
+    (if (atom (caar e))
+        '() 
+        (car (caar e))))
+
+(defun caadr (e)
+"caadr\n"
+    (if (atom (cadr e))
+        '() 
+        (car (cadr e))))
+
+(defun cadar (e)
+"cadar\n"
+    (if (atom (cdar e))
+        '() 
+        (car (cdar e))))
+
+(defun caddr (e)
+"caddr\n"
+    (if (atom (cddr e))
+        '() 
+        (car (cddr e))))
+
+(defun cdaar (e)
+"cdaar\n"
+    (if (atom (caar e))
+        '() 
+        (cdr (caar e))))
+
+(defun cdadr (e)
+"cdadr\n"
+    (if (atom (cadr e))
+        '() 
+        (cdr (cadr e))))
+
+(defun cddar (e)
+"cddar\n"
+    (if (atom (cdar e))
+        '() 
+        (cdr (cdar e))))
+
+(defun cdddr (e)
+"cdddr\n"
+    (if (atom (cddr e))
+        '() 
+        (cdr (cddr e))))
+
+; ===========================
+; = cxxxxr (16 funcs)
+; ===========================
+; -----------------
+; - caxxxr
+; -----------------
+(defun caaaar (e)
+"caaaar\n"
+    (if (atom (caaar e))
+        '() 
+        (car (caaar e))))
+
+(defun caaadr (e)
+"caaadr\n"
+    (if (atom (caadr e))
+        '() 
+        (car (caadr e))))
+
+(defun caadar (e)
+"caadar\n"
+    (if (atom (cadar e))
+        '() 
+        (car (cadar e))))
+
+(defun caaddr (e)
+"caaddr\n"
+    (if (atom (caddr e))
+        '() 
+        (car (caddr e))))
+
+(defun cadaar (e)
+"cadaar\n"
+    (if (atom (cdaar e))
+        '() 
+        (car (cdaar e))))
+
+(defun cadadr (e)
+"cadadr\n"
+    (if (atom (cdadr e))
+        '() 
+        (car (cdadr e))))
+
+(defun caddar (e)
+"caddar\n"
+    (if (atom (cddar e))
+        '() 
+        (car (cddar e))))
+
+(defun cadddr (e)
+"cadddr\n"
+    (if (atom (cdddr e))
+        '() 
+        (car (cdddr e))))
+
+; -----------------
+; - cdxxxr
+; -----------------
+(defun cdaaar (e)
+"cdaaar\n"
+    (if (atom (caaar e))
+        '() 
+        (cdr (caaar e))))
+
+(defun cdaadr (e)
+"cdaadr\n"
+    (if (atom (caadr e))
+        '() 
+        (cdr (caadr e))))
+
+(defun cdadar (e)
+"cdadar\n"
+    (if (atom (cadar e))
+        '() 
+        (cdr (cadar e))))
+
+(defun cdaddr (e)
+"cdaddr\n"
+    (if (atom (caddr e))
+        '() 
+        (cdr (caddr e))))
+
+(defun cddaar (e)
+"cddaar\n"
+    (if (atom (cdaar e))
+        '() 
+        (cdr (cdaar e))))
+
+(defun cddadr (e)
+"cddadr\n"
+    (if (atom (cdadr e))
+        '() 
+        (cdr (cdadr e))))
+
+(defun cdddar (e)
+"cdddar\n"
+    (if (atom (cddar e))
+        '() 
+        (cdr (cddar e))))
+
+(defun cddddr (e)
+"cddddr\n"
+    (if (atom (cdddr e))
+        '() 
+        (cdr (cdddr e))))
+
+; ===========================
+; = Define cx...r series - END
+; ==========================
+
+(defun not (e)
+"logical not\n"
+    (cond (e '()) ('t 't)))
+
+; find fist-occurred-function-symbol.
+; ff [x] = [atom [x] -> x; T -> ff [car [x]]]
+(defun ff (e)
+"ff <exp>
+    -find fist-occurred-function-symbol. 
+     ff[((A.B).C)] = A
+"
+    (cond ((atom e) e) ('t (ff '(car e)))))
+
+; replace @aRG with @pARAM in @e
+; subst [x; y; z] = [atom [z] -> [eq [z; y] -> x; T -> z];
+;                    T -> cons [subst [x; y; car [z]]; subst [x; y; cdr [z]]]] 
+(defun subst (pARAM aRG e)
+"subst <param> <arg> <exp>. : [exp]
+    -replace <arg> with <param> in <exp>
+     subst[(X.A);B;((A.B).C)] = ((A.(X.A)).C)
+"
+    (cond ((atom e) (cond ((eq e aRG) pARAM) ('t e)))
+        ('t (cons (subst pARAM aRG (car e)) 
+            (subst pARAM aRG (cdr e))))))
+
+; compare two expression
+; equal [x; y] = [atom [x] AND atom [y] AND eq [x; y]]
+;                OR [NOT atom [x] AND NOT atom [y] AND equal [car [x]; car [y]]
+;                AND equal [cdr [x]; cdr [y]]]
+(defun equal (e1 e2)
+"equal <exp1> <exp2> : [t/nil]
+    -compare two expression. both - atom and exp - can be compared
+"
+    (cond ((and (atom e1) (atom e2)) (eq e1 e2))
+        ((and (not (atom e1)) (not (atom e2)))
+            (and (equal (car e1) (car e2)) (equal (cdr e1) (cdr e2))))
+        ('t '())))
+
+; append [x; y] = [null[x] -> y; T -> cons [car [x]; append [cdr [x]; y]]] 
+(defun append (base e)
+"append <base> <exp>
+    -append <exp> to <base>
+     append [(A, B); (C, D, E)] = (A, B, C, D, E)
+"
+    (cond ((null base) e) ('t (cons (car base) (append (cdr base) e)))))
+
+; among [x; y] = NOT null [y] AND [equal [x; car [y]] OR among [x; cdr [y]]]
+(defun among (x e)
+"among <value> <exp> : [t/nil]
+    -predicate is true if the <value> occurs among the elements of the list <exp>
+    @value [exp]:  value
+    @exp [list]:   list expression
+"
+    (cond ((null e) '())
+          ('t (or (and (not (null x))
+                       (equal x (car e)))
+                  (among x (cdr e))))))
+
+; pair [x; y] = [null [x] AND null [y] -> NIL; NOT atom [x] AND NOT atom [y] -> cons [list [car [x]; car [y]]; pair [cdr [x]; cdr [y]]]
+(defun pair (x y)
+"pair <exp1> <exp2> 
+    -gives the list of pairs of corresponding elements of the lists <exp1> and <exp2>
+     pair [(A, B, C); (X, (Y, Z), U)] = ((A, X), (B, (Y, Z)), (C, U))
+"
+    (cond ((and (null x) (null y)) '())
+          ((and (not (atom x)) (not (atom y))) 
+            (cons (list (car x) (car y)) (pair (cdr x) (cdr y))))))
+
+; alias...
+(defun = (x y)
+"= <exp1> <exp2>
+    -alias of eq
+"
+    (eq x y))
+
+; not equal
+(defun <> (x y)
+"<> <exp1> <exp2>
+    -alias of not eq
+"
+    (not (= x y)))
+
+(defun <= (x y)
+"<= <exp1> <exp2>
+    -less than or equal
+"
+    (not (> x y)))
+
+(defun >= (x y)
+">= <exp1> <exp2>
+    -greater than or equal
+"
+    (not (< x y)))

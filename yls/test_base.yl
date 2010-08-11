@@ -1,0 +1,127 @@
+; Assumption : ylbase.so is loaded!
+; test
+
+(set 'rrr 'ttt)
+(assert 
+    (eq rrr 'ttt))
+
+(mset zzz rrr)
+(assert
+    (eq zzz 'ttt))
+
+(mset rrr ttt)
+(mset ttt (car (list yy '(x y))))
+(mset yy (car '(ab cd)))
+
+(assert
+    (eq yy 'ab))
+(assert
+    (eq zzz 'ab))
+
+(assert (equal '(x a b) '(x a b)))
+(assert (equal '(x a) (cons 'x (cons 'a '()))))
+
+(defmacro ee (x y) 
+    "test macro"
+    (car '(x y)))
+
+(assert
+    (equal '(a b)
+        (ee (a b) (c d))))
+
+(assert (eq 't (and (eq 8 8) (eq 7 7))))
+(assert (eq '() (and (eq 1 2) (assert '()))))
+(assert (eq 't (or (eq 1 1) (eq 2 4))))
+(assert (eq '() (or (eq 1 2) (eq 1 3) (eq 2 3))))
+
+(assert (eq '() (not (eq 1 1))))
+(assert (eq 't (not (eq 1 2))))
+
+(assert (equal
+    '(a (x a) c)
+    (subst '(x a) 'b '(a b c))))
+
+(assert (equal
+    '(a b c d e)
+    (append '(a b) '(c d e))))
+
+(assert (eq 't
+    (among 'x '(a b x c d))))
+(assert (eq '()
+    (among 'x '(a b c d e))))
+
+(assert (equal
+    '((a x) (b (y z)) (c u))
+    (pair '(a b c) '(x (y z) u))))
+
+(set 'x '(1 2 3))
+(assert (equal '(1 2 3) x))
+(let ((x '(a b)) (y (list x '(l m))))
+    (assert (equal '(a b) x))
+    (assert (equal '((a b) (l m)) y))
+    (set 'x (list x y))
+    (assert (equal '((a b) ((a b) (l m))) x)))
+(assert (equal '(1 2 3) x))
+
+(let ((x 'a) (y 'b))
+    (set 'y (list x y))
+    (assert (equal '(a b) y)))
+
+; test for nested let!
+(let ((x 'a) (y 'b))
+    (set 'x 'f)
+    (set 't 'y)
+    (let ((x 'c)(t 'z))
+        (assert (eq x 'c))
+        (set 'x 'd)
+        (assert (eq x 'd)))
+    (assert (eq t 'y))
+    (assert (eq x 'f)))
+    
+(assert (eq 't (> 2 1)))
+(assert (= 't (> 2 1)))
+(assert (= '() (< 2 1)))
+(assert (= '() (< 1 1)))
+(assert (= 't (> 'abc 'abb)))
+
+(print '"\n
+")
+
+(print '"\n" x '"\n" '(1 2 3) '"\n")
+
+(set 'i 0)
+(set 's 0)
+(while (< i 11) 
+    (progn
+        (set 's (+ s i))
+        (set 'i (+ i 1))))
+(assert (eq s 55))
+
+(let ((i 0) (s 0))
+    (while (< i 11)
+        (set 's (+ s i))
+        (set 'i (+ i 1)))
+    (set 'sum s))
+(assert (eq sum 55))
+
+
+(assert (eq 3 (% 7 4)))
+(assert (eq 0 (% 3 3)))
+
+(assert (eq '() (caar 'a)))
+(assert (eq '() (caar '(a))))
+(assert (eq 'a (caar '((a b) c))))
+(assert (equal '(a) (caar '(((a) b) c))))
+
+(assert (equal '(a b) (caaar '((((a b) c))))))
+
+(set 'ttt '(x y (1 2)))
+; yyy points same instance with ttt.
+(set 'yyy ttt)
+(setcar (cdr yyy) '(a b))
+(assert (equal ttt '(x (a b) (1 2))))
+(set 'ttt '(x y (1 2)))
+(set 'yyy (clone ttt))
+(setcar (cdr yyy) '(a b))
+(assert (equal ttt '(x y (1 2))))
+(assert (equal yyy '(x (a b) (1 2))))

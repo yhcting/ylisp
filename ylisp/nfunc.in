@@ -1,0 +1,150 @@
+/*****************************************************************************
+ *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
+ *    
+ *    This file is part of YLISP.
+ *
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as
+ *    published by the Free Software Foundation either version 3 of the 
+ *    License, or (at your option) any later version.
+ *    
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU Lesser General Public License 
+ *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
+
+
+/****************************************************
+ * 'lambda' and 'mlambda' here are dummy to use 'Auto Completion' and 'help'.
+ * Function pointer 'NULL' for 'lambda' and 'mlamdba' are never used.
+ * (For details, see 'sfunc.c')
+ ****************************************************/
+NFUNC(__dummy,                "lambda",                  YLASfunc,
+    "(lambda <arg> <body>) <param1> <param2> ...\n"
+    "    -lambda expression of S-Function.\n"
+    "    *ex\n"
+    "        ((lambda (x y) (+ x y)) 7 8) ; ==> 15\n")
+
+NFUNC(__dummy,                "mlambda",                 YLASfunc,
+    "(mlambda <arg> <body>) <param1> <param2> ...\n"
+    "    -macro versin of lambda. parameters are never evaluated.\n"
+    "     (eval ((mlambda (x y) (+ x y) 7 8)))\n"
+    "        => eval [(+ 7 8)] <- evaluate replaced expression\n"
+    "    +Special usage for 'mlambda' - in the case of <arg> = ()\n"
+    "        (eval ((mlambda () (<body>)) <param1> ...))\n"
+    "            => eval [ (<body> <param1> ...) ]\n")
+
+NFUNC(quote,                  "quote",                   YLASfunc,
+    "quote <exp>\n"
+    "    -Special s-function. parameter is not evaluated.\n"
+    "    @exp:    any lisp expression.\n"
+    "    @return: not-evaluated-symbol-itself\n"
+    "    *ex\n"
+    "        (quote abc); => abc\n")
+
+NFUNC(apply,                  "apply",                   YLASfunc,
+    "apply <func> <arg1> <arg2> ...\n"
+    "    -Special s-function. parameter is not evaluated.\n"
+    "     ** apply [f; args] = eval [cons [f; appq [args]]; NIL] **\n"
+    "    @func[Symbol]:   symbol that represents function name.\n"
+    "    @return:         result of evaulation\n"
+    "    *ex\n"
+    "        (apply list a b) ; => (list 'a 'b) => (a b)\n")
+
+NFUNC(mset,                   "mset",                    YLASfunc,
+    "mset <symbol> <exp> (<desc>)\n"
+    "    -Special s-function. Macro version of 'set'. Arguements are not evaluated.\n"
+    "     Evaluating <symbol> is same with evaluating <exp>.\n"
+    "    @symbol[Symbol]: symbol name.\n"
+    "    @exp:            lisp expression.\n"
+    "    @desc[Symbol]:   description of this symbol.\n"
+    "    @return:         This is macro.\n"
+    "    *ex\n"
+    "        (mset a +) ;(a 7 8) => (+ 7 8)\n"
+    "        (mset zzz rrr)\n"
+    "        (mset rrr ttt)\n"
+    "        (mset ttt (car (list yy x y)))\n"
+    "        (mset yy (car '(ab cd)))\n"
+    "        ;(eq zzz 'ab) => t\n")
+
+NFUNC(eq,                     "eq",                      YLANfunc,
+    "eq <atom1> <atom2>: [t/nil]\n"
+    "    -Compare two atoms.\n"
+    "    @return: t if two atoms are same. nil otherwise.\n"
+    "    *ex\n"
+    "        (eq 'abc 'abc); => t\n"
+    "        (eq 'ab 'a); => nil\n"
+    "        (eq '(a b) 'c); => nil\n");
+
+NFUNC(set,                    "set",                     YLANfunc,
+    "set <symbol> <exp> (<desc>)\n"
+    "    -After evaluating this expression, evaluating <symbol> returns <exp>.\n"
+    "     see 'mset' for more descrption.\n"
+    "     *ex\n"
+    "         (set 'a '(x y)); (a) => ('(x y))\n")
+
+NFUNC(unset,                  "unset",                   YLANfunc,
+    "unset <symbol>\n"
+    "    -Remove symbol from the global space.\n"
+    "    @return: t if removed, nil if symbol doesn't exist.\n")
+
+NFUNC(eval,                   "eval",                    YLANfunc,
+    "eval <exp>\n"
+    "    -Evaluates expression.\n"
+    "    @return: depends on <exp>\n"
+    "    *ex\n"
+    "        (set 'q '(x y))\n"
+    "        (eval 'q); => eval [q] => (x y)\n")
+
+NFUNC(help,                   "help",                    YLANfunc,
+    "help <sym1> <sym2> ...\n"
+    "    -see description and it's contents of this symbol\n"
+    "    *ex\n"
+    "        (help 'help); to see this description\n")
+
+NFUNC(load_cnf,               "load-cnf",                YLANfunc,
+    "load-cnf <file name> <register func> : [t/nil]\n"
+    "    -LOAD Customized Native Function.\n"
+    "     Register new custom-native functions from plug-in library\n"
+    "    @file name[Symbol]:       plug-in file name\n"
+    "    @register func[Symbol]:   register function name that should be in the plug-in\n"
+    "    *ex\n"
+    "        (load-cnf 'ylbase.so 'yllibylbase_register)\n")
+
+NFUNC(unload_cnf,             "unload-cnf",              YLANfunc,
+    "unload-cnf <file name> <unregister func> : [t/nil]\n"
+    "    -UNLOAD Custom-Native-Function.\n"
+    "     See 'load-cnf' for more\n"
+    "     *ex\n"
+    "         (unload-cnf 'ylbase.so 'yllibylbase_unregister)\n")
+
+NFUNC(interpret_file,         "interpret-file",          YLANfunc,
+    "interpret-file <file name1> <file name2> ... : [t/nil]\n"
+    "    -interpret other ylisp script file\n"
+    "    @file nameN [Symbol]: file path\n"
+    "    *ex\n"
+    "        (interpret-file 'ylbase.yl)\n")
+
+/**********************************************************
+ * Functions for managing interpreter internals.
+ **********************************************************/
+NFUNC(gc,                     "gc",                      YLANfunc,
+    "gc\n"
+    "    -Trigger Full-Scanning-GC manually!\n"
+    "     Summary is shown when done.\n"
+    "     NOTE!\n"
+    "         This is very sensitive and dangerous function!.\n"
+    "         This may corrupt current running interpreting.\n"
+    "         So, if you don't know what you are doing, DON'T DO THIS!\n")
+
+
+NFUNC(memstat,                "memstat",                 YLANfunc,
+    "memstat\n"
+    "    -Shows memory pool stats.\n")
+

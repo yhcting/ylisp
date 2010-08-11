@@ -1,0 +1,118 @@
+Goal of ylisp is Rapid Tool Development Tool.
+So, ylisp doesn't want to be complete programming language like Common Lisp (But it can be).
+Instead of it, ylisp focuses on following features.
+    - new custom functions can be added and used easily. (through plug-in)
+    - symbol programming syntax. (S-Expression like lisp).
+Consumer can easily extend their own native functions (Customized Native Function - CNF) by programming plug-ins.
+At this project, some plug-ins are already implemented. Those can be good examples.
+
+* Directory/File Structure
+    ylisp:
+        Core module.
+        This includes 'Lisp Syntax Parser', function for evaluating expression, memory management, symbol lookup, core S-Functions etc.
+        Others except for this module, are just extending native functions of ylisp.
+        So, most parts of this document are to explain details about this module (ylisp).
+    ylcon:
+        Very simple console front-end for ylisp. With yljfe, it becomes obsolete.
+    yljfe:
+        Very simple java front-end for ylisp.
+        For GUI, this uses java swing. So, to run this, JRE is required.
+        /jsrc:
+            Java source code for GUI.
+    ylbase:
+        Plug-in for native function extension. Very basic and fundamental functions are implemented here.
+        Without any special reason, this plug-in should be loaded at the begining.
+    ylmath/ylstring/ylsystem
+        Plug-in for native function extension. Followings are the list of library name and register functions.
+        libylbase.so : yllibylbase_register
+        libylmath.so : yllibylmath_register
+        libylstring.so : yllibylstring_register, yllibylstring_re_register
+        libylsystem.so : yllibylsystem_register
+    yls
+        ylisp script files.
+
+* Naming Convention
+    Names in the Report (http://www-formal.stanford.edu/jmc/recursive (by John McCarthy) is used.
+
+* Parsing S-Expression
+    Meta character: ", \, '
+        " : all character between double quote lose it's special meaning. except for escape character\.
+        \ : escape character. Only ", \, n can be followed by \.
+        (): nil
+        ex.
+            "()"     : () symbol (Not nil)
+            "xx\"xx" : xx"xx
+            ""       : empty string symbol
+
+* Data Structure
+    
+* Machine representation
+    predefined variable is used to represents NIL.
+    In case of comparison, NIL means false / others true.
+    And NIL is also ATOM.
+
+
+* Symbol look-up
+    Hash (obsolete)
+        ylisp uses 2^16 hash as an look up function. 
+        ylisp calculates 32 bit crc for symbols and lower 16 bits are used as an hash function. And this calculated 32 bit crc values are stored in the symbol data structure.
+        When comparing two symbols, ylisp compares crc values first. If those are same, real symbol strings are compared. By this way, ylisp saves costs of comparing string symbols.
+
+    Trie :
+         Data Structure for symbol look up at 'master' branch is changed to Trie from Hash! (4bits are used).
+         One character(8bits) is presented with 2 node. And each node can have 2^4 sub node.
+         This may require more memories if there are lots of symbols in global space. 
+         But We can get following advantages by using Trie.
+             - Fast to search symbol (Searching time is independent on number of symbols).
+             - Sorted result can be taken easily.
+             - Good to implement automatic-symbol-completion effectively in terms of performance.
+             - Memories can be used effectively.
+               (Usually, lots of unused spaces exit in case of Hash)
+
+* GC(Garbage collection)
+    Memory pool is used. 
+        - fixed-size-memory-pool is used. We may use dynamically-growing-memory-pool.
+    Reference count is used.
+        - every memory block has reference count.
+    GC is triggered when evaluation is finished.
+        - Newly allocated dangling memory blocks - blocks whose reference count is zero - are freed except for those referred by return value.
+        - If memory pool usage exceeded predefined threshold and interpreting request is done, than Full-Scanning-GC(FSGC) is triggered to collect dangling cyclic-cross-referred-blocks. 
+          Why FSGC can be done only after interpreting request is done? Because, at that moment, interpret state depends only on global symbols. So, we can assume lots of things - this make GC easier!
+          Actually, there are two options. one is using FSGC as an main GC method. the other is current implemented way. In terms of efficient memory usage, the former is better. But, to implement this, we should be careful when use memory block and returned value. And this makes it more difficult to implement CNF plug-in. So, at the cost of a little inefficient memory usage, we can get interpreter design for easy-to-extend-CNF.
+          (In my opinion, reference-based-GC can cover most cases. So, we don't need to worry about memory inefficiency too much)
+
+* Error handling
+    To avoid cascading return chain - return from callee to caller and it's caller again and again... - in case of unexpected state, ylisp creates thread for interpreting stream and wait to join. 
+    So, at the unexpected moment, exiting from thread is enough!. Therefore, we can free from cascading return chain. This saves programming efforts dramatically.
+
+* External dependency
+    ylisp uses thread and plug-in loading - dynamic loading. And it plug-in uses base symbol directly. 
+    So, "-rdynamic -ldl -lpthread" options are required when creating executable file with ylisp.a library.
+
+* Things to discuss.
+
+
+********************************************
+* Starting Sample/Demo 
+********************************************
+
+
+********************************************
+* Creating CNF 
+********************************************
+* At first, see existing CNF plug-ins.
+* Things to obey
+    - Assigning values to element data (yle_t) SHOULD NOT be done. Use interface functions/macros to do this!
+* Interface for create CNF plug-ins.
+    Files :
+        ylisp.h : headers to implement ylisp front-end.
+        yldev.h : essential header for developing CNF that includes data types and constants.
+        yldevut.h / ylsfunc.h : This has several interface macros/functions for CNF developers.
+   ylmp_get_block() :
+       Memory for yle_t should be taken from memory pool by using this.
+   ylpassign(), ylpsetcar(), ylpsetcdr()
+    - Setting car or cdr value of pair should be done by calling one of those
+      (Those functions handle reference count automatically.)
+      If not, GC may not work correctly!
+* There should be at least one functions that registers native function to interpreter.
+  (This function will be called when plug-in library is loaded)

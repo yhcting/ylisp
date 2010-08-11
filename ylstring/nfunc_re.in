@@ -1,0 +1,45 @@
+/*****************************************************************************
+ *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
+ *    
+ *    This file is part of YLISP.
+ *
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as
+ *    published by the Free Software Foundation either version 3 of the 
+ *    License, or (at your option) any later version.
+ *    
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU Lesser General Public License 
+ *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
+
+
+NFUNC(pcre_match,           "string.pcre-match",             YLANfunc,
+    "string.pcre-match <pattern> <subject> <option> : <list exp>\n"
+    "    -match with 'pcre - Perl Compatible REgular expression'. And returns matched string.\n"
+    "    @pattern [Symbol]: Pattern format\n"
+    "    @subject [Symbol]: Subject string\n"
+    "    @option [Symbol]:  Match options. 'i', 'm', 's' are supported\n"
+    "    @return : list of matched string.\n"
+    "    *ex\n"
+    "        (set 'r (string.pcre-match '\"\\\\s+(\\\\w+)\\\\s+\" '\"yyy haha  hehe\" '\"\"))\n"
+    "        (print (car r)); ' haha  ' is printed.\n"
+    "        (print (cadr r));'haha' is printed.\n")
+
+
+NFUNC(pcre_replace,         "string.pcre-replace",           YLANfunc,
+    "string.pcre-replace <pattern> <new string> <subject> <option> : [Symbol]\n"
+    "    -replace matched part with <new string>\n"
+    "    @new string [Symbol]:\n"
+    "    @pattern, subject, option: see 'string.pcre-match'\n"
+    "    @return : newly generated string.\n"
+    "    *ex\n"
+    "        (print (string.pcre-replace '[0-9]+ 'num '\"value is 467\" '\"\"));\n"
+    "            ;'value is num' is printed.\n")
+
