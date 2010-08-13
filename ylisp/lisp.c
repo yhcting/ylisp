@@ -174,7 +174,7 @@ ylregister_nfunc(unsigned int version,
     char*        s;
     
     if(yldev_ver_major(version) < yldev_ver_major(YLDEV_VERSION)) {
-        yllogE(("Version of CNF library is lower than ylisp!!\n"
+        yllog((YLLogE, "Version of CNF library is lower than ylisp!!\n"
               "  ylisp[%d.%d], cnf[%d.%d]\n", 
               yldev_ver_major(YLDEV_VERSION), yldev_ver_minor(YLDEV_VERSION),
               yldev_ver_major(version), yldev_ver_minor(version)));
@@ -182,7 +182,7 @@ ylregister_nfunc(unsigned int version,
     }
 
     if(YLANfunc != ftype && YLASfunc != ftype) {
-        yllogE(("Function type should be one of ATOM_NFUNC, ylor ATOM_RAW_NFUNC"));
+        yllog((YLLogE, "Function type should be one of ATOM_NFUNC, ylor ATOM_RAW_NFUNC"));
         return YLErr_cnf_register;
     }
     
@@ -206,13 +206,6 @@ ylunregister_nfunc(const char* sym) {
 const ylsys_t*
 ylsysv() {
     return _sysv;
-}
-
-void
-ylset_loglv(ylloglv_t lv) {
-    if(_sysv) {
-        _sysv->loglv = lv;
-    }
 }
 
 int
@@ -433,7 +426,7 @@ ylinit(ylsys_t* sysv) {
     ylmp_init();
 
 #define NFUNC(n, s, type, desc)                                         \
-    ylregister_nfunc(YLDEV_VERSION, s, (ylnfunc_t)YLNFN(n), type, ">> lib: ylisp] <<\n" desc);
+    ylregister_nfunc(YLDEV_VERSION, s, (ylnfunc_t)YLNFN(n), type, ">> lib: ylisp <<\n" desc);
 #include "nfunc.in"
 #undef NFUNC
 

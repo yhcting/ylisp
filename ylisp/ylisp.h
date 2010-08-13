@@ -80,12 +80,12 @@ typedef enum {
 } ylerr_t;
 
 typedef enum {
-    YLLog_verb = 0,
-    YLLog_dev,
-    YLLog_info,
-    YLLog_warn,
-    YLLog_output,
-    YLLog_err,
+    YLLogV = 0,  /* verbose */
+    YLLogD,      /* devleop */
+    YLLogI,      /* information */
+    YLLogW,      /* warning */
+    YLLogE,      /* error */
+    YLLogLV_NUM
 } ylloglv_t;
 
 
@@ -93,10 +93,10 @@ typedef enum {
  * All members are mendatory!
  */
 typedef struct {
-    /* logging level */
-    ylloglv_t    loglv;
-    
-    /* 'printf'-like system print function */
+    /* function for logging */
+    void       (*log)(int loglv, const char* format, ...);
+
+    /* function for print output - printf like */
     int        (*print)(const char* format, ...);
 
     /* assert. "assert(0)" means, "module meent unrecoverable error!" */
@@ -108,21 +108,6 @@ typedef struct {
     /* memory free */
     void       (*free)(void*);
 } ylsys_t; /* system parameter  */
-
-
-
-const ylsys_t* ylsysv();
-
-#define ylassert(x) ylsysv()->assert((int)(x))
-#define ylmalloc(x) ylsysv()->malloc(x)
-#define ylfree(x)   ylsysv()->free(x)
-#define ylprint(x)  ylsysv()->print x
-
-/*
- * set system log level
- */
-extern void
-ylset_loglv(ylloglv_t lv);
 
 /* 
  * this SHOULD BE called firstly before using module.

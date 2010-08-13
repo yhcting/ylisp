@@ -1,23 +1,77 @@
-Goal of ylisp is Rapid Tool Development Tool.
-So, ylisp doesn't want to be complete programming language like Common Lisp (But it can be).
-Instead of it, ylisp focuses on following features.
-    - new custom functions can be added and used easily. (through plug-in)
-    - symbol programming syntax. (S-Expression like lisp).
-Consumer can easily extend their own native functions (Customized Native Function - CNF) by programming plug-ins.
-At this project, some plug-ins are already implemented. Those can be good examples.
+Introduction
+------------
+    Goal of YLISP is Rapid Tool Development Tool.
+    So, YLISP doesn't want to be complete programming language like Common Lisp.
+    Instead of it, YLISP focuses on supporting mechanism to add and use customized-native-function(CNF)s easily.
+    Consumer can easily extend their own CNFs by programming plug-ins.
+    Lisp is function based language. So, Consumer can define their own semantics with S-Expression syntax.
+    (That is, consumer can make their own lisp by extending CNF plug-ins)
+    YLISP's mathmatical model comes from (http://www-formal.stanford.edu/jmc/recursive (by John McCarthy)).
+    
+    Main features that YLISP library provides are:
+        * S-Expression syntax parser.
+        * Lisp evaluation mechanism (fundamental S-Functions are built-in (ex. lambda, mlambda, set, mset) in the library)
+        * Garbage collection mechanism.
+        * Mechanism to update/lookup global symbols.
+        * Interface to load/unload CNF plug-ins(libraries).
 
-* Directory/File Structure
+    At this project, some plug-ins are already implemented. Those can be good examples.
+
+    YLISP has been compiled and tested only on:
+        * Linux(Ubuntu)
+
+
+How Do I Build It?
+------------------
+    In the YLISP directory, type 'sh build.sh'
+        To apply user specific environment, modify Makefile in each directory.
+        Current source requires followings to build.
+            : jre (yljfe), libpthread.so, libdl.so, libm.so (ylmath)
+
+        
+How Do I Run Demo?
+------------------
+    Build it by type 'sh build.sh'. Enter yljfe. type './yljfe'.
+    For running test scripts in 'yls' directly at the start of 'yljfe'.
+    Type './yljfe ../yls/yljfe_initrc.yl'
+    Simple introduction of yljfe.
+        Upper area is display (view only) area for output. Lower area is edit area.
+        Enter lisp code and press Ctrl-R to run edited lisp code.
+        Ctrl-F to symbol auto completion.
+
+
+How Do I Use It?
+----------------
+    I don't know.
+    I uses yljfe as a simple script language tool for making tool.
+    The reason why I starts this project is, 
+        "I don't want to learn any other script language! Learning one-language(C) is enough!"
+    But, actually I am defeated. There are lots of scripts that I should understand.
+    So, I had to learn those...(ex. python, perl, shell etc)
+    But, learning language to make something with it, requires totally different efforts comparing to learning language to understand code.
+    .... What I am talking about now?? :-) ....
+
+
+Programming Policy
+------------------
+    non-compatible coding style (ex. codes works only on GCC) is tried to be avoided.
+    So, codes are based on C89 & Posix.
+    (That is, features of C99 are not used intentionally except for 'inline')
+
+
+Directory/File Structure
+------------------------
     ylisp:
         Core module.
         This includes 'Lisp Syntax Parser', function for evaluating expression, memory management, symbol lookup, core S-Functions etc.
-        Others except for this module, are just extending native functions of ylisp.
+        Others except for this module, are just extending native functions of YLISP.
         So, most parts of this document are to explain details about this module (ylisp).
     ylcon:
-        Very simple console front-end for ylisp. With yljfe, it becomes obsolete.
+        Very simple console front-end for YLISP. With yljfe, it becomes obsolete.
     yljfe:
-        Very simple java front-end for ylisp.
+        Very simple java front-end for YLISP.
         For GUI, this uses java swing. So, to run this, JRE is required.
-        /jsrc:
+        jsrc/:
             Java source code for GUI.
     ylbase:
         Plug-in for native function extension. Very basic and fundamental functions are implemented here.
@@ -26,15 +80,19 @@ At this project, some plug-ins are already implemented. Those can be good exampl
         Plug-in for native function extension. Followings are the list of library name and register functions.
         libylbase.so : yllibylbase_register
         libylmath.so : yllibylmath_register
-        libylstring.so : yllibylstring_register, yllibylstring_re_register
+        libylstring.so : yllibylstring_register, yllibylstring_re_register(requires pcre library - libpcre.so)
         libylsystem.so : yllibylsystem_register
     yls
-        ylisp script files.
+        YLISP script files.
 
-* Naming Convention
-    Names in the Report (http://www-formal.stanford.edu/jmc/recursive (by John McCarthy) is used.
 
-* Parsing S-Expression
+Naming Convention
+-----------------
+    Names for S-Expression follows the Report (http://www-formal.stanford.edu/jmc/recursive (by John McCarthy))
+
+
+Parsing S-Expression
+--------------------
     Meta character: ", \, '
         " : all character between double quote lose it's special meaning. except for escape character\.
         \ : escape character. Only ", \, n can be followed by \.
@@ -43,20 +101,29 @@ At this project, some plug-ins are already implemented. Those can be good exampl
             "()"     : () symbol (Not nil)
             "xx\"xx" : xx"xx
             ""       : empty string symbol
+    Symbol delimiter
+        ", (, ), [white space]
+        ex.
+            xxx"yyy"xxx : 3 symbol. xxx, yyy, xxx
 
-* Data Structure
+
+Data Structure
+--------------
+
     
-* Machine representation
+Machine representation of S-Expression
+--------------------------------------
     predefined variable is used to represents NIL.
     In case of comparison, NIL means false / others true.
     And NIL is also ATOM.
 
 
-* Symbol look-up
+Symbol look-up
+--------------
     Hash (obsolete)
-        ylisp uses 2^16 hash as an look up function. 
-        ylisp calculates 32 bit crc for symbols and lower 16 bits are used as an hash function. And this calculated 32 bit crc values are stored in the symbol data structure.
-        When comparing two symbols, ylisp compares crc values first. If those are same, real symbol strings are compared. By this way, ylisp saves costs of comparing string symbols.
+        YLISP uses 2^16 hash as an look up function. 
+        YLISP calculates 32 bit crc for symbols and lower 16 bits are used as an hash function. And this calculated 32 bit crc values are stored in the symbol data structure.
+        When comparing two symbols, YLISP compares crc values first. If those are same, real symbol strings are compared. By this way, YLISP saves costs of comparing string symbols.
 
     Trie :
          Data Structure for symbol look up at 'master' branch is changed to Trie from Hash! (4bits are used).
@@ -69,7 +136,9 @@ At this project, some plug-ins are already implemented. Those can be good exampl
              - Memories can be used effectively.
                (Usually, lots of unused spaces exit in case of Hash)
 
-* GC(Garbage collection)
+
+GC(Garbage collection)
+----------------------
     Memory pool is used. 
         - fixed-size-memory-pool is used. We may use dynamically-growing-memory-pool.
     Reference count is used.
@@ -81,38 +150,50 @@ At this project, some plug-ins are already implemented. Those can be good exampl
           Actually, there are two options. one is using FSGC as an main GC method. the other is current implemented way. In terms of efficient memory usage, the former is better. But, to implement this, we should be careful when use memory block and returned value. And this makes it more difficult to implement CNF plug-in. So, at the cost of a little inefficient memory usage, we can get interpreter design for easy-to-extend-CNF.
           (In my opinion, reference-based-GC can cover most cases. So, we don't need to worry about memory inefficiency too much)
 
-* Error handling
-    To avoid cascading return chain - return from callee to caller and it's caller again and again... - in case of unexpected state, ylisp creates thread for interpreting stream and wait to join. 
+
+Error handling
+--------------
+    To avoid cascading return chain - return from callee to caller and it's caller again and again... - in case of unexpected state, YLISP creates thread for interpreting stream and wait to join. 
     So, at the unexpected moment, exiting from thread is enough!. Therefore, we can free from cascading return chain. This saves programming efforts dramatically.
 
-* External dependency
-    ylisp uses thread and plug-in loading - dynamic loading. And it plug-in uses base symbol directly. 
-    So, "-rdynamic -ldl -lpthread" options are required when creating executable file with ylisp.a library.
 
-* Things to discuss.
-
-
-********************************************
-* Starting Sample/Demo 
-********************************************
+External dependency
+-------------------
+    YLISP uses thread and plug-in loading - dynamic loading. And it plug-in uses base symbol directly. 
+    So, "-rdynamic -ldl -lpthread" options are required when creating executable file with YLISP.a library.
 
 
-********************************************
-* Creating CNF 
-********************************************
-* At first, see existing CNF plug-ins.
-* Things to obey
-    - Assigning values to element data (yle_t) SHOULD NOT be done. Use interface functions/macros to do this!
-* Interface for create CNF plug-ins.
-    Files :
-        ylisp.h : headers to implement ylisp front-end.
-        yldev.h : essential header for developing CNF that includes data types and constants.
-        yldevut.h / ylsfunc.h : This has several interface macros/functions for CNF developers.
-   ylmp_get_block() :
-       Memory for yle_t should be taken from memory pool by using this.
-   ylpassign(), ylpsetcar(), ylpsetcdr()
-    - Setting car or cdr value of pair should be done by calling one of those
-      (Those functions handle reference count automatically.)
-      If not, GC may not work correctly!
-* There should be at least one functions that registers native function to interpreter.
-  (This function will be called when plug-in library is loaded)
+Things to think of
+------------------
+    ylmalloc & ylfree are used for various-size-blocks, and called very often. 
+    So, if we don't do anything, external memory fragmentation is unavoidable.
+    (In most case, I didn't handle the case of failing ylmalloc.)
+    But, I'm not sure that we should take care of it. Can we ignore it? Hmm...
+    Handling external memory fragmentation is always big headache!!
+
+
+Creating CNF 
+------------
+    * At first, see existing CNF plug-ins.
+    * Things to obey
+        - Assigning values to element data (yle_t) SHOULD NOT be done. Use interface functions/macros to do this!
+    * Interface for create CNF plug-ins.
+        Files :
+            ylisp.h : headers to implement YLISP front-end.
+            yldev.h : essential header for developing CNF that includes data types and constants.
+            yldevut.h / ylsfunc.h : This has several interface macros/functions for CNF developers.
+       ylmp_get_block() :
+           Memory for yle_t should be taken from memory pool by using this.
+       ylpassign(), ylpsetcar(), ylpsetcdr()
+        - Setting car or cdr value of pair should be done by calling one of those
+          (Those functions handle reference count automatically.)
+          If not, GC may not work correctly!
+    * There should be at least one functions that registers native function to interpreter.
+      (This function will be called when plug-in library is loaded)
+
+
+Known Bugs
+----------
+system.shell
+    * stderr is not shown at yljfe.
+    * stdout is not fully shown if output is long.

@@ -25,10 +25,13 @@
 #ifdef __YLDBG__
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <malloc.h>
 #include <assert.h>
 #include <string.h>
 #include "ylsfunc.h"
+
+#define _LOGLV  YLLogV
 
 static int _mblk = 0;
 
@@ -56,6 +59,16 @@ get_mblk_size() {
     return _mblk;
 }
 
+static void
+_log(int lv, const char* format, ...) {
+    if(lv >= _LOGLV) {
+        va_list ap;
+        va_start(ap, format);
+        vprintf(format, ap);
+        va_end(ap);
+    }
+}
+
 void
 _assert(int a) {
     if(!a){ assert(0); }
@@ -70,8 +83,8 @@ main(int argc, char* argv[]) {
     ylsys_t   sys;
 
     /* ylset system parameter */
-    sys.loglv = YLLog_output;
     sys.print = printf;
+    sys.log = _log;
     sys.assert = _assert;
     sys.malloc = _malloc;
     sys.free = _free;
@@ -110,7 +123,7 @@ yllibylbase_register() {
 
     /* return if fail to register */
 #define NFUNC(n, s, type, desc) \
-    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylbase] <<\n" desc)) { return; }
+    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylbase <<\n" desc)) { return; }
 #   include "nfunc.in"
 #undef NFUNC
 

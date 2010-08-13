@@ -107,7 +107,28 @@ extern const ylsys_t*
 ylsysv();
 
 /*
- *  mp : Memory Pool
+ * Variable number of argument in macro, is not used for the compatibility reason.
+ * (GCC supports this. But some others don't)
+ */
+#define ylmalloc(x)     ylsysv()->malloc(x)
+#define ylfree(x)       ylsysv()->free(x)
+
+#ifdef __ENABLE_ASSERT
+#   define ylassert(x)  ylsysv()->assert((int)(x))
+#else /* __ENABLE_ASSERT */
+#   define ylassert(x)  ((void*)0)
+#endif /* __ENABLE_ASSERT */
+
+#ifdef __ENABLE_LOG
+#   define yllog(x)     ylsysv()->log x
+#else /* __ENABLE_LOG */
+#   define yllog(x)     ((void*)0)
+#endif /* __ENABLE_LOG */
+
+#define ylprint(x)      ylsysv()->print x
+
+/*
+ * mp : Memory Pool
  * get yle_t block 
  */
 extern yle_t*

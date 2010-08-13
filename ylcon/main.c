@@ -22,6 +22,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
 #include <memory.h>
@@ -31,7 +32,7 @@
 
 #include "ylisp.h"
 
-
+static int _loglv = YLLogW;
 
 static int _handle_console_command(char* stream);
 
@@ -148,12 +149,11 @@ _set_loglv(char* opt) {
         ret = 0;
     } else {
         switch(opt[0]) {
-            case 'v': ylset_loglv(YLLog_verb);     break;
-            case 'd': ylset_loglv(YLLog_dev);      break;
-            case 'i': ylset_loglv(YLLog_info);     break;
-            case 'o': ylset_loglv(YLLog_output);   break;
-            case 'w': ylset_loglv(YLLog_warn);     break;
-            case 'e': ylset_loglv(YLLog_err);      break;
+            case 'v': _loglv = YLLogV; break;
+            case 'd': _loglv = YLLogD; break;
+            case 'i': _loglv = YLLogI; break;
+            case 'w': _loglv = YLLogW; break;
+            case 'e': _loglv = YLLogE; break;
             default:
                 printf("unknown option\n");
                 ret = 0;
@@ -188,7 +188,7 @@ _handle_console_command(char* s) {
 static int
 _parse_option(int argc, char* argv[]) {
     if(1 == argc) {
-        ylset_loglv(YLLog_output);
+        ; /* nothing to do */
     } else if (2 == argc) {
         if(!_set_loglv(argv[1])) {
             goto bail;
@@ -201,8 +201,18 @@ _parse_option(int argc, char* argv[]) {
 
  bail:
     printf("usage: ylcon [log level]\n"
-           "   'log level' is optional yland should be one of 'v', 'd', 'i', 'o', 'w', 'e'\n");
+           "   'log level' is optional yland should be one of 'v', 'd', 'i', 'w', 'e'\n");
     return 0;
+}
+
+static void
+_log(int lv, const char* format, ...) {
+    if(lv >= _loglv) {
+        va_list ap;
+        va_start(ap, format);
+        vprintf(format, ap);
+        va_end(ap);
+    }
 }
 
 int
@@ -212,8 +222,8 @@ main(int argc, char* argv[]) {
     struct timeval tv0, tv1;
 
     /* ylset system parameter */
-    sys.loglv = YLLog_verb;
     sys.print = printf;
+    sys.log = _log;
     sys.assert = _assert;
     sys.malloc = malloc;
     sys.free = free;

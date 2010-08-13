@@ -23,3 +23,92 @@
 (let ((r '()) (subj '"hahaha my name is cho!"))
     (set 'r (string.pcre-replace '"name" '"full name" subj '""))
     (assert (eq r '"hahaha my full name is cho!")))
+
+(assert (eq 'a (string.at 'abcdefg 0)))
+(assert (eq 'g (string.at 'abcdefg 6)))
+(assert (eq 'c (string.at 'abcdefg 2)))
+
+(assert (< (string.compare 'ab 'cd) 0))
+(assert (> (string.compare 'cd 'ab) 0))
+(assert (= (string.compare 'ab 'ab) 0))
+
+(assert (not (string.end-with 'abc 'abcd)))
+(assert (not (string.end-with '"" 'ab)))
+(assert (not (string.end-with 'abc '"")))
+(assert (not (string.end-with 'abcde 'ed)))
+(assert (string.end-with 'abcde 'abcde))
+(assert (string.end-with 'abcde 'cde))
+(assert (string.end-with 'abcde 'e))
+
+(assert (not (string.start-with 'abc 'abcd)))
+(assert (not (string.start-with '"" 'ab)))
+(assert (not (string.start-with 'abc '"")))
+(assert (not (string.start-with 'abcde 'ed)))
+(assert (not (string.start-with 'abcde 'ab 1)))
+(assert (not (string.start-with 'abcde 'ab 5)))
+(assert (not (string.start-with 'abcde 'b -2))) 
+(assert (string.start-with 'abcde 'abcde))
+(assert (string.start-with 'abcde 'abc))
+(assert (string.start-with 'abcde 'a))
+(assert (string.start-with 'abcde 'a 0))
+(assert (not (string.start-with 'abcde 'a -1)))
+(assert (string.start-with 'abcde 'cd 2))
+
+(assert (eq '() (string.index-of 'abcdeabcde '"")))
+(assert (eq '() (string.index-of 'abcdeabcde 'abcdefabcdef)))
+(assert (eq '() (string.index-of '"" '"")))
+(assert (eq '() (string.index-of '"" 'abc)))
+(assert (eq 0 (string.index-of 'abcdeabcde 'a)))
+(assert (eq 0 (string.index-of 'abcdeabcde 'abcdeabcde)))
+(assert (eq 0 (string.index-of 'abcdeabcde 'abc)))
+(assert (eq 2 (string.index-of 'abcdeabcde 'cde)))
+(assert (eq '() (string.index-of 'abcdeabcde 'tt)))
+(assert (eq 2 (string.index-of 'abcdeabcde 'cd)))
+(assert (eq 2 (string.index-of 'abcdeabcde 'cd 2)))
+(assert (eq 7 (string.index-of 'abcdeabcde 'cd 3)))
+(assert (eq 7 (string.index-of 'abcdeabcde 'cd 7)))
+(assert (eq '() (string.index-of 'abcdeabcde 'cd 8)))
+
+(assert (eq '() (string.last-index-of 'abcdeabcde '"")))
+(assert (eq '() (string.last-index-of 'abcdeabcde 'abcdefabcdef)))
+(assert (eq '() (string.last-index-of '"" '"")))
+(assert (eq '() (string.last-index-of '"" 'abc)))
+(assert (eq 5 (string.last-index-of 'abcdeabcde 'a)))
+(assert (eq 5 (string.last-index-of 'abcdeabcde 'abc)))
+(assert (eq 0 (string.last-index-of 'abcdeabcde 'abcdeabcde)))
+(assert (eq '() (string.last-index-of 'abcdeabcde 'tt)))
+(assert (eq 5 (string.last-index-of 'abcdeabcde 'a 5)))
+(assert (eq 0 (string.last-index-of 'abcdeabcde 'a 4)))
+
+(assert (eq '1234512345 (string.replace 'abcdeabcde 'abcde '12345)))
+(assert (eq 'abcdeabcde (string.replace 'abcdeabcde '"" '12345)))
+(assert (eq 'abcdeabcde (string.replace 'abcdeabcde '"" '"")))
+(assert (eq 'dede (string.replace 'abcdeabcde 'abc '"")))
+(assert (eq '12345 (string.replace 'abcdeabcde 'abcdeabcde '12345)))
+
+(assert (eq 'abcdeabcde (string.substring 'abcdeabcde 0)))
+(assert (eq 'abcdeabcde (string.substring 'abcdeabcde -3)))
+(assert (eq 'abcde (string.substring 'abcdeabcde 5)))
+(assert (eq '"" (string.substring 'abcdeabcde 100)))
+(assert (eq '"" (string.substring 'abcdeabcde 6 3)))
+(assert (eq '"" (string.substring 'abcdeabcde 0 0)))
+(assert (eq 'a (string.substring 'abcdeabcde 0 1)))
+(assert (eq 'e (string.substring 'abcdeabcde 9 10)))
+(assert (eq 'cd (string.substring 'abcdeabcde 7 9)))
+(assert (eq 'ab (string.substring 'abcdeabcde 0 2)))
+(assert (eq 'cde (string.substring 'abcdeabcde 2 5)))
+
+(assert (eq 'abc12de (string.to-lower-case 'abC12De)))
+(assert (eq 'ABC12DE (string.to-upper-case 'abC12De)))
+
+(assert (eq 'abc  (string.trim 'abc)))
+(assert (eq 'abc  (string.trim '"  abc")))
+(assert (eq 'abc  (string.trim '"  abc   ")))
+(assert (eq '""  (string.trim '"     ")))
+
+
+
+
+
+
+

@@ -23,8 +23,7 @@ public class Main extends JFrame {
         Develop     (1),
         Infomation  (2),
         Warn        (3),
-        Output      (4),
-        Error       (5);
+        Error       (4);
         
         private int     _v;
         
@@ -40,11 +39,11 @@ public class Main extends JFrame {
         
     }
 
-    private YLJEditArea     _edit;
-    private JTextArea       _out;
-    private LinkedList      _history = new LinkedList();
-    private int             _hi = 0;  // history index
-    private int             _loglv = _LogLv.Output.v(); // default is log ouput - refer native code's implementation
+    private YLJEditArea         _edit;
+    private JTextArea           _out;
+    private LinkedList<String>  _history = new LinkedList<String>();
+    private int                 _hi = 0;  // history index
+    private int                 _loglv = _LogLv.Warn.v(); // default is log ouput - refer native code's implementation
 
     // ============================= ACTIONS START ==============================
     private class InterpretAction extends AbstractAction {

@@ -23,6 +23,11 @@
 #ifndef ___CONFIg_h___
 #define ___CONFIg_h___
 
+
+/* ---------------------------------
+ * Interpreter Internal Configuration
+ * ---------------------------------*/
+
 /* size of memory pool. the more the better! */
 #define MPSIZE  (128*1024)
 
@@ -30,8 +35,11 @@
 /* ---------------------------------
  * Switches for debugging
  * ---------------------------------*/
+#define __ENABLE_LOG
+#define __ENABLE_ASSERT
+
 /* #define __DBG_GEN */  /* general debugging - usually required */
-/* #define __DBG_EVAL */  /* to debug evaluation */
+/* #define __DBG_EVAL */ /* to debug evaluation */
 /* #define __DBG_MEM */  /* to debug memory pool and GC */
 
 

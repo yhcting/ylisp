@@ -55,8 +55,12 @@ ylmp_full_scan_gc();
 extern unsigned int
 ylmp_usage();
 
+
 extern void
-ylmp_print_stat(int loglevel);
+ylmp_log_stat(int loglevel);
+
+extern void
+ylmp_print_stat();
 
 /*
  * is this block is free?

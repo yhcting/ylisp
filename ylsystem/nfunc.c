@@ -24,72 +24,93 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <unistd.h>
 #include <memory.h>
+
+/* enable logging & debugging */
+#define __ENABLE_ASSERT
+#define __ENABLE_LOG
 
 #include "ylsfunc.h"
 
+/*
+ * Return newly allocated(by malloc) memory buffer that contains file data.
+ * (free needed to be called to release memory)
+ * @return NULL if fails.
+ */
+static char*
+_read_file(FILE* fin) {
+#define __INITBSZ 4096 /* initial buffer size - usually page size is 4KB*/
+    unsigned int  rsz, /* rsz : size read */
+                  asz; /* asz : available size */
+    char         *pbuf, *pb, *pbend;
+
+    /* 4KB is initial size of buffer */
+    pb = pbuf = ylmalloc(__INITBSZ+1); /* '+1' for trailing NULL */
+    pbend = pb + __INITBSZ;
+    do {
+        asz = pbend - pb;
+        rsz = fread(pb, 1, asz, fin);
+        if(0 > rsz) {
+            goto bail;
+        } else if(rsz < asz) {
+            /* OK. Success - add trailing NULL*/
+            *(pb + rsz) = 0;
+            break;
+        } else {
+            /* not enough buffer. double it! */
+            char*          tmp;
+            unsigned int   bsz; /* buffer size */
+            bsz = pbend - pbuf;
+            tmp = ylmalloc(bsz*2+1);/* '+1' for trailing NULL */
+            if(!tmp) { goto bail; }
+            pb = tmp + bsz;
+            memcpy(tmp, pbuf, bsz);
+            ylfree(pbuf);
+            pbuf = tmp;
+            pbend = pbuf + bsz*2;
+        }
+    } while(1);
+    return pbuf;
+
+ bail:
+    if(pbuf) { ylfree(pbuf); }
+    return NULL;
+
+#undef __INITBSZ
+}
+
 
 YLDEFNF(shell, 1, 1) {
-#define __INITBSZ 4096 /* initial buffer size - usually page size is 4KB*/
-#define __cleanup_process()                             \
-    do {                                                \
-        /* clean resources */                           \
-        if(buf) { ylfree(buf); }                        \
-        if(pout) { pclose(pout); }                      \
+#define __cleanup_process()                                     \
+    do {                                                        \
+        /* clean resources */                                   \
+        if(data) { ylfree(data); }                              \
+        if(pout) { pclose(pout); }                              \
     } while(0)
 
     FILE*  pout = NULL;
-    char*  buf = NULL;
+    char*  data = NULL;
+    int    svstderr = -1;
+
 
     /* check input parameter */
-    ylcheck_chain_atom_type1(shell, e, YLASymbol);
+    ylcheck_chain_atom_type1(system.shell, e, YLASymbol);
 
     pout = popen(ylasym(ylcar(e)).sym, "r");
     if(!pout) { goto bail; }
     
-    /* Read data from redirected stdout */
-    { /* just scope */
-        unsigned int rsz, available_sz;
-        char  *p, *pend;
-
-        /* 4KB is initial size of buffer */
-        p = buf = ylmalloc(__INITBSZ+1); /* '+1' for trailing NULL */
-        pend = p + __INITBSZ;
-        do {
-            available_sz = pend - p;
-            rsz = fread(p, 1, available_sz, pout);
-            if(0 > rsz) {
-                goto bail;
-            } else if(rsz < available_sz) {
-                /* OK. Success - add trailing NULL*/
-                *(p + rsz) = 0;
-                break;
-            } else {
-                /* not enough buffer. double it! */
-                char*          tmp;
-                unsigned int   bsz; /* buffer size */
-                bsz = pend - buf;
-                tmp = ylmalloc(bsz*2+1);/* '+1' for trailing NULL */
-                if(!tmp) {
-                    /* Not enough memory */
-                    yllogE(("Not enough memory: required [%d]\n", bsz*2));
-                    goto bail;
-                }
-                p = tmp + bsz;
-                memcpy(tmp, buf, bsz);
-                ylfree(buf);
-                buf = tmp;
-                pend = buf + bsz*2;
-            }
-        } while(1);
-    } /* End of 'Just scope' */    
-
+    data = _read_file(pout);
+    if(!data) {
+        yllog((YLLogE, "<!system.shell!> Not enough memory\n"));
+        goto bail;
+    }
 
     { /* Just scope */
         yle_t*  r = ylmp_get_block();
-        ylaassign_sym(r, buf);
+        ylaassign_sym(r, data);
         /* buffer is already assigned to expression. So, this SHOULD NOT be freed */
-        buf = NULL; 
+        data = NULL; 
         __cleanup_process();
         return r;
     }
@@ -97,21 +118,21 @@ YLDEFNF(shell, 1, 1) {
  bail:
     __cleanup_process();
 
-    yllogE(("Could not run : %s\n", ylasym(ylcar(e)).sym));
+    yllog((YLLogE, "<!system.shell!> Could not run : %s\n", ylasym(ylcar(e)).sym));
     ylinterpret_undefined(YLErr_func_fail);
 
 } YLENDNF(shell)
 
 YLDEFNF(sleep, 1, 1) {
     /* check input parameter */
-    ylcheck_chain_atom_type1(sleep, e, YLADouble);
+    ylcheck_chain_atom_type1(system.sleep, e, YLADouble);
     sleep((unsigned int)yladbl(ylcar(e)));
     return ylt();
 } YLENDNF(sleep)
 
 YLDEFNF(usleep, 1, 1) {
     /* check input parameter */
-    ylcheck_chain_atom_type1(usleep, e, YLADouble);
+    ylcheck_chain_atom_type1(system.usleep, e, YLADouble);
     usleep((unsigned int)yladbl(ylcar(e)));
     return ylt();
 } YLENDNF(usleep)
@@ -119,7 +140,7 @@ YLDEFNF(usleep, 1, 1) {
 YLDEFNF(getenv, 1, 1) {
     char*  env;
     /* check input parameter */
-    ylcheck_chain_atom_type1(getenv, e, YLASymbol);
+    ylcheck_chain_atom_type1(system.getenv, e, YLASymbol);
     env = getenv(ylasym(ylcar(e)).sym);
     if(env) {
         yle_t*          r = ylmp_get_block();
@@ -134,11 +155,10 @@ YLDEFNF(getenv, 1, 1) {
     }
 } YLENDNF(getenv)
 
-
 YLDEFNF(setenv, 2, 2) {
     char*  env;
     /* check input parameter */
-    ylcheck_chain_atom_type1(setenv, e, YLASymbol);
+    ylcheck_chain_atom_type1(system.setenv, e, YLASymbol);
     if(0 == setenv(ylasym(ylcar(e)).sym, ylasym(ylcadr(e)).sym, 1)) {
         return ylt();
     } else {
@@ -146,17 +166,37 @@ YLDEFNF(setenv, 2, 2) {
     }
 } YLENDNF(setenv)
 
+YLDEFNF(chdir, 1, 1) {
+    ylcheck_chain_atom_type1(system.chdir, e, YLASymbol);
+    if( 0 > chdir(ylasym(ylcar(e)).sym) ) {
+        yllog((YLLogW, "<!system.chdir!> Fail to change directory to [ %s ]\n", ylasym(ylcar(e)).sym));
+        return ylnil();
+    } else {
+        return ylt();
+    }
+} YLENDNF(chdir)
+
+YLDEFNF(getcwd, 0, 0) {
+    yle_t*   r = ylmp_get_block();
+    /*
+     * Passing NULL at getcwd (POSIX.1-2001) - libc4, libc5, glibc
+     */
+    ylaassign_sym(r, getcwd(NULL, 0));
+    return r;
+} YLENDNF(getcwd)
+
+
 YLDEFNF(fread, 1, 1) {
     FILE*    fh = NULL;
     char*    buf = NULL;
     yle_t*   r;
     long int sz;
 
-    ylcheck_chain_atom_type1(fread, e, YLASymbol);
+    ylcheck_chain_atom_type1(system.fread, e, YLASymbol);
     
     fh = fopen(ylasym(ylcar(e)).sym, "r");
     if(!fh) {
-        yllogW(("<!fread!> Cannot open file [%s]\n", ylasym(ylcar(e)).sym));
+        yllog((YLLogW, "<!system.fread!> Cannot open file [%s]\n", ylasym(ylcar(e)).sym));
         goto bail;
     }
 
@@ -167,12 +207,12 @@ YLDEFNF(fread, 1, 1) {
 
     buf = ylmalloc((unsigned int)sz+1); /* +1 for trailing 0 */
     if(!buf) {
-        yllogW(("<!fread!> Not enough memory to load file [%s]\n", ylasym(ylcar(e)).sym));
+        yllog((YLLogW, "<!system.fread!> Not enough memory to load file [%s]\n", ylasym(ylcar(e)).sym));
         goto bail;
     }
 
     if(sz != fread(buf, 1, sz, fh)) {
-        yllogW(("<!fread!> Fail to read file [%s]\n", ylasym(ylcar(e)).sym));
+        yllog((YLLogW, "<!system.fread!> Fail to read file [%s]\n", ylasym(ylcar(e)).sym));
         goto bail;
     }
     buf[sz] = 0; /* add trailing 0 */
@@ -198,11 +238,11 @@ YLDEFNF(freadb, 1, 1) {
     yle_t*   r;
     long int sz;
 
-    ylcheck_chain_atom_type1(freadb, e, YLABinary);
+    ylcheck_chain_atom_type1(system.freadb, e, YLABinary);
     
     fh = fopen(ylasym(ylcar(e)).sym, "r");
     if(!fh) {
-        yllogW(("<!freadb!> Cannot open file [%s]\n", ylasym(ylcar(e)).sym));
+        yllog((YLLogW, "<!system.freadb!> Cannot open file [%s]\n", ylasym(ylcar(e)).sym));
         goto bail;
     }
 
@@ -213,12 +253,12 @@ YLDEFNF(freadb, 1, 1) {
 
     buf = ylmalloc((unsigned int)sz);
     if(!buf) {
-        yllogW(("<!freadb!> Not enough memory to load file [%s]\n", ylasym(ylcar(e)).sym));
+        yllog((YLLogW, "<!system.freadb!> Not enough memory to load file [%s]\n", ylasym(ylcar(e)).sym));
         goto bail;
     }
 
     if(sz != fread(buf, 1, sz, fh)) {
-        yllogW(("<!fread!> Fail to read file [%s]\n", ylasym(ylcar(e)).sym));
+        yllog((YLLogW, "<!system.fread!> Fail to read file [%s]\n", ylasym(ylcar(e)).sym));
         goto bail;
     }
     
@@ -247,13 +287,13 @@ YLDEFNF(fwrite, 2, 2) {
     /* parameter check */
     if( !(ylais_type(ylcar(e), YLASymbol)
           && (ylais_type(dat, YLASymbol) || ylais_type(dat, YLABinary))) ) {
-        yllogE(("<!fwrite!> invalid parameter type\n"));
+        yllog((YLLogE, "<!system.fwrite!> invalid parameter type\n"));
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
        
     fh = fopen(ylasym(ylcar(e)).sym, "w");
     if(!fh) {
-        yllogW(("<!fwrite!> Cannot open file [%s]\n", ylasym(ylcar(e)).sym));
+        yllog((YLLogW, "<!system.fwrite!> Cannot open file [%s]\n", ylasym(ylcar(e)).sym));
         goto bail;
     }
 
@@ -272,7 +312,7 @@ YLDEFNF(fwrite, 2, 2) {
     }
 
     if(sz != fwrite(rawdata, 1, sz, fh)) {
-        yllogW(("<!fwrite!> Fail to write file [%s]\n", ylasym(ylcar(e)).sym));
+        yllog((YLLogW, "<!system.fwrite!> Fail to write file [%s]\n", ylasym(ylcar(e)).sym));
         goto bail;
     }
     
@@ -290,31 +330,32 @@ YLDEFNF(readdir, 1, 1) {
     yle_t*            re;      /* expression to return */
     const char*       dpath;
 
-    ylcheck_chain_atom_type1(readdir, e, YLASymbol);
+    ylcheck_chain_atom_type1(system.readdir, e, YLASymbol);
     dpath = ylasym(ylcar(e)).sym;
     dip = opendir(dpath);
     if(!dip) { 
-        yllogW(("<!readdir!> Fail to open directory [%s]\n", dpath));
+        yllog((YLLogW, "<!system.readdir!> Fail to open directory [%s]\n", dpath));
         goto bail; 
     }
  
     { /* just scope */
         struct dirent*    dit;
-        yle_t             sentinel;
+        yle_t*            sentinel;
         unsigned int      len;
         char*             fname;
         yle_t            *ne, *t;  /* new exp / tail */
         
         /* initialize sentinel */
-        ylpassign(&sentinel, ylnil(), ylnil());
-        t = &sentinel;
+        sentinel = ylmp_get_block();
+        ylpassign(sentinel, ylnil(), ylnil());
+        t = sentinel;
         while(dit = readdir(dip)) {
             /* ignore '.', '..' in the directory */
             if(0 == strcmp(".", dit->d_name)
                || 0 == strcmp("..", dit->d_name)) { continue; }
 
             len = strlen(dit->d_name);
-            fname = ylmalloc(len + sizeof(char));
+            fname = ylmalloc(len + 1); /* +1 for trailing 0 */
             memcpy(fname, dit->d_name, len);
             fname[len] = 0; /* trailing 0 */
             ne = ylmp_get_block();
@@ -322,7 +363,7 @@ YLDEFNF(readdir, 1, 1) {
             ylpsetcdr(t, ylcons(ne, ylnil()));
             t = ylcdr(t);
         }
-        re = ylcdr(&sentinel);
+        re = ylcdr(sentinel);
     }
     
     closedir(dip);

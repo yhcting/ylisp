@@ -42,6 +42,15 @@ NFUNC(setenv,        "system.setenv",       YLANfunc,
     "    -set environment variable. If there is no matching variable, it returns nil\n"
     "    @variable, value [Symbol]:\n")
 
+NFUNC(chdir,         "system.chdir",        YLANfunc,
+    "system.chdir <path> : [t/nil]\n"
+    "    -change current working directory.\n"
+    "    @return: nil if fails. Otherwise not nil\n")
+
+NFUNC(getcwd,        "system.getcwd",       YLANfunc,
+    "system.getcwd : [Symbol]\n"
+    "    -get current working directory path.\n")
+
 NFUNC(fread,         "system.fread",        YLANfunc,
     "system.fread <file path> : [Symbol] - not tested yet\n"
     "    -read text file.\n"

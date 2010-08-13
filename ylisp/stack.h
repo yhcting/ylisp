@@ -73,7 +73,7 @@ ylstk_size(ylstk_t* s) {
 static inline void
 ylstk_push(ylstk_t* s, void* item) {
     if(s->sz >= s->limit) {
-        yllogE(("Internal Error in Stack. Limit: %d\n", s->limit));
+        yllog((YLLogE, "Internal Error in Stack. Limit: %d\n", s->limit));
         ylinterpret_undefined(YLErr_internal);
     }
     s->item[s->sz++] = item;
@@ -84,7 +84,7 @@ ylstk_pop(ylstk_t* s) {
     if(s->sz) {
         return s->item[--s->sz];
     } else { 
-        yllogE(("Internal Error in Stack. Try to pop on empty stack!\n"));
+        yllog((YLLogE, "Internal Error in Stack. Try to pop on empty stack!\n"));
         ylinterpret_undefined(YLErr_internal);
     }
 }
@@ -94,7 +94,7 @@ ylstk_peek(ylstk_t* s) {
     if(s->sz) {
         return s->item[s->sz-1];
     } else { 
-        yllogE(("Internal Error in Stack. Try to peek on empty stack!\n"));
+        yllog((YLLogE, "Internal Error in Stack. Try to peek on empty stack!\n"));
         ylinterpret_undefined(YLErr_internal);
     }
 }

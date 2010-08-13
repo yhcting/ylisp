@@ -73,7 +73,7 @@ ylcar(yle_t* e) {
     if(!yleis_atom(e)) {
         return ylpcar(e);
     }
-    yllogE(("'car' is available only on pair\n"));
+    yllog((YLLogE, "'car' is available only on pair\n"));
     ylinterpret_undefined(YLErr_eval_undefined);
 }
 
@@ -82,7 +82,7 @@ ylcdr(yle_t* e) {
     if(!yleis_atom(e)) {
         return ylpcdr(e);
     }
-    yllogE(("'cdr' is available only on pair\n"));
+    yllog((YLLogE, "'cdr' is available only on pair\n"));
     ylinterpret_undefined(YLErr_eval_undefined);
 }
 
@@ -234,7 +234,7 @@ ylpair(yle_t* x, yle_t* y) {
     } else if( !yleis_atom(x) && !yleis_atom(y) ) {
         return ylcons(yllist(ylcar(x), ylcar(y)), ylpair(ylcdr(x), ylcdr(y)));
     } else {
-        yllogE(("Fail to map parameter!\n"));
+        yllog((YLLogE, "Fail to map parameter!\n"));
         ylinterpret_undefined(YLErr_eval_undefined);
     }
 }

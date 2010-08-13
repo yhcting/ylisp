@@ -34,7 +34,7 @@
 
 YLDEFNF(__dummy, 0, 0) {
     /* This is just dummy */
-    yllogE(("'lambda' or 'mlambda' cannot be used as function name!\n")); 
+    yllog((YLLogE, "'lambda' or 'mlambda' cannot be used as function name!\n")); 
     ylinterpret_undefined(YLErr_func_fail);
     return ylnil();
 } YLENDNF(__dummy)
@@ -52,7 +52,7 @@ YLDEFNF(mset, 2, 3) {
         if(ylais_type(ylcaddr(e), YLASymbol))  {
             return ylmset(ylcar(e), ylcadr(e), ylasym(ylcaddr(e)).sym);
         } else {
-            yllogE(("MSET : 3rd parameter should be description string\n"));
+            yllog((YLLogE, "MSET : 3rd parameter should be description string\n"));
             ylinterpret_undefined(YLErr_func_invalid_param);
         }
     } else {
@@ -70,7 +70,7 @@ YLDEFNF(set, 2, 3) {
         if(ylais_type(ylcaddr(e), YLASymbol))  {
             return ylset(ylcar(e), ylcadr(e), a,ylasym(ylcaddr(e)).sym);
         } else {
-            yllogE(("MSET : 3rd parameter should be description string\n"));
+            yllog((YLLogE, "MSET : 3rd parameter should be description string\n"));
             ylinterpret_undefined(YLErr_func_invalid_param);
         }
     } else {
@@ -96,16 +96,16 @@ YLDEFNF(help, 1, 9999) {
             int    outty;
             yle_t* v;
             v = yltrie_get(&outty, ylasym(ylcar(e)).sym);
-            yllogO(("\n======== %s Desc =========\n"
-                    "%s\n"
-                    "-- Value --\n"
-                    "%s\n"
-                    , ylasym(ylcar(e)).sym
-                    , desc
-                    , yleprint(v)));
+            ylprint(("\n======== %s Desc =========\n"
+                     "%s\n"
+                     "-- Value --\n"
+                     "%s\n"
+                     , ylasym(ylcar(e)).sym
+                     , desc
+                     , yleprint(v)));
         } else {
-            yllogO(("======== %s =========\n"
-                    "Cannot find symbol\n", ylasym(ylcar(e)).sym));
+            ylprint(("======== %s =========\n"
+                     "Cannot find symbol\n", ylasym(ylcar(e)).sym));
         }
         e = ylcdr(e);
     }
@@ -122,7 +122,7 @@ YLDEFNF(load_cnf, 2, 2) {
     fname = ylasym(ylcar(e)).sym;
     handle = dlopen(ylasym(ylcar(e)).sym, RTLD_LAZY);
     if(!handle) {
-        yllogE(("Cannot open custom command library [%s]\n"
+        yllog((YLLogE, "Cannot open custom command library [%s]\n"
               "    [%s]\n", ylasym(ylcar(e)).sym, dlerror()));
         goto bail;
     }
@@ -134,14 +134,14 @@ YLDEFNF(load_cnf, 2, 2) {
     
     register_cnf = dlsym(handle, ylasym(ylcar(e)).sym);
     if(NULL != dlerror()) {
-        yllogE(("Error to get symbol [%s]\n"
+        yllog((YLLogE, "Error to get symbol [%s]\n"
               "    [%s]\n", ylasym(ylcar(e)).sym, dlerror()));
         goto bail;
     }
 
     (*register_cnf)();
     
-    yllogI(("load-cnf: [%s / %s] is done\n", fname, ylasym(ylcar(e)).sym));
+    yllog((YLLogI, "load-cnf: [%s / %s] is done\n", fname, ylasym(ylcar(e)).sym));
 
     /* dlclose(handle); */
     return ylt();
@@ -165,7 +165,7 @@ YLDEFNF(unload_cnf, 2, 2) {
      */
     handle = dlopen(ylasym(ylcar(e)).sym, RTLD_LAZY);
     if(!handle) {
-        yllogE(("Cannot open custom command library [%s]\n"
+        yllog((YLLogE, "Cannot open custom command library [%s]\n"
               "    [%s]\n", ylasym(ylcar(e)).sym, dlerror()));
         goto bail;
     }
@@ -177,7 +177,7 @@ YLDEFNF(unload_cnf, 2, 2) {
     
     unregister_cnf = dlsym(handle, ylasym(ylcar(e)).sym);
     if(NULL != dlerror()) {
-        yllogE(("Error to get symbol [%s]\n"
+        yllog((YLLogE, "Error to get symbol [%s]\n"
               "    [%s]\n", ylasym(ylcar(e)).sym, dlerror()));
         goto bail;
     }
@@ -186,7 +186,7 @@ YLDEFNF(unload_cnf, 2, 2) {
 
     dlclose(handle);
 
-    yllogI(("unload-cnf: [%s / %s] is done\n", fname, ylasym(ylcar(e)).sym));
+    yllog((YLLogI, "unload-cnf: [%s / %s] is done\n", fname, ylasym(ylcar(e)).sym));
 
     return ylt();
 
@@ -209,7 +209,7 @@ YLDEFNF(interpret_file, 1, 9999) {
 
         fh = fopen(fname, "r");
         if(!fh) {
-            yllogE(("<!interpret-file!> Cannot open lisp file [%s]\n", fname));
+            yllog((YLLogE, "<!interpret-file!> Cannot open lisp file [%s]\n", fname));
             goto bail;
         }
 
@@ -220,25 +220,25 @@ YLDEFNF(interpret_file, 1, 9999) {
 
         buf = ylmalloc((unsigned int)sz);
         if(!buf) {
-            yllogE(("<!interpret-file!> Not enough memory to load file [%s]\n", fname));
+            yllog((YLLogE, "<!interpret-file!> Not enough memory to load file [%s]\n", fname));
             goto bail;
         }
 
         if(sz != fread(buf, 1, sz, fh)) {
-            yllogE(("<!interpret-file!> Fail to read file [%s]\n", fname));
+            yllog((YLLogE, "<!interpret-file!> Fail to read file [%s]\n", fname));
             goto bail;
         }
     
         if(YLOk !=  ylinterpret(buf, sz)) {
-            yllogE(("<!interpret-file!> ERROR at interpreting\n"
-                    "    => %s\n", fname));
+            yllog((YLLogE, "<!interpret-file!> ERROR at interpreting\n"
+                           "    => %s\n", fname));
             goto bail;
         }
 
         if(fh) { fclose(fh); }
         if(buf) { ylfree(buf); }
 
-        yllogI(("interpret-file: [%s] is done\n", fname));
+        yllog((YLLogI, "interpret-file: [%s] is done\n", fname));
 
         e = ylcdr(e);
     }
@@ -257,18 +257,18 @@ YLDEFNF(interpret_file, 1, 9999) {
  * Functions for managing interpreter internals.
  **********************************************************/
 YLDEFNF(gc, 0, 0) {
-    yllogp(YLLog_output, ("\n=========== Before ============\n"));
-    ylmp_print_stat(YLLog_output);
+    ylprint(("\n=========== Before ============\n"));
+    ylmp_print_stat();
 
     ylmp_full_scan_gc();
 
-    yllogp(YLLog_output, ("\n=========== After ============\n"));
-    ylmp_print_stat(YLLog_output);
+    ylprint(("\n=========== After ============\n"));
+    ylmp_print_stat();
     return ylt();
 } YLENDNF(gc)
 
 YLDEFNF(memstat, 0, 0) {
-    ylmp_print_stat(YLLog_output);
+    ylmp_print_stat();
     return ylt();
 } YLENDNF(memstat)
 

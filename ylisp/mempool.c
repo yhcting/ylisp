@@ -50,7 +50,7 @@ static struct {
     unsigned int    hwm;
 } _stat;
 
-static ylstk_t*   _evstk = NULL; /* EVal. STacK */
+static ylstk_t*   _ststk = NULL; /* STate STacK */
 
 static inline void
 _set_chain_reachable(yle_t* e) {
@@ -85,19 +85,19 @@ ylmp_init() {
         _mark_as_free(&_epl.pool[i]);
         _epl.fbis[i] = &_epl.pool[i];
     }
-    _evstk = ylstk_create(_MAX_EVAL_DEPTH, NULL);
+    _ststk = ylstk_create(_MAX_EVAL_DEPTH, NULL);
     _stat.hwm = 0;
 }
 
 void
 ylmp_deinit() {
-    ylstk_destroy(_evstk);
+    ylstk_destroy(_ststk);
 }
 
 yle_t*
 ylmp_get_block() {
     if(_epl.fbi <= 0) {
-        yllogE(("Not enough Memory Pool.. Current size is %d\n", MPSIZE));
+        yllog((YLLogE, "Not enough Memory Pool.. Current size is %d\n", MPSIZE));
         ylassert(FALSE);
     } else {
         --_epl.fbi;
@@ -108,7 +108,7 @@ ylmp_get_block() {
         _epl.ubis[_epl.ubi] = _epl.fbis[_epl.fbi];
         _epl.ubi++;
         if(_epl.ubi >= MPSIZE) {
-            yllogE(("Not enough used block checker..\n"));
+            yllog((YLLogE, "Not enough used block checker..\n"));
             ylassert(FALSE);
         }
 
@@ -164,8 +164,8 @@ ylmp_full_scan_gc() {
              * This is dangling - may be cross referred...
              * We need to check it... why this happenned..
              */
-            dbg_mem(yllogp(YLLog_info,
-                           ("--> FSGC : Dangling Block \n"
+            dbg_mem(yllog((YLLogI,
+                            "--> FSGC : Dangling Block \n"
                             "        block index : %d\n"
                             "        eval id     : %d\n"
                             "        exp         : %s\n"
@@ -184,9 +184,14 @@ ylmp_full_scan_gc() {
 }
 
 
+unsigned int
+ylmp_stack_size() {
+    return ylstk_size(_ststk);
+}
+
 void
 ylmp_push() {
-    ylstk_push(_evstk, (void*)_epl.ubi);
+    ylstk_push(_ststk, (void*)_epl.ubi);
 }
 
 
@@ -194,7 +199,7 @@ void
 ylmp_pop() {
     register int   i, pubi; /* pubi : previous ubi */
 
-    pubi = (int)ylstk_pop(_evstk);
+    pubi = (int)ylstk_pop(_ststk);
     /* uncheck reachable bit(initialize) all used block used between push&pop */
     ylassert(pubi <= _epl.ubi);
             
@@ -223,19 +228,20 @@ ylmp_pop() {
     if( ylercnt(ylnil()) > 0x7fffffff
         || ylercnt(ylt()) > 0x7fffffff
         || ylercnt(ylq()) > 0x7fffffff) {
-        yllogE(("Oops in memory pool...\n"
-                "reference count of one of predefined symbols is too big...\n"
-                "Definitely, there is unexpected error somewhere of memory block management!\n"));
+        yllog((YLLogE, 
+               "Oops in memory pool...\n"
+               "reference count of one of predefined symbols is too big...\n"
+               "Definitely, there is unexpected error somewhere of memory block management!\n"));
         ylassert(FALSE);
     }
 
 
     /* special operation, when out from interpreting stack! */
-    if(!ylstk_size(_evstk)) {
+    if(!ylstk_size(_ststk)) {
         /* start from the first */
         _epl.ubi = 0;
 
-        dbg_mem(yllogD(("==> Mem usage ratio : %d\%\n", _usage_ratio())););
+        dbg_mem(yllog((YLLogD, "==> Mem usage ratio : %d\%\n", _usage_ratio())););
 
         /* 
          * Top of interpreting stack..
@@ -250,7 +256,8 @@ ylmp_pop() {
             ylmp_full_scan_gc();
             ylassert(sv >= _usage_ratio());
             if(sv - _usage_ratio() < _MIN_FULLSCAN_EFFECT) {
-                yllogE(("\n=== Not enough memory pool\n"
+                yllog((YLLogE, 
+                       "\n=== Not enough memory pool\n"
                         "    Usage ratio before full GC: %d\%\n"
                         "    Usage ratio after full GC : %d\%\n",
                         sv, _usage_ratio()));
@@ -263,9 +270,9 @@ ylmp_pop() {
 
 void
 ylmp_manual_gc() {
-    if(ylstk_size(_evstk) > 0) {
-        ylstk_clean(_evstk);
-        ylstk_push(_evstk, 0);
+    if(ylstk_size(_ststk) > 0) {
+        ylstk_clean(_ststk);
+        ylstk_push(_ststk, 0);
         ylmp_pop();
         _epl.ubi = 0;
     }
@@ -276,17 +283,28 @@ ylmp_usage() {
     return _epl.ubi;
 }
 
+
+#define __PR_STAT                               \
+    ">>>> Memory Pool Statistics\n"             \
+        "        TOTAL   : %d\n"                \
+        "        HWM     : %d (%d\%)\n"         \
+        "        USED    : %d (%d\%)\n"         \
+        "        FREE    : %d (%d\%)\n"         \
+        "        ubi     : %d (%d\%)\n"         \
+        , MPSIZE                                \
+        , _stat.hwm, _stat.hwm * 100 / MPSIZE   \
+        , _used_block_count(), _usage_ratio()   \
+        , _epl.fbi, _epl.fbi * 100 / MPSIZE     \
+        , _epl.ubi, _epl.ubi * 100 / MPSIZE
+
 void
-ylmp_print_stat(int loglevel) {
-    yllogp(loglevel, (">>>> Memory Pool Statistics\n"
-                      "        TOTAL   : %d\n"
-                      "        HWM     : %d (%d\%)\n"
-                      "        USED    : %d (%d\%)\n"
-                      "        FREE    : %d (%d\%)\n"
-                      "        ubi     : %d (%d\%)\n"
-                      , MPSIZE
-                      , _stat.hwm, _stat.hwm * 100 / MPSIZE
-                      , _used_block_count(), _usage_ratio()
-                      , _epl.fbi, _epl.fbi * 100 / MPSIZE
-                      , _epl.ubi, _epl.ubi * 100 / MPSIZE));
+ylmp_print_stat() {
+    ylprint((__PR_STAT));
 }
+
+void
+ylmp_log_stat(int loglevel) {
+    yllog((loglevel, __PR_STAT));
+}
+
+#undef __PR_STAT

@@ -22,6 +22,7 @@
 
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
 #include <malloc.h>
 #include <assert.h>
@@ -41,6 +42,8 @@ enum {
 };
 
 
+static int _loglv = YLLogW;
+
 static struct {
     char*          b;
     unsigned int   sz;    /* not including tailing NULL */
@@ -49,17 +52,16 @@ static struct {
 
 
 static int
-_print(const char* format, ...) {
-#define __BUFSZ 8*1024
-    static char     __buf[__BUFSZ];
-    
-    char*   tmp;
-    int     cw; /* charactera written */
-    va_list args;
-    va_start (args, format);
+_vprint(const char* format, va_list args) {
+#define __BUFSZ 4*1024 /* usually, page size is 4KB */
+
+    static char   __buf[__BUFSZ];
+
+    char*         tmp;
+    int           cw; /* charactera written */
+
     /* -1 for null-terminator */
     cw = vsnprintf (__buf, __BUFSZ -1, format, args);
-    va_end (args);    
     
     if(cw >= 0) {
         __buf[cw] = 0; /* trailing NULL */
@@ -74,8 +76,31 @@ _print(const char* format, ...) {
         memcpy(_outmsg.b + _outmsg.sz, __buf, cw);
         _outmsg.sz += cw;
     }
+    
 #undef __BUFSZ    
+    return cw;
 }
+
+static int
+_print(const char* format, ...) {
+    va_list args;
+    int     ret;
+    va_start (args, format);
+    ret = _vprint(format, args);
+    va_end (args);
+    return ret;
+}
+
+static void
+_log(int lv, const char* format, ...) {
+    if(lv >= _loglv) {
+        va_list ap;
+        va_start(ap, format);
+        _vprint(format, ap);
+        va_end(ap);
+    }
+}
+
 
 static void
 _assert(int a) { 
@@ -130,9 +155,9 @@ _jni_Main_nativeGetLastNativeMessage
 static void JNICALL 
 _jni_Main_nativeSetLogLevel
 (JNIEnv* jenv, jobject jobj, jint lv) {
-    if(lv < YLLog_verb) { lv = YLLog_verb; }
-    if(lv > YLLog_err) { lv = YLLog_err; }
-    ylset_loglv(lv);
+    if(lv < YLLogV) { lv = YLLogV; }
+    if(lv > YLLogE) { lv = YLLogE; }
+    _loglv = lv;
 }
 
 /*
@@ -275,8 +300,8 @@ main(int argc, char* argv[]) {
     { /* just scope */
         ylsys_t     sys;
     
-        sys.loglv     = YLLog_output;
         sys.print     = _print;
+        sys.log       = _log;
         sys.assert    = _assert;
         sys.malloc    = malloc;
         sys.free      = free;

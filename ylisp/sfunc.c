@@ -40,8 +40,6 @@ static unsigned int _eval_id = 0;
 unsigned int
 ylget_eval_id() { return _eval_id; }
 
-
-
 /*=================================
  * Recursive S-functions - START
  *=================================*/
@@ -154,14 +152,9 @@ ylset(yle_t* x, yle_t* y, yle_t* a, const char* desc) {
     yle_t* r;
     if( !ylais_type(x, YLASymbol)
         || ylnil() == x) {
-        yllogE(("Only symbol can be set!\n"));
+        yllog((YLLogE, "Only symbol can be set!\n"));
         ylinterpret_undefined(YLErr_eval_undefined); 
     }
-
-    /*
-    yllogp(YLLog_dev, ("\n---SET before :"));
-    yleprint(YLLog_dev, a);
-    */
 
     ylassert(ylasym(x).sym);
     r = _list_find(x, a);
@@ -181,11 +174,6 @@ ylset(yle_t* x, yle_t* y, yle_t* a, const char* desc) {
             yltrie_set_description(ylasym(x).sym, desc);
         }
     }
-    /*
-    yllogp(YLLog_dev, ("\n---SET after :"));
-    yleprint(YLLog_dev, a);
-    yllogp(YLLog_dev, ("\n"));
-    */
 
     return y;
 }
@@ -194,7 +182,7 @@ yle_t*
 ylmset(yle_t* x, yle_t* y, const char* desc) {
     if( !ylais_type(x, YLASymbol)
         || ylnil() == x) {
-        yllogE(("Only symbol can be set!\n"));
+        yllog((YLLogE, "Only symbol can be set!\n"));
         ylinterpret_undefined(YLErr_eval_undefined); 
     }
     ylassert(ylasym(x).sym);
@@ -217,21 +205,20 @@ _mreplace(yle_t* e, yle_t* a) {
     int     r = TRUE;
     /* @e SHOULD NOT be an atom! */
     if(!e || yleis_atom(e) || !a) { 
-        yllogE(("Wrong syntax of mlambda!\n"));
+        yllog((YLLogE, "Wrong syntax of mlambda!\n"));
         return FALSE; 
     }
 
-    dbg_eval(yllogp(YLLog_verb, ("---- macro replace -------\n"
-                                 "    From :%s\n", yleprint(e)));
-             yllogp(YLLog_verb, ("    To   :%s\n"
-                                 "--------------------------\n", yleprint(a))););
+    dbg_eval(yllog((YLLogV, "---- macro replace -------\n"
+                            "    From :%s\n", yleprint(e)));
+             yllog((YLLogV, "    To   :%s\n"
+                            "--------------------------\n", yleprint(a))););
 
     /*
-     * 'e' may be in hash. So, changing 'e' may affects global state.
+     * 'e' may be in global space. So, changing 'e' may affects global state.
      * And this should not be happened.
-     * (Hash SHOULD BE changed only by 'set' or 'unset')
      * But, in case of 'mlambda', there is always matching parameter for each argument.
-     * So, parameter pointer of expression that is in hash, can be ignored.
+     * So, parameter pointer of expression that is in global space, can be ignored.
      * (It always replaced with newly passed one. So, last value is not referenced anywhere)
      * That's why, it is allowed changing 'e' value, even if it's not doen by 'set' or 'unset'
      */
@@ -239,9 +226,8 @@ _mreplace(yle_t* e, yle_t* a) {
         yle_t* n;
         n = _list_find(ylcar(e), a);
         /*
-         * Why NOT! I'm not sure... I can't remember what can be wrong if uses direct link.
-         * Let's try it!
-         * (I'm not sure, So, I remains previous code by using "if 0") for future reference.
+         * _mreplace uses cloned expression. So, we can change 'e'.
+         * set direct link to 'e' is OK I think.
          */
         if(n) { ylpsetcar(e, ylcadr(n)); }
     } else {
@@ -253,7 +239,7 @@ _mreplace(yle_t* e, yle_t* a) {
     if(yleis_atom(ylcdr(e))) {
         yle_t* n;
         n = _list_find(ylcdr(e), a);
-        if(n) { ylpsetcdr(e, yleclone_chain(ylcadr(n))); }
+        if(n) { ylpsetcdr(e, ylcadr(n)); }
     } else {
         r = _mreplace(ylcdr(e), a);
     }
@@ -270,7 +256,7 @@ const yle_t*
 _assoc(int* outhvty, yle_t* x, yle_t* y) {
     yle_t* r;
     if( !ylais_type(x, YLASymbol) ) {
-        yllogE(("Only symbol can be associated!\n"));
+        yllog((YLLogE, "Only symbol can be associated!\n"));
         ylinterpret_undefined(YLErr_eval_undefined); 
     }
 
@@ -304,7 +290,7 @@ _assoc(int* outhvty, yle_t* x, yle_t* y) {
                 return r;
             }
 
-            yllogE(("symbol [%s] was not set!\n", ylasym(x).sym));
+            yllog((YLLogE, "symbol [%s] was not set!\n", ylasym(x).sym));
             ylinterpret_undefined(YLErr_eval_undefined);
         }
     }
@@ -327,14 +313,14 @@ yleval(yle_t* e, yle_t* a) {
     int          vty;
     unsigned int evid = _eval_id++; /* evaluation id for debugging */
 
-    dbg_eval(yllogD(("[%d] eval In:\n"
-                     "    %s\n",
-                     "    =>%s\n", evid, yleprint(e), yleprint(a))););
-    dbg_mem(yllogD(("START eval:\n"
-                    "    MP usage : %d\n"
-                    "    refcnt : nil(%d), t(%d), q(%d)\n", 
-                    ylmp_usage(), ylercnt(ylnil()), 
-                    ylercnt(ylt()), ylercnt(ylq()))););
+    dbg_eval(yllog((YLLogV, "[%d] eval In:\n"
+                            "    %s\n",
+                            "    =>%s\n", evid, yleprint(e), yleprint(a))););
+    dbg_mem(yllog((YLLogV, "START eval:\n"
+                           "    MP usage : %d\n"
+                           "    refcnt : nil(%d), t(%d), q(%d)\n", 
+                           ylmp_usage(), ylercnt(ylnil()), 
+                           ylercnt(ylt()), ylercnt(ylq()))););
     
     /*
      * 'e' and 'a' should be preserved during evaluation.
@@ -349,7 +335,7 @@ yleval(yle_t* e, yle_t* a) {
      */
     ylmp_push();
     if( yleis_nil(e) ) {
-        yllogE(("ERROR : nil cannot be evaluated!\n"))
+        yllog((YLLogE, "ERROR : nil cannot be evaluated!\n"));
         ylinterpret_undefined(YLErr_eval_undefined);
     }
 
@@ -361,7 +347,7 @@ yleval(yle_t* e, yle_t* a) {
                 r = yleval(r, a);
             }
         } else {
-            yllogE(("ERROR to evaluate atom(only symbol can be evaluated!.\n"));
+            yllog((YLLogE, "ERROR to evaluate atom(only symbol can be evaluated!.\n"));
             ylinterpret_undefined(YLErr_eval_undefined);
         }
     } else if( yleis_atom(ylcar(e)) ) {
@@ -392,7 +378,7 @@ yleval(yle_t* e, yle_t* a) {
                         r = (*(ylanfunc(r).f))(ylcdr(e), a);
                         goto done;
                     } else {
-                        yllogE(("ERROR to evaluate. First element should be a function!\n"));
+                        yllog((YLLogE, "ERROR to evaluate. First element should be a function!\n"));
                         ylinterpret_undefined(YLErr_eval_undefined);
                     }
                 }
@@ -455,8 +441,8 @@ yleval(yle_t* e, yle_t* a) {
 done:
     if(r) {
         
-        dbg_eval(yllogD(("[%d] eval Out:\n"
-                         "    %s\n", evid, yleprint(r))););
+        dbg_eval(yllog((YLLogV, "[%d] eval Out:\n"
+                                "    %s\n", evid, yleprint(r))););
 
 
         /*
@@ -478,11 +464,11 @@ done:
         ylercnt(r)--;
 
 
-        dbg_mem(yllogD(("END eval :\n"
-                        "    MP usage : %d\n"
-                        "    refcnt : nil(%d), t(%d), q(%d)\n", 
-                        ylmp_usage(), ylercnt(ylnil()), 
-                        ylercnt(ylt()), ylercnt(ylq()))););
+        dbg_mem(yllog((YLLogV, "END eval :\n"
+                               "    MP usage : %d\n"
+                               "    refcnt : nil(%d), t(%d), q(%d)\n", 
+                               ylmp_usage(), ylercnt(ylnil()), 
+                               ylercnt(ylt()), ylercnt(ylq()))););
         return r;
     } else {
         ylinterpret_undefined(YLErr_eval_undefined);

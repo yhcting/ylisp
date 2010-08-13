@@ -23,6 +23,7 @@
 #ifdef __LISPTEST__
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <malloc.h>
 #include <assert.h>
 #include <string.h>
@@ -31,8 +32,7 @@
 #include "lisp.h"
 #include "trie.h"
 
-extern void testlisp01();
-
+#define _LOGLV  YLLogV
 
 static int _mblk = 0;
 
@@ -67,6 +67,16 @@ get_mblk_size() {
 }
 
 static void
+_log(int lv, const char* format, ...) {
+    if(lv >= _LOGLV) {
+        va_list ap;
+        va_start(ap, format);
+        vprintf(format, ap);
+        va_end(ap);
+    }
+}
+
+static void
 _assert(int a) {
     if(!a){ assert(0); }
 }
@@ -76,7 +86,7 @@ main(int argc, char* argv[]) {
     ylsys_t   sys;
 
     /* ylset system parameter */
-    sys.loglv = YLLog_verb;
+    sys.log = _log;
     sys.print = printf;
     sys.assert = _assert;
     sys.malloc = _malloc;

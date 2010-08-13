@@ -21,13 +21,18 @@
 
 
 #include <math.h>
+
+/* enable logging & debugging */
+#define __ENABLE_ASSERT
+#define __ENABLE_LOG
+
 #include "ylsfunc.h"
 
 #define _MATHFUNC1(nAME)                                                \
     YLDEFNF(nAME, 1, 1) {                                               \
         double r;                                                       \
         if(!ylais_type(ylcar(e), YLADouble)) {                          \
-            yllogE(("<!%s!> only double type is allowed as parameter\n", #nAME)); \
+            yllog((YLLogE, "<!math.%s!> only double type is allowed as parameter\n", #nAME)); \
             ylinterpret_undefined(YLErr_func_invalid_param);            \
         }                                                               \
         r = nAME(yladbl(ylcar(e)));                                     \
@@ -41,7 +46,7 @@
         double r;                                                       \
         if(!ylais_type(ylcar(e), YLADouble)                             \
            || !ylais_type(ylcadr(e), YLADouble)) {                      \
-            yllogE(("<!%s!> only double type is allowed as parameter\n", #nAME)); \
+            yllog((YLLogE, "<!math.%s!> only double type is allowed as parameter\n", #nAME)); \
             ylinterpret_undefined(YLErr_func_invalid_param);            \
         }                                                               \
         r = nAME(yladbl(ylcar(e)), yladbl(ylcadr(e)));                  \
