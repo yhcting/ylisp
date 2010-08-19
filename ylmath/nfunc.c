@@ -31,10 +31,7 @@
 #define _MATHFUNC1(nAME)                                                \
     YLDEFNF(nAME, 1, 1) {                                               \
         double r;                                                       \
-        if(!ylais_type(ylcar(e), YLADouble)) {                          \
-            yllog((YLLogE, "<!math.%s!> only double type is allowed as parameter\n", #nAME)); \
-            ylinterpret_undefined(YLErr_func_invalid_param);            \
-        }                                                               \
+        ylnfcheck_atype_chain1(e, YLADouble);                           \
         r = nAME(yladbl(ylcar(e)));                                     \
         e = ylmp_get_block();                                           \
         ylaassign_dbl(e, r);                                            \
@@ -44,11 +41,7 @@
 #define _MATHFUNC2(nAME)                                                \
     YLDEFNF(nAME, 2, 2) {                                               \
         double r;                                                       \
-        if(!ylais_type(ylcar(e), YLADouble)                             \
-           || !ylais_type(ylcadr(e), YLADouble)) {                      \
-            yllog((YLLogE, "<!math.%s!> only double type is allowed as parameter\n", #nAME)); \
-            ylinterpret_undefined(YLErr_func_invalid_param);            \
-        }                                                               \
+        ylnfcheck_atype_chain1(e, YLADouble);                           \
         r = nAME(yladbl(ylcar(e)), yladbl(ylcadr(e)));                  \
         e = ylmp_get_block();                                           \
         ylaassign_dbl(e, r);                                            \

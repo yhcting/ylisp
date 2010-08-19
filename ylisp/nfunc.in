@@ -94,6 +94,12 @@ NFUNC(unset,                  "unset",                   YLANfunc,
     "    -Remove symbol from the global space.\n"
     "    @return: t if removed, nil if symbol doesn't exist.\n")
 
+NFUNC(is_set,                 "is-set",                  YLANfunc,
+    "is-set <symbol> : [t/nil]\n"
+    "    -check whether specified <symbol> is set in global symbol space or not.\n"
+    "    @return: t if exists. Otherwise nil\n")
+
+
 NFUNC(eval,                   "eval",                    YLANfunc,
     "eval <exp>\n"
     "    -Evaluates expression.\n"
@@ -109,25 +115,26 @@ NFUNC(help,                   "help",                    YLANfunc,
     "        (help 'help); to see this description\n")
 
 NFUNC(load_cnf,               "load-cnf",                YLANfunc,
-    "load-cnf <file name> <register func> : [t/nil]\n"
+    "load-cnf <file name> : [t/nil]\n"
     "    -LOAD Customized Native Function.\n"
     "     Register new custom-native functions from plug-in library\n"
+    "     ylcnf_onload of plug-in is called\n"
     "    @file name[Symbol]:       plug-in file name\n"
-    "    @register func[Symbol]:   register function name that should be in the plug-in\n"
     "    *ex\n"
     "        (load-cnf 'ylbase.so 'yllibylbase_register)\n")
 
 NFUNC(unload_cnf,             "unload-cnf",              YLANfunc,
-    "unload-cnf <file name> <unregister func> : [t/nil]\n"
+    "unload-cnf <file name> : [t/nil]\n"
     "    -UNLOAD Custom-Native-Function.\n"
+    "     ylcnf_onunload of plug-in is called\n"
     "     See 'load-cnf' for more\n"
     "     *ex\n"
     "         (unload-cnf 'ylbase.so 'yllibylbase_unregister)\n")
 
 NFUNC(interpret_file,         "interpret-file",          YLANfunc,
-    "interpret-file <file name1> <file name2> ... : [t/nil]\n"
+    "interpret-file <file name> : [t/nil]\n"
     "    -interpret other ylisp script file\n"
-    "    @file nameN [Symbol]: file path\n"
+    "    @file name [Symbol]: file path\n"
     "    *ex\n"
     "        (interpret-file 'ylbase.yl)\n")
 

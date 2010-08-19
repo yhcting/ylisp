@@ -20,11 +20,14 @@
 
 
 
-
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <memory.h>
 
 /* enable logging & debugging */
@@ -33,106 +36,202 @@
 
 #include "ylsfunc.h"
 
-/*
- * Return newly allocated(by malloc) memory buffer that contains file data.
- * (free needed to be called to release memory)
- * @return NULL if fails.
- */
+
 static char*
-_read_file(FILE* fin) {
-#define __INITBSZ 4096 /* initial buffer size - usually page size is 4KB*/
-    unsigned int  rsz, /* rsz : size read */
-                  asz; /* asz : available size */
-    char         *pbuf, *pb, *pbend;
-
-    /* 4KB is initial size of buffer */
-    pb = pbuf = ylmalloc(__INITBSZ+1); /* '+1' for trailing NULL */
-    pbend = pb + __INITBSZ;
-    do {
-        asz = pbend - pb;
-        rsz = fread(pb, 1, asz, fin);
-        if(0 > rsz) {
-            goto bail;
-        } else if(rsz < asz) {
-            /* OK. Success - add trailing NULL*/
-            *(pb + rsz) = 0;
-            break;
-        } else {
-            /* not enough buffer. double it! */
-            char*          tmp;
-            unsigned int   bsz; /* buffer size */
-            bsz = pbend - pbuf;
-            tmp = ylmalloc(bsz*2+1);/* '+1' for trailing NULL */
-            if(!tmp) { goto bail; }
-            pb = tmp + bsz;
-            memcpy(tmp, pbuf, bsz);
-            ylfree(pbuf);
-            pbuf = tmp;
-            pbend = pbuf + bsz*2;
-        }
-    } while(1);
-    return pbuf;
-
- bail:
-    if(pbuf) { ylfree(pbuf); }
-    return NULL;
-
-#undef __INITBSZ
+_alloc_str(const char* str) {
+    char*        p;
+    p = ylmalloc(strlen(str)+1);
+    /* 
+     * This function is used for small-length string. 
+     * So, let's skip handling allocation-failure.
+     */
+    if(p) { strcpy(p, str); }
+    else { ylassert(FALSE); }
+    return p;
 }
 
+static void*
+_readf(unsigned int* outsz, const char* func, const char* fpath, int btext) {
+    char*        buf = NULL;
+    unsigned int sz;
+    FILE*        fh;
 
-YLDEFNF(shell, 1, 1) {
-#define __cleanup_process()                                     \
-    do {                                                        \
-        /* clean resources */                                   \
-        if(data) { ylfree(data); }                              \
-        if(pout) { pclose(pout); }                              \
-    } while(0)
-
-    FILE*  pout = NULL;
-    char*  data = NULL;
-    int    svstderr = -1;
-
-
-    /* check input parameter */
-    ylcheck_chain_atom_type1(system.shell, e, YLASymbol);
-
-    pout = popen(ylasym(ylcar(e)).sym, "r");
-    if(!pout) { goto bail; }
-    
-    data = _read_file(pout);
-    if(!data) {
-        yllog((YLLogE, "<!system.shell!> Not enough memory\n"));
+    fh = fopen(fpath, "r");
+    if(!fh) {
+        ylassert(0);
+        yllogW2("<!%s!> Cannot open file [%s]\n", func, fpath);
         goto bail;
     }
 
+    /* do ylnot check error.. very rare to fail!! */
+    fseek(fh, 0, SEEK_END);
+    sz = ftell(fh);
+    fseek(fh, 0, SEEK_SET);
+
+    buf = ylmalloc((unsigned int)sz+((btext)? 1: 0)); /* +1 for trailing 0 */
+    if(!buf) {
+        ylassert(0);
+        yllogW2("<!%s!> Not enough memory to load file [%s]\n", func, fpath);
+        goto bail;
+    }
+
+    if(1 != fread(buf, sz, 1, fh)) {
+        ylassert(0);
+        yllogW2("<!%s!> Fail to read file [%s]\n", func, fpath);
+        goto bail;
+    }
+    if(btext) { 
+        if(outsz) { *outsz = sz+1; }
+        buf[sz] = 0; /* add trailing 0 */
+    } else {
+        if(outsz) { *outsz = sz; }
+    }
+    fclose(fh);
+    return buf;
+
+ bail:
+    if(fh) { fclose(fh); }
+    if(buf) { ylfree(buf); }
+    return NULL;
+}
+
+
+/*
+ * FIX ME!
+ * Using temporally file to redirect is not good solution, in my opinion.
+ * I think definitely there is a way of using pipe!
+ *
+ *     I faced with some issues when I tried to use pipe to re-direct stdout and stderr.
+ *     For example, keeping only one-page-data, block when pipe is empty.
+ *     I'm not good at linux system programming.
+ *     So, until I found solution, using file explicitly to redirect.
+ */
+YLDEFNF(shell, 1, 1) {
+#define __outf_name ".#_______yljfe___outf______#"
+#define __restore_redirection()                         \
+    /* restore stdout/stderr */                         \
+    if(saved_stdout >= 0) {                             \
+        close(STDOUT_FILENO);                           \
+        dup2(saved_stdout, STDOUT_FILENO);              \
+        close(saved_stdout);                            \
+        saved_stdout = -1;                              \
+    }                                                   \
+    if(saved_stderr >= 0) {                             \
+        close(STDERR_FILENO);                           \
+        dup2(saved_stderr, STDERR_FILENO);              \
+        close(saved_stderr);                            \
+        saved_stderr = -1;                              \
+    }
+
+#define __cleanup_process()                             \
+    /* clean resources */                               \
+    if(buf) { ylfree(buf); }                            \
+    unlink(__outf_name);
+
+    int         saved_stdout, saved_stderr;
+    FILE*       ofh = NULL;
+    char*       buf = NULL;
+    const char* errmsg = NULL;
+
+    /* check input parameter */
+    ylnfcheck_atype_chain1(e, YLASymbol);
+
+    /* set to invalid value */
+    saved_stdout = saved_stderr = -1; 
+
+    /* save stdout/stderr to restore later*/
+    saved_stdout = dup(STDOUT_FILENO);
+    saved_stderr = dup(STDERR_FILENO);
+    if(saved_stdout < 0 || saved_stderr < 0) { 
+        ylnflogE0("Fail to save stdout/stderr\n");
+        goto bail; 
+    }
+
+    if( NULL == (ofh = fopen(__outf_name, "w")) ) {
+        ylnflogE0("Fail to open file to redirect stdout/stderr!\n");
+        goto bail;
+    }
+
+    /* before redirecting... flush stdout and stderr */
+    fflush(stdout); fflush(stderr);
+
+    /* redirect stderr to the pipe */
+    if(0 > dup2(fileno(ofh), STDERR_FILENO)) { ylnflogE0("Fail to dup stderr\n"); goto bail; }
+    /* redirect stdout to the pipe */
+    if(0 > dup2(fileno(ofh), STDOUT_FILENO)) { ylnflogE0("Fail to dup stdout\n"); goto bail; }
+
+    /* 
+     * Now, we are ready to redirect 
+     * It's time to execute shell command 
+     */
+    system(ylasym(ylcar(e)).sym);
+    /* flush result */
+    /*
+     * ****** NOTE ******
+     *    This SHOULD BE 'fflush(ofh)'!!!
+     *    "fflush(stdout); fflush(stderr);" gives unexpected result!!!!
+     */
+    fflush(ofh);
+    fclose(ofh);
+
+    /*
+     * stdout/stderr was redirected.
+     * So, if system uses stdout/stderr as an outstream of print or log,
+     *     this may not be shown because it's already redirected.
+     * That's why redirection should be restored as sooon as possible.
+     */
+    __restore_redirection();
+
     { /* Just scope */
-        yle_t*  r = ylmp_get_block();
-        ylaassign_sym(r, data);
-        /* buffer is already assigned to expression. So, this SHOULD NOT be freed */
-        data = NULL; 
+        FILE*  fh;
+        fh = fopen(__outf_name, "r");
+        if(fh) {
+            /* file exists. So, there is valid output */
+            fclose(fh);
+            buf = _readf(NULL, "shell", __outf_name, TRUE);
+            ylassert(buf);
+        } else {
+            /* There is no output from command */
+            buf = ylmalloc(1);
+            buf[0] = 0;
+        }
+    }
+
+    { /* Just scope */
+        yle_t* r;
+        if(buf) { /* Just scope */
+            r = ylmp_get_block();
+            ylaassign_sym(r, buf);
+            /* buffer is already assigned to expression. So, this SHOULD NOT be freed */
+            buf = NULL; 
+        } else {
+            ylnflogE0("Fail to read output result\n");
+            goto bail;
+        }
         __cleanup_process();
         return r;
     }
 
  bail:
+    __restore_redirection();
     __cleanup_process();
-
-    yllog((YLLogE, "<!system.shell!> Could not run : %s\n", ylasym(ylcar(e)).sym));
     ylinterpret_undefined(YLErr_func_fail);
+
+#undef __cleanup_process
+#undef __outf_name
 
 } YLENDNF(shell)
 
 YLDEFNF(sleep, 1, 1) {
     /* check input parameter */
-    ylcheck_chain_atom_type1(system.sleep, e, YLADouble);
+    ylnfcheck_atype_chain1(e, YLADouble);
     sleep((unsigned int)yladbl(ylcar(e)));
     return ylt();
 } YLENDNF(sleep)
 
 YLDEFNF(usleep, 1, 1) {
     /* check input parameter */
-    ylcheck_chain_atom_type1(system.usleep, e, YLADouble);
+    ylnfcheck_atype_chain1(e, YLADouble);
     usleep((unsigned int)yladbl(ylcar(e)));
     return ylt();
 } YLENDNF(usleep)
@@ -140,7 +239,7 @@ YLDEFNF(usleep, 1, 1) {
 YLDEFNF(getenv, 1, 1) {
     char*  env;
     /* check input parameter */
-    ylcheck_chain_atom_type1(system.getenv, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
     env = getenv(ylasym(ylcar(e)).sym);
     if(env) {
         yle_t*          r = ylmp_get_block();
@@ -158,7 +257,7 @@ YLDEFNF(getenv, 1, 1) {
 YLDEFNF(setenv, 2, 2) {
     char*  env;
     /* check input parameter */
-    ylcheck_chain_atom_type1(system.setenv, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
     if(0 == setenv(ylasym(ylcar(e)).sym, ylasym(ylcadr(e)).sym, 1)) {
         return ylt();
     } else {
@@ -167,9 +266,9 @@ YLDEFNF(setenv, 2, 2) {
 } YLENDNF(setenv)
 
 YLDEFNF(chdir, 1, 1) {
-    ylcheck_chain_atom_type1(system.chdir, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
     if( 0 > chdir(ylasym(ylcar(e)).sym) ) {
-        yllog((YLLogW, "<!system.chdir!> Fail to change directory to [ %s ]\n", ylasym(ylcar(e)).sym));
+        ylnflogW1("Fail to change directory to [ %s ]\n", ylasym(ylcar(e)).sym);
         return ylnil();
     } else {
         return ylt();
@@ -185,38 +284,55 @@ YLDEFNF(getcwd, 0, 0) {
     return r;
 } YLENDNF(getcwd)
 
+YLDEFNF(fstat, 1, 1) {
+    /* Not tested yet! */
+    
+    struct stat    st;
+    yle_t         *r, *key, *v;
+    ylnfcheck_atype_chain1(e, YLASymbol);
+    if(0 > stat(ylasym(ylcar(e)).sym, &st)) {
+        ylnflogE1("Cannot get status of file [%s]\n", ylasym(ylcar(e)).sym);
+        return ylnil();
+    }
+
+    /* make 'type' pair */
+    key = ylmp_get_block();
+    ylaassign_sym(key, _alloc_str("type"));
+    v = ylmp_get_block();
+    switch(st.st_mode & S_IFMT) {
+        case S_IFSOCK: ylaassign_sym(v, _alloc_str("s"));  break;
+        case S_IFLNK:  ylaassign_sym(v, _alloc_str("l"));  break;
+        case S_IFREG:  ylaassign_sym(v, _alloc_str("f"));  break;
+        case S_IFBLK:  ylaassign_sym(v, _alloc_str("b"));  break;
+        case S_IFDIR:  ylaassign_sym(v, _alloc_str("d"));  break;
+        case S_IFCHR:  ylaassign_sym(v, _alloc_str("c"));  break;
+        case S_IFIFO:  ylaassign_sym(v, _alloc_str("p"));  break;
+        default: ylaassign_sym(v, _alloc_str("u")); /* unknown */
+    }
+    /* make r as '((key v)) */
+    r = ylcons(yllist(key, v), ylnil());
+    
+    /* make 'size' pair */
+    key = ylmp_get_block();
+    ylaassign_sym(key, _alloc_str("size"));
+    v = ylmp_get_block();
+    ylaassign_dbl(v, (double)st.st_size);
+    r = ylappend(r, ylcons(yllist(key, v), ylnil()));
+
+    return r;
+} YLENDNF(fstat)
+
 
 YLDEFNF(fread, 1, 1) {
     FILE*    fh = NULL;
     char*    buf = NULL;
     yle_t*   r;
-    long int sz;
 
-    ylcheck_chain_atom_type1(system.fread, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
     
-    fh = fopen(ylasym(ylcar(e)).sym, "r");
-    if(!fh) {
-        yllog((YLLogW, "<!system.fread!> Cannot open file [%s]\n", ylasym(ylcar(e)).sym));
-        goto bail;
-    }
+    buf = _readf(NULL, "fread", ylasym(ylcar(e)).sym, TRUE);
+    if(!buf) { goto bail; }
 
-    /* do ylnot check error.. very rare to fail!! */
-    fseek(fh, 0, SEEK_END);
-    sz = ftell(fh);
-    fseek(fh, 0, SEEK_SET);
-
-    buf = ylmalloc((unsigned int)sz+1); /* +1 for trailing 0 */
-    if(!buf) {
-        yllog((YLLogW, "<!system.fread!> Not enough memory to load file [%s]\n", ylasym(ylcar(e)).sym));
-        goto bail;
-    }
-
-    if(sz != fread(buf, 1, sz, fh)) {
-        yllog((YLLogW, "<!system.fread!> Fail to read file [%s]\n", ylasym(ylcar(e)).sym));
-        goto bail;
-    }
-    buf[sz] = 0; /* add trailing 0 */
-    
     r = ylmp_get_block();
     ylaassign_sym(r, buf);
     buf = NULL; /* to prevent from free */
@@ -233,35 +349,16 @@ YLDEFNF(fread, 1, 1) {
 } YLENDNF(fread)
 
 YLDEFNF(freadb, 1, 1) {
-    FILE*    fh = NULL;
-    char*    buf = NULL;
-    yle_t*   r;
-    long int sz;
+    FILE*        fh = NULL;
+    char*        buf = NULL;
+    yle_t*       r;
+    unsigned int sz;
 
-    ylcheck_chain_atom_type1(system.freadb, e, YLABinary);
+    ylnfcheck_atype_chain1(e, YLABinary);
     
-    fh = fopen(ylasym(ylcar(e)).sym, "r");
-    if(!fh) {
-        yllog((YLLogW, "<!system.freadb!> Cannot open file [%s]\n", ylasym(ylcar(e)).sym));
-        goto bail;
-    }
+    buf = _readf(&sz, "freadb", ylasym(ylcar(e)).sym, FALSE);
+    if(!buf) { goto bail; }
 
-    /* do ylnot check error.. very rare to fail!! */
-    fseek(fh, 0, SEEK_END);
-    sz = ftell(fh);
-    fseek(fh, 0, SEEK_SET);
-
-    buf = ylmalloc((unsigned int)sz);
-    if(!buf) {
-        yllog((YLLogW, "<!system.freadb!> Not enough memory to load file [%s]\n", ylasym(ylcar(e)).sym));
-        goto bail;
-    }
-
-    if(sz != fread(buf, 1, sz, fh)) {
-        yllog((YLLogW, "<!system.fread!> Fail to read file [%s]\n", ylasym(ylcar(e)).sym));
-        goto bail;
-    }
-    
     r = ylmp_get_block();
     ylaassign_bin(r, buf, sz);
     buf = NULL; /* to prevent from free */
@@ -287,13 +384,13 @@ YLDEFNF(fwrite, 2, 2) {
     /* parameter check */
     if( !(ylais_type(ylcar(e), YLASymbol)
           && (ylais_type(dat, YLASymbol) || ylais_type(dat, YLABinary))) ) {
-        yllog((YLLogE, "<!system.fwrite!> invalid parameter type\n"));
+        ylnflogE0("invalid parameter type\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
        
     fh = fopen(ylasym(ylcar(e)).sym, "w");
     if(!fh) {
-        yllog((YLLogW, "<!system.fwrite!> Cannot open file [%s]\n", ylasym(ylcar(e)).sym));
+        ylnflogW1("Cannot open file [%s]\n", ylasym(ylcar(e)).sym);
         goto bail;
     }
 
@@ -312,7 +409,7 @@ YLDEFNF(fwrite, 2, 2) {
     }
 
     if(sz != fwrite(rawdata, 1, sz, fh)) {
-        yllog((YLLogW, "<!system.fwrite!> Fail to write file [%s]\n", ylasym(ylcar(e)).sym));
+        ylnflogW1("Fail to write file [%s]\n", ylasym(ylcar(e)).sym);
         goto bail;
     }
     
@@ -330,11 +427,11 @@ YLDEFNF(readdir, 1, 1) {
     yle_t*            re;      /* expression to return */
     const char*       dpath;
 
-    ylcheck_chain_atom_type1(system.readdir, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
     dpath = ylasym(ylcar(e)).sym;
     dip = opendir(dpath);
     if(!dip) { 
-        yllog((YLLogW, "<!system.readdir!> Fail to open directory [%s]\n", dpath));
+        ylnflogW1("Fail to open directory [%s]\n", dpath);
         goto bail; 
     }
  

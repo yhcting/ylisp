@@ -37,7 +37,7 @@ enum {
     TRIEPrefix_not_matched,
 };
 
-extern void
+extern ylerr_t
 yltrie_init();
 
 extern void
@@ -60,7 +60,8 @@ extern int
 yltrie_delete(const char* sym);
 
 /**
- * @return: NULL if @sym is not in trie.
+ * @outty [out]: type of symbol. this can be NULL if not to want to get.
+ * @return     : NULL if @sym is not in trie.
  */
 extern yle_t*
 yltrie_get(int* outty, const char* sym);

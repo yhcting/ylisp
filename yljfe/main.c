@@ -18,7 +18,11 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-
+/*
+ * This is simple front end...
+ * So, exception handling for lots of cases are missing...
+ * (Buggy... but worth to use... front-end)
+ */
 
 
 #include <stdio.h>
@@ -32,62 +36,34 @@
 
 
 #define _MAX_SYM_LEN          1024
+#define _INIT_OUTBUFSZ        4*1024 /* normal page size */
+
 
 /* See Main.java */
 enum {
-    _AC_WRONG_PREFIX  = 0,
-    _AC_CANDIDATES    = 1,
-    _AC_MORE_PREFIX   = 2,
-    _AC_COMPLETE      = 3,
+    _AC_HANDLED       = 0,
+    _AC_MORE_PREFIX   = 1,
+    _AC_COMPLETE      = 2,
 };
-
 
 static int _loglv = YLLogW;
 
 static struct {
-    char*          b;
-    unsigned int   sz;    /* not including tailing NULL */
-    unsigned int   limit;
-} _outmsg;
-
-
-static int
-_vprint(const char* format, va_list args) {
-#define __BUFSZ 4*1024 /* usually, page size is 4KB */
-
-    static char   __buf[__BUFSZ];
-
-    char*         tmp;
-    int           cw; /* charactera written */
-
-    /* -1 for null-terminator */
-    cw = vsnprintf (__buf, __BUFSZ -1, format, args);
-    
-    if(cw >= 0) {
-        __buf[cw] = 0; /* trailing NULL */
-        /* secure enough memory space */
-        while(_outmsg.sz + cw > _outmsg.limit) {
-            tmp = malloc(_outmsg.limit*2);
-            memcpy(tmp, _outmsg.b, _outmsg.limit);
-            free(_outmsg.b);
-            _outmsg.b = tmp;
-            _outmsg.limit *= 2;
-        }
-        memcpy(_outmsg.b + _outmsg.sz, __buf, cw);
-        _outmsg.sz += cw;
-    }
-    
-#undef __BUFSZ    
-    return cw;
-}
+    char*  b;        /* address of buffer */
+    char*  p;        /* next position write */
+    char*  plimit;   /* limit address (exclusive) */
+} _msg;
 
 static int
 _print(const char* format, ...) {
+    /* print to standard out directly */
     va_list args;
     int     ret;
     va_start (args, format);
-    ret = _vprint(format, args);
+    ret = vprintf(format, args);
     va_end (args);
+    /* we want to print its string immediately */
+    /* fflush(); */
     return ret;
 }
 
@@ -95,17 +71,127 @@ static void
 _log(int lv, const char* format, ...) {
     if(lv >= _loglv) {
         va_list ap;
+        /* print to standard out directly */
         va_start(ap, format);
-        _vprint(format, ap);
+        vprintf(format, ap);
         va_end(ap);
     }
 }
 
-
 static void
-_assert(int a) { 
-    assert(a); 
+_assert(int a) { assert(a); }
+
+
+/* -------------------------------------
+ * Functions for native message - START
+ * -------------------------------------*/
+
+static inline void
+_msginit() {
+    /* initialize */
+    _msg.p = _msg.b = (char*)malloc(_INIT_OUTBUFSZ);
+    _msg.plimit = _msg.b + _INIT_OUTBUFSZ;
 }
+
+static inline unsigned int
+_msgbuf_freesz() { return _msg.plimit - _msg.p - 1; } /* -1 for secure trailing 0 */
+
+static inline unsigned int
+_msgbuf_usedsz() { return _msg.p - _msg.b; }
+
+static inline unsigned int
+_msgbufsz() { return _msg.plimit - _msg.b - 1; } /* -1 for secure trailing 0 */
+
+static inline void
+_msgbuf_shrink() {
+    if(_msg.plimit - _msg.b > _INIT_OUTBUFSZ) { 
+        free(_msg.b);
+        _msg.p = _msg.b = malloc(_INIT_OUTBUFSZ);
+        _msg.plimit = _msg.p + _INIT_OUTBUFSZ;
+    }
+}
+
+/* 
+ * return allocated size if success, 0 if fails
+ */
+static inline unsigned int
+_msgbuf_expand() {
+    char*           tmp;
+    unsigned int    dsz, lsz;
+    lsz = _msg.plimit - _msg.b;
+    dsz = _msg.p - _msg.b;
+    tmp = malloc(lsz*2);
+    if(tmp) {
+        memcpy(tmp, _msg.b, dsz);
+        free(_msg.b);
+        _msg.b = tmp;
+        _msg.p = _msg.b + dsz;
+        _msg.plimit = _msg.b + lsz*2;
+        return lsz*2;
+    } else {
+        return 0;
+    }
+}
+
+/* 
+ * return 1 if success to get enough space. Otherwise 0.
+ */
+static inline unsigned int
+_msgbuf_secure(unsigned int sz_to_add) {
+    while( sz_to_add > _msgbuf_freesz()
+           && _msgbuf_expand()) {}
+    return sz_to_add <= _msgufsz();
+}
+
+static inline void
+_msgstart() {
+    _msgbuf_shrink();
+    _msg.p = _msg.b;
+    *_msg.p = 0;
+}
+
+
+static int
+_msgappend(const char* format, ...) {
+    va_list       args;
+    int           ret;
+    char*         tmp;
+    int           cw = 0, cwsv; /* charactera written */
+
+    va_start (args, format);
+    do {
+        cwsv = cw;
+        cw = vsnprintf (_msg.p, _msgbuf_freesz(), format, args);
+        if(cw >= _msgbuf_freesz()) {
+            if(!_msgbuf_expand()) {
+                _print("Not enough memory to alloc space for native message! \n"
+                       "Memory size requried : %d"
+                       "Message is truncated!\n", _msgbufsz()*2);
+                cw = cwsv;
+                break;
+            }
+        } else { break; }
+    } while(1);
+    _msg.p += cw;
+    va_end (args);
+
+    return cw;
+}
+
+static inline char*
+_msgbuf_pointer() { return _msg.p; }
+
+static inline const char*
+_msgstring() { *_msg.p = 0; return _msg.b; }
+
+static inline void
+_msgappended(unsigned int sz) { _msg.p += sz; }
+
+/* -------------------------------------
+ * Functions for native message - END
+ * -------------------------------------*/
+
+
 
 /* ===========================================
  * JNI Functions - START
@@ -125,7 +211,7 @@ _jni_Main_nativeInterpret
 
     stream = (*jenv)->GetStringUTFChars(jenv, jstr, NULL);
 
-    _outmsg.sz = 0; /* clean out message */
+    _msgstart();
     if( YLOk != ylinterpret(stream, strlen(stream)) ) {
         jret = JNI_FALSE;
     }
@@ -143,8 +229,14 @@ _jni_Main_nativeInterpret
 static jstring JNICALL 
 _jni_Main_nativeGetLastNativeMessage
 (JNIEnv* jenv, jobject jobj) {
-    _outmsg.b[_outmsg.sz] = 0; /* trailing 0 */
-    return ((*jenv)->NewStringUTF(jenv, _outmsg.b));
+    jstring jret;
+    jret = ((*jenv)->NewStringUTF(jenv, _msgstring()));
+    if(!jret) {
+        _print("Not enough Java memory to get native message!\n"
+               "Native message size : %d\n", _msgbuf_usedsz());
+    }
+    _msgbuf_shrink();
+    return jret;
 }
 
 /*
@@ -173,13 +265,14 @@ _jni_Main_nativeAutoComplete
 
     prefix = (*jenv)->GetStringUTFChars(jenv, jprefix, NULL);
 
-    _outmsg.sz = 0; /* clean out message */
-    ret = yltrie_get_more_possible_prefix(prefix, _outmsg.b, _outmsg.limit);
-    _outmsg.sz = strlen(_outmsg.b);
+    _msgstart();
+    ret = yltrie_get_more_possible_prefix(prefix, _msgbuf_pointer(), _msgbuf_freesz());
+    /* we need to assess directly..here... */
+    _msgappended(strlen(_msg.b));
 
     switch(ret) {
         case 0: {
-            if(0 < _outmsg.sz) {
+            if(_msg.p > _msg.b) {
                 ret = _AC_MORE_PREFIX;
             } else {
                 /* we need to retrieve candidates.. */
@@ -189,8 +282,16 @@ _jni_Main_nativeAutoComplete
                 num = ylget_candidates_num(prefix, &maxlen);
                 assert(num > 1);
                 pp = malloc(sizeof(char*)*num);
+                if(!pp) { 
+                    _print("Fail to alloc memory : %d\n", num);
+                    assert(0);
+                }
                 for(i=0; i<num; i++) {
                     pp[i] = malloc(maxlen+1);
+                    if(!pp[i]) {
+                        _print("Fail to alloc memory : %d\n", maxlen+1);
+                        assert(0);
+                    }
                 }
                 i = ylget_candidates(prefix, pp, num, maxlen+1);
                 assert(i==num);
@@ -199,7 +300,8 @@ _jni_Main_nativeAutoComplete
                     free(pp[i]);
                 }
                 free(pp);
-                ret = _AC_CANDIDATES;
+                _print("\n");
+                ret = _AC_HANDLED;
             }
         } break;
 
@@ -209,11 +311,12 @@ _jni_Main_nativeAutoComplete
         } break;
 
         case 2: {
-            ret = _AC_WRONG_PREFIX;
+            ret = _AC_HANDLED;
             /* nothing to do */
         } break;
 
         default:
+            printf("Internal error to try auto-completion. Out of memory?\n");
             ret = -1; /* error case */
     }
 
@@ -263,7 +366,7 @@ _create_jvm(JavaVM** jvm) {
     JavaVMOption        jvmopt;
 
     /* TODO : env variable should be used for this! */
-    jvmopt.optionString = "-Djava.class.path=/home/hbg683/Develop/cedetws/ylisp/yljfe/jsrc/bin";
+    jvmopt.optionString = "-Djava.class.path=./jsrc/bin";
     jvmargs.version = JNI_VERSION_1_6;
     jvmargs.nOptions = 1;
     jvmargs.options = &jvmopt;
@@ -288,14 +391,39 @@ _start_java(JavaVM* jvm, JNIEnv* jenv) {
     (*jenv)->CallStaticVoidMethod(jenv, jcls_main, jmid_main, NULL);
 }
 
+
+static void*
+_readf(unsigned int* outsz, const char* fpath) {
+    unsigned char*  buf = NULL;
+    FILE*           fh = NULL;
+    unsigned int    sz;
+
+    fh = fopen(fpath, "r");
+    if(!fh) { goto bail; }
+
+    /* do ylnot check error.. very rare to fail!! */
+    fseek(fh, 0, SEEK_END);
+    sz = ftell(fh);
+    fseek(fh, 0, SEEK_SET);
+
+    buf = malloc(sz);
+    if(!buf) { goto bail; }
+
+    if(1 != fread(buf, sz, 1, fh)) { goto bail;  }
+    fclose(fh);
+
+    *outsz = sz;
+    return buf;
+
+ bail:
+    if(fh) { fclose(fh); }
+    if(buf) { free(buf); }
+    return NULL;
+}
+
 int
 main(int argc, char* argv[]) {
-
-    /* initialize */
-    _outmsg.limit = 16*1024; /* 16KB output buffer - initial value */
-    _outmsg.b = (char*)malloc(_outmsg.limit);
-    _outmsg.sz = 0;
-
+    _msginit();
     /* initialize ylisp */
     { /* just scope */
         ylsys_t     sys;
@@ -314,21 +442,18 @@ main(int argc, char* argv[]) {
 
     /* run initial scripts if required */
     if(argc > 1) {
-        int     i;
-        char    cmd[2*1024]; /* temporary buffer */
-        char   *p, *base;
-        const char* prefix = "(interpret-file '";
-        base = cmd + strlen(prefix);
-        memcpy(cmd, prefix, base-cmd);
-        for(i=1; i<argc; i++) {
-            p = base + strlen(argv[i]);
-            memcpy(base, argv[i], p-base);
-            *p = ')'; p++; *p = 0; /* trailing NULL */
-            if( YLOk != ylinterpret(cmd, p - cmd) ) {
-                printf("Error: Fail to interpret script [%s]\n", argv[i]);
-                return  0;
-            }
+        unsigned char*   strm;
+        unsigned int     strmsz;
+        strm = _readf(&strmsz, "../yls/yljfe_initrc.yl");
+        if(!strm) {
+            printf("Fail to read initrc file..\n");
+            return 0;
         }
+        if(YLOk != ylinterpret(strm, strmsz)) {
+            printf("Fail to interpret initrc script.\n");
+            return 0;
+        }
+        free(strm);
     }
 
     /* start java */

@@ -32,7 +32,7 @@
 #include "lisp.h"
 #include "trie.h"
 
-#define _LOGLV  YLLogV
+#define _LOGLV  YLLogW
 
 static int _mblk = 0;
 
@@ -81,9 +81,42 @@ _assert(int a) {
     if(!a){ assert(0); }
 }
 
+
+static void*
+_readf(unsigned int* outsz, const char* fpath) {
+    unsigned char*  buf = NULL;
+    FILE*           fh = NULL;
+    unsigned int    sz;
+
+    fh = fopen(fpath, "r");
+    if(!fh) { goto bail; }
+
+    /* do ylnot check error.. very rare to fail!! */
+    fseek(fh, 0, SEEK_END);
+    sz = ftell(fh);
+    fseek(fh, 0, SEEK_SET);
+
+    buf = malloc(sz);
+    if(!buf) { goto bail; }
+
+    if(1 != fread(buf, sz, 1, fh)) { goto bail;  }
+    fclose(fh);
+
+    *outsz = sz;
+    return buf;
+
+ bail:
+    if(fh) { fclose(fh); }
+    if(buf) { free(buf); }
+    return NULL;
+}
+
+
 int
 main(int argc, char* argv[]) {
-    ylsys_t   sys;
+    ylsys_t          sys;
+    unsigned char*   strm;
+    unsigned int     strmsz;
 
     /* ylset system parameter */
     sys.log = _log;
@@ -94,7 +127,14 @@ main(int argc, char* argv[]) {
 
     ylinit(&sys);
 
-    if(YLOk != ylinterpret(_exp, strlen(_exp))) {
+#if 1
+    strm = _readf(&strmsz, "../yls/test.yl");
+#else
+    strm = _exp;
+    strmsz = strlen(_exp);
+#endif
+
+    if(YLOk != ylinterpret(strm, strmsz)) {
         printf("Fail to interpret...\n");
         return 0;
     }

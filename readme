@@ -2,6 +2,7 @@ Introduction
 ------------
     Goal of YLISP is Rapid Tool Development Tool.
     So, YLISP doesn't want to be complete programming language like Common Lisp.
+    And execution speed(performance) is not considered enough, too.
     Instead of it, YLISP focuses on supporting mechanism to add and use customized-native-function(CNF)s easily.
     Consumer can easily extend their own CNFs by programming plug-ins.
     Lisp is function based language. So, Consumer can define their own semantics with S-Expression syntax.
@@ -33,10 +34,13 @@ How Do I Run Demo?
 ------------------
     Build it by type 'sh build.sh'. Enter yljfe. type './yljfe'.
     For running test scripts in 'yls' directly at the start of 'yljfe'.
-    Type './yljfe ../yls/yljfe_initrc.yl'
+    Type './yljfe (../yls/yljfe_initrc.yl)'
     Simple introduction of yljfe.
-        Upper area is display (view only) area for output. Lower area is edit area.
-        Enter lisp code and press Ctrl-R to run edited lisp code.
+        Text panel is edit area. You can type ylisp code in it.
+        Press Ctrl-R to run edited ylisp code.
+        yljfe uses standard output(console).
+        So, output of execution can be seen at the console where yljfe is executed.
+        (Note! So, you SHOULD NOT execute yljfe with background mode!)
         Ctrl-F to symbol auto completion.
 
 
@@ -70,6 +74,7 @@ Directory/File Structure
         Very simple console front-end for YLISP. With yljfe, it becomes obsolete.
     yljfe:
         Very simple java front-end for YLISP.
+        To reduce platform dependency, Java is chosen as an UI framework.
         For GUI, this uses java swing. So, to run this, JRE is required.
         jsrc/:
             Java source code for GUI.
@@ -78,17 +83,12 @@ Directory/File Structure
         Without any special reason, this plug-in should be loaded at the begining.
     ylmath/ylstring/ylsystem
         Plug-in for native function extension. Followings are the list of library name and register functions.
-        libylbase.so : yllibylbase_register
-        libylmath.so : yllibylmath_register
-        libylstring.so : yllibylstring_register, yllibylstring_re_register(requires pcre library - libpcre.so)
-        libylsystem.so : yllibylsystem_register
+        libylbase.so
+        libylmath.so
+        libylstring.so
+        libylsystem.so
     yls
         YLISP script files.
-
-
-Naming Convention
------------------
-    Names for S-Expression follows the Report (http://www-formal.stanford.edu/jmc/recursive (by John McCarthy))
 
 
 Parsing S-Expression
@@ -188,12 +188,11 @@ Creating CNF
         - Setting car or cdr value of pair should be done by calling one of those
           (Those functions handle reference count automatically.)
           If not, GC may not work correctly!
-    * There should be at least one functions that registers native function to interpreter.
-      (This function will be called when plug-in library is loaded)
+    * There should be two functions in CNF plug-in. 'ylcnf_onload/ylcnf_onunload'.
+      At the moment of loading plug-in library by evaluating 'load-cnf', 'ylcnf_onload' is called.
+      And at the moment of unload plug-in library by evaluating 'unload-cnf', 'ylcnf_onunload' is called.
+      So, CNF plug-in should register new native functions at 'ylcnf_onload' and unregister at 'ylcnf_onunload'.
 
 
 Known Bugs
 ----------
-system.shell
-    * stderr is not shown at yljfe.
-    * stdout is not fully shown if output is long.

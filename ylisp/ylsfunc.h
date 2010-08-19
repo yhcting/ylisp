@@ -193,6 +193,7 @@ ylsubst(yle_t* x, yle_t* y, yle_t* z) {
             return ylcons(ylsubst(x, y, ylcar(z)), ylsubst(x, y, ylcdr(z)));
         }
     }
+    yllogE0("subst : Should not reach here!\n");
     ylinterpret_undefined(YLErr_eval_undefined);
 }
 
@@ -234,7 +235,7 @@ ylpair(yle_t* x, yle_t* y) {
     } else if( !yleis_atom(x) && !yleis_atom(y) ) {
         return ylcons(yllist(ylcar(x), ylcar(y)), ylpair(ylcdr(x), ylcdr(y)));
     } else {
-        yllog((YLLogE, "Fail to map parameter!\n"));
+        yllogE0("Fail to map parameter!\n");
         ylinterpret_undefined(YLErr_eval_undefined);
     }
 }

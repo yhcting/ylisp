@@ -1,5 +1,10 @@
 (print '"====== Start Testing 'system' =======\n")
-(assert (eq '"01234567890123456789012345678901234567890123456789
-"            (system.shell '"echo 01234567890123456789012345678901234567890123456789")))
+(system.shell 'ls)
+(assert (eq '"abcd
+" (system.shell '"echo abcd")))
 (assert (system.setenv 'EnvTest 'hahaha))
 (assert (eq 'hahaha (system.getenv 'EnvTest)))
+(assert (eq '"01234567890123456789012345678901234567890123456789
+"            (system.shell '"echo 01234567890123456789012345678901234567890123456789")))
+(assert (eq '"abcde
+"            (system.shell '"echo abcde")))

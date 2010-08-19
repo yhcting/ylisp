@@ -32,9 +32,11 @@
  *   program notifies 'memory shortage'!
  * (100 - _FULL_SCAN_TRIGGER_POINT)% is spare-buffer to run command till out from interpreting stack.
  */
-#define _FULLSCAN_TRIGGER_POINT   80  /* percent */
-#define _MIN_FULLSCAN_EFFECT      5   /* percent */
-#define _MAX_EVAL_DEPTH           1000
+#define _FULLSCAN_TRIGGER_POINT       80  /* percent */
+#define _PARTIALSCAN_TRIGGER_POINT    95  /* percent */
+#define _MAX_EVAL_DEPTH               128 /* I think this is enough */
+
+
 
 /* memory pool */
 static struct {
@@ -75,7 +77,7 @@ static void
 _mark_as_free(yle_t* e) { ylercnt(e) = YLEINVALID_REFCNT; }
 
 
-void
+ylerr_t
 ylmp_init() {
     register int i;
     /* init memory pool */
@@ -86,7 +88,9 @@ ylmp_init() {
         _epl.fbis[i] = &_epl.pool[i];
     }
     _ststk = ylstk_create(_MAX_EVAL_DEPTH, NULL);
+    if(!_ststk) { return YLErr_out_of_memory;  }
     _stat.hwm = 0;
+    return YLOk;
 }
 
 void
@@ -97,7 +101,7 @@ ylmp_deinit() {
 yle_t*
 ylmp_get_block() {
     if(_epl.fbi <= 0) {
-        yllog((YLLogE, "Not enough Memory Pool.. Current size is %d\n", MPSIZE));
+        yllogE1("Not enough Memory Pool.. Current size is %d\n", MPSIZE);
         ylassert(FALSE);
     } else {
         --_epl.fbi;
@@ -108,7 +112,7 @@ ylmp_get_block() {
         _epl.ubis[_epl.ubi] = _epl.fbis[_epl.fbi];
         _epl.ubi++;
         if(_epl.ubi >= MPSIZE) {
-            yllog((YLLogE, "Not enough used block checker..\n"));
+            yllogE0("Not enough used block checker..\n");
             ylassert(FALSE);
         }
 
@@ -121,9 +125,15 @@ void
 __ylmp_release_block(yle_t* e) {
     /* ylassert(!ylercnt(e)); - sometimes force-release is required! */
     ylassert(e != ylnil() && e != ylt() && e != ylq());
+    /*
+     * Before call yleclean, we should mark that this block is free block.
+     * If not, following unexpected case may happen!
+     *    - In case of cross-reference, if block is not set as free, infinite loop of 'release' may happen!
+     */
+    _mark_as_free(e);
     yleclean(e);
     memset(e, 0, sizeof(yle_t));
-    _mark_as_free(e);
+    _mark_as_free(e); /* memset cleared mark. So, mark it again */
     _epl.fbis[_epl.fbi] = e;
     _epl.fbi++;
 }
@@ -138,14 +148,30 @@ __ylmp_release_block(yle_t* e) {
  *       - Calling this function is extreamly sensitive!
  *         Keeping base register for GC is very difficult to implementation due to handling return value!
  *
- * ASSUMPTION!
- *    This function is called at the topmost of interpreting stack!.
- *      That is perserving blocks that is reachable from Trie space is enough!
+ * Mechanism.
+ *    Keep in mind that, scanning GC is very expensive operation!
+ *    Full-scan (bpartial == FALSE)
+ *        This scans all memory blocks and keeps only blocks reachable from Trie space.
+ *        So, using this during interpret transaction, is very dangerous.
+ *        Therefore, this case should be used at the topmost of interpreting stack or in case of interpreting error!!.
+ *    Partial-scan (bpartial == TRUE)
+ *        This is less-effective but can be used at more variable cases.
+ *        Following blocks are preserved.
+ *            - Blocks that are newly allocated at current interpret transaction.
+ *              (And definitely reference should be larger than 0)
+ *            - Blocks reachable from Trie space.
+ *        Because newly allocated blocks of current transaction are not GCed, This can be used at the end of evaluation even if it's not topmost!.
+ *        !!WARNING!!
+ *            Using this in the middle of evaluation, SHOULD BE VERY VERY CAREFUL!!!!
+ *            (Actually, HIGHLY NOT RECOMMENDED, IF POSSIBLE!)
  */
-void
-ylmp_full_scan_gc() {
+static void
+_scanning_gc(ylmp_gcscanty_t ty) {
     register int     i;
     int              j; 
+
+    /* for logging */
+    int              sv = _usage_ratio();
 
     /* check all blocks as NOT-REACHABLE (initialize) */
     for(i=0; i<MPSIZE; i++) {
@@ -154,6 +180,13 @@ ylmp_full_scan_gc() {
 
     /* mark memory blocks that can be reachable from the Trie.*/
     yltrie_mark_reachable();
+
+    /* mark Reachable to blocks that are newly allocated at this interpret transaction */
+    if(YLMP_GCSCAN_PARTIAL == ty) {
+        for(i=0; i<_epl.ubi; i++) {
+            yleset_reachable(_epl.ubis[i]);
+        }
+    }
 
     /* Collect memory blocks those are not reachable (dangling) from the Trie! */
     for(i=0; i<MPSIZE; i++) {
@@ -164,25 +197,26 @@ ylmp_full_scan_gc() {
              * This is dangling - may be cross referred...
              * We need to check it... why this happenned..
              */
-            dbg_mem(yllog((YLLogI,
-                            "--> FSGC : Dangling Block \n"
+            dbg_mem(yllogV2("--> FSGC : Dangling Block \n"
                             "        block index : %d\n"
                             "        eval id     : %d\n"
-                            "        exp         : %s\n"
                             , i
-                            , _epl.pool[i].evid
-                            , yleprint(&_epl.pool[i]))););
+                            , _epl.pool[i].evid););
 
             __ylmp_release_block(&_epl.pool[i]);
         }
     }
 
+    ylassert(sv >= _usage_ratio());
+    yllogI2("\n=== Result of Scanning GC\n"
+            "    Usage ratio before: %d\%\n"
+            "    Usage ratio after : %d\%\n",
+            sv, _usage_ratio());
     /* 
      * We don't handle ubi/ubis here! 
      * Those should be handled at somewhere else.
      */
 }
-
 
 unsigned int
 ylmp_stack_size() {
@@ -228,10 +262,9 @@ ylmp_pop() {
     if( ylercnt(ylnil()) > 0x7fffffff
         || ylercnt(ylt()) > 0x7fffffff
         || ylercnt(ylq()) > 0x7fffffff) {
-        yllog((YLLogE, 
-               "Oops in memory pool...\n"
-               "reference count of one of predefined symbols is too big...\n"
-               "Definitely, there is unexpected error somewhere of memory block management!\n"));
+        yllogE0("Oops in memory pool...\n"
+                "reference count of one of predefined symbols is too big...\n"
+                "Definitely, there is unexpected error somewhere of memory block management!\n");
         ylassert(FALSE);
     }
 
@@ -240,42 +273,34 @@ ylmp_pop() {
     if(!ylstk_size(_ststk)) {
         /* start from the first */
         _epl.ubi = 0;
-
-        dbg_mem(yllog((YLLogD, "==> Mem usage ratio : %d\%\n", _usage_ratio())););
-
-        /* 
-         * Top of interpreting stack..
-         * Caring only global symbol space is enough here!
-         */
         if(_usage_ratio() > _FULLSCAN_TRIGGER_POINT) {
-            /* 
-             * NOTE!
-             *    Below routine is NOT TESTED YET!!
-             */
-            int    sv = _usage_ratio();
-            ylmp_full_scan_gc();
-            ylassert(sv >= _usage_ratio());
-            if(sv - _usage_ratio() < _MIN_FULLSCAN_EFFECT) {
-                yllog((YLLogE, 
-                       "\n=== Not enough memory pool\n"
-                        "    Usage ratio before full GC: %d\%\n"
-                        "    Usage ratio after full GC : %d\%\n",
-                        sv, _usage_ratio()));
-                ylassert(FALSE);
-            }
+            _scanning_gc(YLMP_GCSCAN_FULL);
         }
+    } else if(_usage_ratio() > _PARTIALSCAN_TRIGGER_POINT) {
+        /*
+         * I think this doesn't have any side effect.
+         * But I'm not sure 100%.
+         * It's very complicated and sensitive...
+         * Let's keep eyes on it.
+         */
+        _scanning_gc(YLMP_GCSCAN_PARTIAL);
     }
 }
 
 
 void
+ylmp_scan_gc(ylmp_gcscanty_t ty) {
+    _scanning_gc(ty);
+}
+
+void
 ylmp_manual_gc() {
     if(ylstk_size(_ststk) > 0) {
         ylstk_clean(_ststk);
-        ylstk_push(_ststk, 0);
-        ylmp_pop();
         _epl.ubi = 0;
     }
+    /* It's a trigger full scan gc */
+    _scanning_gc(YLMP_GCSCAN_FULL);
 }
 
 unsigned int

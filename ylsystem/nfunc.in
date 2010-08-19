@@ -51,6 +51,22 @@ NFUNC(getcwd,        "system.getcwd",       YLANfunc,
     "system.getcwd : [Symbol]\n"
     "    -get current working directory path.\n")
 
+NFUNC(fstat,         "system.fstat",        YLANfunc,
+    "system.fstat [file] : [pair]\n"
+    "    -get paired map of file stat.\n"
+    "    @return : nil if fails.\n"
+    "        key: type\n"
+    "            s : socket\n"
+    "            l : symbolic link\n"
+    "            f : regular file\n"
+    "            b : block device\n"
+    "            d : directory\n"
+    "            c : character device\n"
+    "            p : pipe\n"
+    "            u : unknown\n"
+    "        key: size\n"
+    "            size of file.\n")
+
 NFUNC(fread,         "system.fread",        YLANfunc,
     "system.fread <file path> : [Symbol] - not tested yet\n"
     "    -read text file.\n"

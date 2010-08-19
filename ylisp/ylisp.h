@@ -35,6 +35,8 @@ typedef enum {
     /* fail to initialization */
     YLErr_init,
 
+    YLErr_out_of_memory,
+
     YLErr_internal,
 
     YLErr_cnf_register,

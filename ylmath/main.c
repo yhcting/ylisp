@@ -119,7 +119,7 @@ main(int argc, char* argv[]) {
 static void*  _libmhandle;
 
 void
-yllibylmath_register() {
+ylcnf_onload() {
     _libmhandle = dlopen("/usr/lib/libm.so", RTLD_NOW | RTLD_GLOBAL);
     if(!_libmhandle) {
         yllogE(("Cannot open use system library required [/usr/lib/libm.so]\n"));
@@ -135,7 +135,7 @@ yllibylmath_register() {
 }
 
 void
-yllibylmath_unregister() {
+ylcnf_onunload() {
 
     /*
      * All functions that uses 'libm.so' SHOULD BE HERE.

@@ -4,16 +4,13 @@ import javax.swing.*;
 import java.util.*;
 
 public class Main extends JFrame {
-    private static final int       _FRAME_WIDTH        = 1024;
-    private static final int       _FRAME_HEIGHT       = 1024;
-    private static final int       _EDIT_AREA_HEIGHT   = 256;
-    private static final int       _OUT_AREA_HEIGHT    = _FRAME_HEIGHT - _EDIT_AREA_HEIGHT;
-    
+    private static final int       _FRAME_WIDTH        = 640;
+    private static final int       _FRAME_HEIGHT       = 256;
+
     // AC : Auto Complete - See native code.
-    private static final int       _AC_WRONG_PREFIX    = 0; // there is no matching candidates. May be wrong prefix. 
-    private static final int       _AC_CANDIDATES      = 1;
-    private static final int       _AC_MORE_PREFIX     = 2; // there is more possible-common-prefix
-    private static final int       _AC_COMPLETE        = 3; // only one candidate exists and is found.
+    private static final int       _AC_HANDLED         = 0; // already handled at the natives.
+    private static final int       _AC_MORE_PREFIX     = 1; // there is more possible-common-prefix
+    private static final int       _AC_COMPLETE        = 2; // only one candidate exists and is found.
     
     private static final int       _HISTORY_SIZE      = 100;
     
@@ -40,7 +37,6 @@ public class Main extends JFrame {
     }
 
     private YLJEditArea         _edit;
-    private JTextArea           _out;
     private LinkedList<String>  _history = new LinkedList<String>();
     private int                 _hi = 0;  // history index
     private int                 _loglv = _LogLv.Warn.v(); // default is log ouput - refer native code's implementation
@@ -48,7 +44,7 @@ public class Main extends JFrame {
     // ============================= ACTIONS START ==============================
     private class InterpretAction extends AbstractAction {
         public void actionPerformed(ActionEvent ev) {
-            _out.setText("====================== Interpret =====================\n" +
+            System.out.print("====================== Interpret =====================\n" +
                          _edit.getText() + "\n" +
                          "----------------------------\n\n");
             
@@ -56,14 +52,6 @@ public class Main extends JFrame {
             addToHistory(_edit.getText());
             _hi = 0;
             _edit.setText(""); // clean
-            _out.append(nativeGetLastNativeMessage() + "\n");
-            _out.append("======================================================\n");
-        }
-    }
-
-    private class CleanOutputAction extends AbstractAction {
-        public void actionPerformed(ActionEvent ev) {
-            _out.setText(""); // clean
         }
     }
 
@@ -72,7 +60,7 @@ public class Main extends JFrame {
             if(_loglv > _LogLv.Verbose.v()) { 
                 _loglv--;
                 nativeSetLogLevel(_loglv);
-                _out.append(">>> Current Log Level : " + _LogLv.getName(_loglv) + "\n");
+                System.out.print(">>> Current Log Level : " + _LogLv.getName(_loglv) + "\n");
             }
         }
     }
@@ -82,7 +70,7 @@ public class Main extends JFrame {
             if(_loglv < _LogLv.Error.v()) { 
                 _loglv++;
                 nativeSetLogLevel(_loglv);
-                _out.append(">>> Current Log Level : " + _LogLv.getName(_loglv) + "\n");
+                System.out.print(">>> Current Log Level : " + _LogLv.getName(_loglv) + "\n");
             }
         }
     }
@@ -118,8 +106,6 @@ public class Main extends JFrame {
             String pre   = orig.substring(0, caretpos);
             String post  = orig.substring(caretpos);
             
-            _out.setText(""); // clean output screen fist.
-            
             maxi = 0;
             for(i=0; i<delimiters.length; i++) {
                 j = pre.lastIndexOf(delimiters[i]);
@@ -129,14 +115,6 @@ public class Main extends JFrame {
             if( maxi < (pre.length() - 1) ) {
                 int r = nativeAutoComplete(pre.substring(maxi+1));
                 switch(r) {
-                    case _AC_WRONG_PREFIX:
-                        ; // nothing to do
-                    break;
-                    
-                    case _AC_CANDIDATES: {
-                        _out.setText(nativeGetLastNativeMessage());
-                    } break;
-                    
                     case _AC_MORE_PREFIX: {
                         String more = nativeGetLastNativeMessage();
                         _edit.setText(pre + more + post);
@@ -171,24 +149,8 @@ public class Main extends JFrame {
         _edit.setLineWrap(true);
         JScrollPane editPane = new JScrollPane(_edit);
         
-        _out = new JTextArea(1, 1);
-        _out.setFont(new Font("monospaced", Font.PLAIN, 14));
-        _out.setEditable(false);
-        _out.setTabSize(4);
-        _out.setLineWrap(true);
-        JScrollPane outPane = new JScrollPane(_out);
-        
-        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                                              outPane, editPane);
-        splitPane.setPreferredSize(new Dimension(_FRAME_WIDTH, _FRAME_HEIGHT));
-        splitPane.setOneTouchExpandable(true);
-        splitPane.setDividerLocation(_FRAME_HEIGHT*9/10); /* about 80% */
-        
-        JPanel content = new JPanel();
-        content.setLayout(new BorderLayout());
-        
-        getContentPane().add(splitPane, BorderLayout.CENTER);
-        
+        getContentPane().add(editPane, BorderLayout.CENTER);
+        setPreferredSize(new Dimension(_FRAME_WIDTH, _FRAME_HEIGHT));
         addBindings();
         
         pack();
@@ -212,10 +174,6 @@ public class Main extends JFrame {
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, Event.CTRL_MASK), "interpret");
         actionMap.put("interpret", new InterpretAction());
 
-        //Ctrl-l to clean output text screen.
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_L, Event.CTRL_MASK), "clean_output");
-        actionMap.put("clean_output", new CleanOutputAction());
-        
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, Event.CTRL_MASK), "Increase log level");
         actionMap.put("Increase log level", new InceaseLogLevelAction());
         

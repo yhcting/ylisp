@@ -34,7 +34,7 @@
 
 /* single element string should be less than */
 #define _MAX_SINGLE_ELEM_STR_LEN    4096
-#define _MAX_SYNTAX_DEPTH           100
+#define _MAX_SYNTAX_DEPTH           64
 
 /*
  * Common values of all state
@@ -206,7 +206,7 @@ _fsa_add_symchar(_fsa_t* fsa, char c) {
     if(fsa->pb < (fsa->bend-1)) {
         *fsa->pb = c; fsa->pb++;
     } else {
-        yllog((YLLogE, "Syntax Error : too long symbol!!!!!"));
+        yllogE0("Syntax Error : too long symbol!!!!!");
         ylinterpret_undefined(YLErr_internal);
     }
 }
@@ -222,6 +222,10 @@ static inline yle_t*
 _create_atom_sym(char* sym, unsigned int len) {
     yle_t* e = ylmp_get_block();
     char* str = ylmalloc(sizeof(char)*(len+1));
+    if(!str) {
+        yllogE1("Out Of Memory : [%d]!\n", len);
+        ylinterpret_undefined(YLErr_out_of_memory);
+    }
     memcpy(str, sym, len);
     str[len] = 0; /* ylnull-terminator */
     ylaassign_sym(e, str);
@@ -236,8 +240,8 @@ _eval_exp(yle_t* e) {
     int     ret;
     yle_t*  ev;
 
-    dbg_gen(yllog((YLLogD, ">>>>> Eval exp:\n"
-                               "%s\n", yleprint(e))););
+    dbg_gen(yllogD1(">>>>> Eval exp:\n"
+                    "    %s\n", yleprint(e)););
     ylmp_push();
     ev = yleval(e, ylnil());
     if( __TOPMOST_EVAL_MPSTACK_SIZE == ylmp_stack_size() ) {
@@ -258,18 +262,18 @@ _fsas_init_enter(const _fsas_t* fsas, _fsa_t* fsa) {
     ylpassign(&fsa->sentinel, ylnil(), ylnil());
     fsa->pe = &fsa->sentinel;
     ylmp_push();
-    dbg_mem(yllog((YLLogD, "\n+++ START - Interpret +++\n")); 
+    dbg_mem(yllogD0("\n+++ START - Interpret +++\n"); 
             ylmp_log_stat(YLLogD););
 }
 
 static void
 _fsas_init_come_back(const _fsas_t* fsas, _fsa_t* fsa) {
     if(&fsa->sentinel != fsa->pe) {
-        dbg_gen(yllog((YLLogD, "\n\n\n------ Line : %d -------\n", fsa->line)););
+        dbg_gen(yllogD1("\n\n\n------ Line : %d -------\n", fsa->line););
         _eval_exp(ylcadr(&fsa->sentinel));
         /* unrefer to free dangling block */
         ylpsetcdr(&fsa->sentinel, ylnil());
-        dbg_mem(yllog((YLLogD, "\n+++ END - Interpret +++\n"));
+        dbg_mem(yllogD0("\n+++ END - Interpret +++\n");
                 ylmp_log_stat(YLLogD););
 
     }
@@ -286,7 +290,7 @@ _fsas_init_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** n
         case '\\': *nexts = &_fsas_escape;                       break;
         case '(':  *nexts = &_fsas_list;                         break;
         case ')':  
-            yllog((YLLogE, "Syntax Error : parenthesis mismatching\n"));
+            yllogE0("Syntax Error : parenthesis mismatching\n");
             ylinterpret_undefined(YLErr_syntax_parenthesis);
         case ';':  *nexts = &_fsas_comment;                      break;
         case '\r':
@@ -300,7 +304,7 @@ _fsas_init_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** n
 
 static void
 _fsas_init_exit(const _fsas_t* fsas, _fsa_t* fsa) {
-    dbg_mem(yllog((YLLogD, "\n+++ END - Interpret +++\n"));
+    dbg_mem(yllogD0("\n+++ END - Interpret +++\n");
             ylmp_log_stat(YLLogD););
     ylmp_pop();
 
@@ -523,7 +527,7 @@ _fsas_escape_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t**
         /* "\n" is supported to represent line-feed */
         case 'n':  ch = '\n';        break;
         default:  
-            yllog((YLLogE, "Syntax Error : Unsupported character for escape!!\n"));
+            yllogE0("Syntax Error : Unsupported character for escape!!\n");
             ylinterpret_undefined(YLErr_syntax_escape); 
     }
     _fsa_add_symchar(fsa, ch);
@@ -556,7 +560,7 @@ _interp_automata(void* arg) {
             if('\n' == *p) { fsa->line++; }
             p++; 
         }
-        /* yllog(YLLogV, ("[%s]", nst->name)); */
+        /* yllogV1("[%s]", nst->name); */
 
         if(&_fsas_nochg == nst) { 
             ; /* nothing to do */
@@ -567,13 +571,13 @@ _interp_automata(void* arg) {
             /* move to previous state */
             st = ylstk_peek(fsa->ststk);
             (*st->come_back)(st, fsa);
-            /* yllog(YLLogV, (" => [%s]", st->name)); */
+            /* yllogV1(" => [%s]", st->name); */
         } else {
             ylstk_push(fsa->ststk, (void*)nst);
             (*nst->enter)(nst, fsa);
              st = nst;
         }
-        /* yllog(YLLogV, ("\n")); */
+        /* yllogV0("\n"); */
 
         if(fsa->send == p) {
             /* for easy parsing, automata always adds '\n' at the end of stream!!! */
@@ -587,11 +591,11 @@ _interp_automata(void* arg) {
         if(0 == ylstk_size(fsa->pestk)) { 
             return (void*)YLOk; 
         } else {
-            yllog((YLLogE, "Syntax Error!!!!!!\n"));
+            yllogE0("Syntax Error!!!!!!\n");
             return (void*)YLErr_syntax_unknown; 
         }
     } else { 
-        yllog((YLLogE, "Syntax Error!!!!!!\n"));
+        yllogE0("Syntax Error!!!!!!\n");
         return (void*)YLErr_syntax_unknown; 
     }
 }
@@ -601,7 +605,7 @@ ylinterpret(const char* stream, unsigned int streamsz) {
     /* Declar space to use */
     static char          elembuf[_MAX_SINGLE_ELEM_STR_LEN];
 
-    ylerr_t              ret = YLOk;
+    ylerr_t              ret = YLErr_internal;
     _fsa_t               fsa;
     int                  rc;
     pthread_t            thd;
@@ -620,6 +624,11 @@ ylinterpret(const char* stream, unsigned int streamsz) {
     fsa.line = 1;
     fsa.ststk = ylstk_create(_MAX_SYNTAX_DEPTH, NULL);
     fsa.pestk = ylstk_create(_MAX_SYNTAX_DEPTH, NULL);
+
+    if( !(fsa.ststk && fsa.pestk) ) {
+        ret = YLErr_out_of_memory;
+        goto bail;
+    }
     
     if(rc = pthread_create(&thd, NULL, &_interp_automata, &fsa)) {
         goto bail;
@@ -632,17 +641,20 @@ ylinterpret(const char* stream, unsigned int streamsz) {
     if(YLOk != ret) {
         ylmp_manual_gc();
         ylprint(("Interpret FAILS! : ERROR Line : %d\n", fsa.line));
+        goto bail;
     }
 
     ylstk_destroy(fsa.pestk);
     ylstk_destroy(fsa.ststk);
 
-    dbg_mem(yllog((YLLogI, "current MP after interpret : %d\n", ylmp_usage())););
+    dbg_mem(yllogI1("current MP after interpret : %d\n", ylmp_usage()););
     ylmp_log_stat(YLLogI);
-    return ret;
+    return YLOk;
 
  bail:
-    return YLErr_internal;
+    if(fsa.ststk) { ylstk_destroy(fsa.ststk); }
+    if(fsa.pestk) { ylstk_destroy(fsa.pestk); }
+    return ret;
 }
 
 void

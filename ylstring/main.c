@@ -122,7 +122,7 @@ main(int argc, char* argv[]) {
 static void* _pcrelib = NULL;
 
 void
-yllibylstring_register() {
+ylcnf_onload() {
 
     /* return if fail to register */
 #define NFUNC(n, s, type, desc)  \
@@ -130,47 +130,34 @@ yllibylstring_register() {
 #   include "nfunc.in"
 #undef NFUNC
 
-}
-
-void
-yllibylstring_re_register() {
-
+    /* if there is pcre, let's use it! */
     _pcrelib = dlopen("/usr/local/lib/libpcre.so", RTLD_NOW | RTLD_GLOBAL);
-    if(!_pcrelib) {
-        yllogE(("[/usr/local/lib/pcre.so] is required to use regex!\n"));
-        return;
-    }
-
-    /* return if fail to register */
-#define NFUNC(n, s, type, desc)  \
-    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylstring <<\n" desc)) { return; }
+    if(_pcrelib) {
+#define NFUNC(n, s, type, desc)                                         \
+        if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylstring <<\n" desc)) { return; }
 #   include "nfunc_re.in"
 #undef NFUNC
-
+    }
 }
 
 void
-yllibylstring_unregister() {
+ylcnf_onunload() {
 
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc.in"
 #undef NFUNC
 
-}
-
-void
-yllibylstring_re_unregister() {
-
-    /*
-     * All functions that uses 'libm.so' SHOULD BE HERE.
-     * We don't care of others who uses 'libm.so' out of here!
-     * Let's close it!
-     */
-    dlclose(_pcrelib);
-
+    if(_pcrelib) { /* re is loaded */
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc_re.in"
 #undef NFUNC
+        /*
+         * All functions that uses 'libpcre.so' SHOULD BE HERE.
+         * We don't care of others who uses 'libm.so' out of here!
+         * Let's close it!
+         */
+        dlclose(_pcrelib);
+    }
 }
 
 

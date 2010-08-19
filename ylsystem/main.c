@@ -31,12 +31,12 @@
 #include <assert.h>
 #include "yldevut.h"
 
-#define _LOGLV  YLLogV
+#define _LOGLV  YLLogW
 
 static int _mblk = 0;
 
 static const char* _exp = 
-    "(load-cnf '../lib/libylbase.so 'yllibylbase_register)\n"
+    "(load-cnf '../lib/libylbase.so)\n"
     "(interpret-file '../yls/base.yl)\n"
     "(interpret-file '../yls/test_system.yl)\n"
     ;
@@ -115,7 +115,7 @@ main(int argc, char* argv[]) {
 #undef NFUNC
 
 void
-yllibylsystem_register() {
+ylcnf_onload() {
 
     /* return if fail to register */
 #define NFUNC(n, s, type, desc)  \
@@ -126,7 +126,7 @@ yllibylsystem_register() {
 }
 
 void
-yllibylsystem_unregister() {
+ylcnf_onunload() {
 
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc.in"

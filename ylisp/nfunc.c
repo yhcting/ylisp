@@ -27,6 +27,7 @@
 #include "ylsfunc.h"
 #include "trie.h"
 #include "lisp.h"
+#include "mempool.h"
 
 /**********************************************************
  * Basic Functions for interpreting
@@ -34,12 +35,26 @@
 
 YLDEFNF(__dummy, 0, 0) {
     /* This is just dummy */
-    yllog((YLLogE, "'lambda' or 'mlambda' cannot be used as function name!\n")); 
+    ylnflogE0("'lambda' or 'mlambda' cannot be used as function name!\n");
     ylinterpret_undefined(YLErr_func_fail);
     return ylnil();
 } YLENDNF(__dummy)
 
 YLDEFNF(quote, 1, 1) {
+    /* 
+     * Following inactive part is code for test GC! 
+     * Dangling cyclic-cross-referred!
+     */
+#if 0
+    /* make intentional cross-reference!*/
+    {
+        yle_t *e0, *e1;
+        e0 = ylmp_get_block();
+        e1 = ylmp_get_block();
+        ylpassign(e0, ylnil(), e1);
+        ylpassign(e1, e0, ylnil());
+    }
+#endif
     return ylcar(e);
 } YLENDNF(quote)
 
@@ -52,7 +67,7 @@ YLDEFNF(mset, 2, 3) {
         if(ylais_type(ylcaddr(e), YLASymbol))  {
             return ylmset(ylcar(e), ylcadr(e), ylasym(ylcaddr(e)).sym);
         } else {
-            yllog((YLLogE, "MSET : 3rd parameter should be description string\n"));
+            ylnflogE0("MSET : 3rd parameter should be description string\n");
             ylinterpret_undefined(YLErr_func_invalid_param);
         }
     } else {
@@ -70,7 +85,7 @@ YLDEFNF(set, 2, 3) {
         if(ylais_type(ylcaddr(e), YLASymbol))  {
             return ylset(ylcar(e), ylcadr(e), a,ylasym(ylcaddr(e)).sym);
         } else {
-            yllog((YLLogE, "MSET : 3rd parameter should be description string\n"));
+            ylnflogE0("MSET : 3rd parameter should be description string\n");
             ylinterpret_undefined(YLErr_func_invalid_param);
         }
     } else {
@@ -79,10 +94,16 @@ YLDEFNF(set, 2, 3) {
 } YLENDNF(set)
 
 YLDEFNF(unset, 1, 1) {
-    ylcheck_chain_atom_type1(help, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
     if(yltrie_delete(ylasym(ylcar(e)).sym)) { return ylt(); }
     else { return ylnil(); }
 } YLENDNF(unset)
+
+YLDEFNF(is_set, 1, 1) {
+    ylnfcheck_atype_chain1(e, YLASymbol);
+    if(yltrie_get(NULL, ylasym(ylcar(e)).sym)) { return ylt(); }
+    else { return ylnil(); }
+} YLENDNF(is_set)
 
 YLDEFNF(eval, 1, 1) {
     return yleval(ylcar(e), a);
@@ -90,7 +111,7 @@ YLDEFNF(eval, 1, 1) {
 
 YLDEFNF(help, 1, 9999) {
     const char*  desc;
-    ylcheck_chain_atom_type1(help, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
     while(!yleis_nil(e)) {
         if(desc = yltrie_get_description(ylasym(ylcar(e)).sym)) {
             int    outty;
@@ -112,36 +133,29 @@ YLDEFNF(help, 1, 9999) {
     return ylt();
 } YLENDNF(help)
 
-YLDEFNF(load_cnf, 2, 2) {
+YLDEFNF(load_cnf, 1, 1) {
     void*   handle = NULL;
     void  (*register_cnf)();
     const char*  fname;
 
-    ylcheck_chain_atom_type1(help, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
 
     fname = ylasym(ylcar(e)).sym;
-    handle = dlopen(ylasym(ylcar(e)).sym, RTLD_LAZY);
+    handle = dlopen(fname, RTLD_LAZY);
     if(!handle) {
-        yllog((YLLogE, "Cannot open custom command library [%s]\n"
-              "    [%s]\n", ylasym(ylcar(e)).sym, dlerror()));
+        ylnflogE1("Cannot open custom command library : %s\n", dlerror());
         goto bail;
     }
 
-    e = ylcdr(e);
-    if(!ylais_type(ylcar(e), YLASymbol)) {
-        goto bail;
-    }
-    
-    register_cnf = dlsym(handle, ylasym(ylcar(e)).sym);
+    register_cnf = dlsym(handle, "ylcnf_onload");
     if(NULL != dlerror()) {
-        yllog((YLLogE, "Error to get symbol [%s]\n"
-              "    [%s]\n", ylasym(ylcar(e)).sym, dlerror()));
+        ylnflogE1("Error to get 'ylcnf_onload' : %s\n", dlerror());
         goto bail;
     }
 
     (*register_cnf)();
     
-    yllog((YLLogI, "load-cnf: [%s / %s] is done\n", fname, ylasym(ylcar(e)).sym));
+    ylnflogI0("done\n");
 
     /* dlclose(handle); */
     return ylt();
@@ -151,34 +165,27 @@ YLDEFNF(load_cnf, 2, 2) {
     ylinterpret_undefined(YLErr_func_fail);
 } YLENDNF(load_cnf)
 
-YLDEFNF(unload_cnf, 2, 2) {
+YLDEFNF(unload_cnf, 1, 1) {
     void*   handle = NULL;
     void  (*unregister_cnf)();
     const char* fname;
 
-    ylcheck_chain_atom_type1(help, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
 
     fname = ylasym(ylcar(e)).sym;
     /* 
      * if the same library is loaded again, the same file handle is returned 
      * (see manpage of dlopen(3))
      */
-    handle = dlopen(ylasym(ylcar(e)).sym, RTLD_LAZY);
+    handle = dlopen(fname, RTLD_LAZY);
     if(!handle) {
-        yllog((YLLogE, "Cannot open custom command library [%s]\n"
-              "    [%s]\n", ylasym(ylcar(e)).sym, dlerror()));
+        ylnflogE1("Cannot open custom command library : %s\n", dlerror());
         goto bail;
     }
 
-    e = ylcdr(e);
-    if(!ylais_type(ylcar(e), YLASymbol)) {
-        goto bail;
-    }
-    
-    unregister_cnf = dlsym(handle, ylasym(ylcar(e)).sym);
+    unregister_cnf = dlsym(handle, "ylcnf_onunload");
     if(NULL != dlerror()) {
-        yllog((YLLogE, "Error to get symbol [%s]\n"
-              "    [%s]\n", ylasym(ylcar(e)).sym, dlerror()));
+        ylnflogE1("Error to get symbol : %s\n", dlerror());
         goto bail;
     }
 
@@ -186,22 +193,30 @@ YLDEFNF(unload_cnf, 2, 2) {
 
     dlclose(handle);
 
-    yllog((YLLogI, "unload-cnf: [%s / %s] is done\n", fname, ylasym(ylcar(e)).sym));
+    ylnflogI0("done\n");
 
     return ylt();
 
  bail:
     if(handle) { dlclose(handle); }
     ylinterpret_undefined(YLErr_func_fail);
+
 } YLENDNF(unload_cnf)
 
-YLDEFNF(interpret_file, 1, 9999) {
+
+/*
+ * We can easily implement that this function can handle variable number of paramter.
+ * But, considering GC, we restrict number of parameter to one.!
+ * (FULL scan GC can be run only at the topmost evaluation!.
+ *    So, calling 'interpret-file' serveral times is good in GC's point of view!)
+ */
+YLDEFNF(interpret_file, 1, 1) {
     FILE*        fh = NULL;
     char*        buf = NULL;
     const char*  fname = NULL; /* file name */
     long int     sz;
 
-    ylcheck_chain_atom_type1(help, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
 
     while(!yleis_nil(e)) {
         fh = NULL; buf = NULL;
@@ -209,7 +224,7 @@ YLDEFNF(interpret_file, 1, 9999) {
 
         fh = fopen(fname, "r");
         if(!fh) {
-            yllog((YLLogE, "<!interpret-file!> Cannot open lisp file [%s]\n", fname));
+            ylnflogE1("Cannot open lisp file [%s]\n", fname);
             goto bail;
         }
 
@@ -220,25 +235,24 @@ YLDEFNF(interpret_file, 1, 9999) {
 
         buf = ylmalloc((unsigned int)sz);
         if(!buf) {
-            yllog((YLLogE, "<!interpret-file!> Not enough memory to load file [%s]\n", fname));
+            ylnflogE1("Not enough memory to load file [%s]\n", fname);
             goto bail;
         }
 
         if(sz != fread(buf, 1, sz, fh)) {
-            yllog((YLLogE, "<!interpret-file!> Fail to read file [%s]\n", fname));
+            ylnflogE1("Fail to read file [%s]\n", fname);
             goto bail;
         }
     
         if(YLOk !=  ylinterpret(buf, sz)) {
-            yllog((YLLogE, "<!interpret-file!> ERROR at interpreting\n"
-                           "    => %s\n", fname));
+            ylnflogE1("ERROR at interpreting [%s]\n", fname);
             goto bail;
         }
 
         if(fh) { fclose(fh); }
         if(buf) { ylfree(buf); }
 
-        yllog((YLLogI, "interpret-file: [%s] is done\n", fname));
+        ylnflogI1("interpret-file: [%s] is done\n", fname);
 
         e = ylcdr(e);
     }
@@ -260,7 +274,7 @@ YLDEFNF(gc, 0, 0) {
     ylprint(("\n=========== Before ============\n"));
     ylmp_print_stat();
 
-    ylmp_full_scan_gc();
+    ylmp_scan_gc(YLMP_GCSCAN_FULL); /* start full scan */
 
     ylprint(("\n=========== After ============\n"));
     ylmp_print_stat();
@@ -273,7 +287,8 @@ YLDEFNF(memstat, 0, 0) {
 } YLENDNF(memstat)
 
 
-void
+ylerr_t
 ylnfunc_init() {
     /* dlopen(0, RTLD_LAZY | RTLD_GLOBAL); */
+    return YLOk;
 }

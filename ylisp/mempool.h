@@ -31,23 +31,31 @@
 #define YLEINVALID_REFCNT  (0xffffffff)
 
 
-extern void
+typedef enum {
+    YLMP_GCSCAN_PARTIAL,
+    YLMP_GCSCAN_FULL,
+} ylmp_gcscanty_t;
+
+/*
+ * @return: TRUE if success, FALSE if fails
+ */
+extern ylerr_t
 ylmp_init();
 
 extern void
 ylmp_deinit();
 
 
-extern void
-ylmp_manual_gc();
-
 /*
- * This is very sensitive and dangerous function!
+ * Those two are very sensitive and dangerous function!
  * This may corrupt current running interpreting.
  * So, if you don't know what you are doing, DON'T USE THIS!
  */
 extern void
-ylmp_full_scan_gc();
+ylmp_manual_gc();
+
+extern void
+ylmp_scan_gc(ylmp_gcscanty_t ty);
 
 /*
  * @return: current usage

@@ -42,7 +42,7 @@
 YLDEFNF(length, 1, 1) {
     yle_t*    r;
 
-    ylcheck_chain_atom_type1(string.length, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
 
     r = ylmp_get_block();
     ylaassign_dbl( r, strlen(ylasym(ylcar(e)).sym) );
@@ -55,7 +55,7 @@ YLDEFNF(itos, 1, 1) {
     char*     b; /* buffer */
     yle_t*    r;
 
-    ylcheck_chain_atom_type1(string.itos, e, YLADouble);
+    ylnfcheck_atype_chain1(e, YLADouble);
 
     l = (long)yladbl(ylcar(e));
     b = ylmalloc(_NUMSTRSZ);
@@ -70,7 +70,7 @@ YLDEFNF(dtos, 1, 1) {
     char*     b; /* buffer */
     yle_t*    r;
 
-    ylcheck_chain_atom_type1(string.dtos, e, YLADouble);
+    ylnfcheck_atype_chain1(e, YLADouble);
 
     b = ylmalloc(_NUMSTRSZ);
     sprintf(b, "%f", yladbl(ylcar(e)));
@@ -94,7 +94,7 @@ YLDEFNF(btos, 1, 1) {
     char*          pd; /* pd : destination pointer */
     unsigned int   bsz;
     register int   i;
-    ylcheck_chain_atom_type1(string.btos, e, YLABinary);
+    ylnfcheck_atype_chain1(e, YLABinary);
 
     /*
      * 2 byte to represent char to hex
@@ -104,7 +104,7 @@ YLDEFNF(btos, 1, 1) {
     /* +1 for trailing 0 */
     b = ylmalloc(bsz+1); 
     if(!b) {
-        yllog((YLLogE, "Not enough memory: required [%d]\n", bsz));
+        ylnflogE1("Not enough memory: required [%d]\n", bsz);
         ylinterpret_undefined(YLErr_func_fail);
     }
 
@@ -129,7 +129,7 @@ YLDEFNF(split_to_line, 1, 1) {
     yle_t    *rh, *rt;  /* return head, return tail */
     unsigned int len;
 
-    ylcheck_chain_atom_type1(string.split-to-line, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
 
     /* get dummy pair head */
     rt = rh = ylmp_get_block();
@@ -173,7 +173,7 @@ YLDEFNF(concat, 2, 9999) {
     char*            p;
 
     /* check input parameter */
-    ylcheck_chain_atom_type1(string.concat, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
 
     /* calculate total string length */
     len = 0; pe = e;
@@ -185,7 +185,7 @@ YLDEFNF(concat, 2, 9999) {
     /* alloc memory and start to copy */
     buf = ylmalloc(len*sizeof(char) +1); /* '+1' for trailing 0 */
     if(!buf) {
-        yllog((YLLogE, "Not enough memory: required [%d]\n", len));
+        ylnflogE1("Not enough memory: required [%d]\n", len);
         ylinterpret_undefined(YLErr_func_fail);
     }
 
@@ -212,18 +212,15 @@ YLDEFNF(at, 2, 2) {
     yle_t*      r;
 
     /* check parameter type */
-    if( !(ylais_type(ylcar(e), YLASymbol) 
-          && ylais_type(ylcadr(e), YLADouble)) ) {
-        yllog((YLLogE, "<!string.at!> invalid parameter type\n")); 
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
+    ylnfcheck_atype1(ylcar(e), YLASymbol);
+    ylnfcheck_atype1(ylcadr(e), YLADouble);
 
     /* check index range */
     idx = (int)yladbl(ylcadr(e));
     p = ylasym(ylcar(e)).sym;
     len = strlen(p);
     if(0 > idx || idx >= len) {
-        yllog((YLLogE, "<!string.at!> invalid index value\n")); 
+        ylnflogE0("invalid index value\n"); 
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
 
@@ -242,7 +239,7 @@ YLDEFNF(compare, 2, 2) {
     yle_t* r = ylmp_get_block();
 
     /* check input parameter */
-    ylcheck_chain_atom_type1(string.compare, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
 
     ylaassign_dbl(r, strcmp(ylasym(ylcar(e)).sym, ylasym(ylcadr(e)).sym));
     return r;
@@ -254,7 +251,7 @@ YLDEFNF(end_with, 2, 2) {
     const char   *pstr, *psub;
 
     /* check input parameter */
-    ylcheck_chain_atom_type1(string.end_with, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
 
     pstr = ylasym(ylcar(e)).sym;
     psub = ylasym(ylcadr(e)).sym;
@@ -275,17 +272,11 @@ YLDEFNF(start_with, 2, 3) {
     int           fromi;
 
     /* check parameter type */
-    if(yleis_nil(ylcddr(e))) {
-        /* check input parameter */
-        ylcheck_chain_atom_type1(string.start_with, e, YLASymbol);
-        fromi = 0;
-    } else {
-        if( !(ylais_type(ylcar(e), YLASymbol) 
-              && ylais_type(ylcadr(e), YLASymbol)
-              && ylais_type(ylcaddr(e), YLADouble)) ) {
-            yllog((YLLogE, "<!string.start-width!> invalid parameter type\n")); 
-            ylinterpret_undefined(YLErr_func_invalid_param);
-        }
+    ylnfcheck_atype1(ylcar(e), YLASymbol);
+    ylnfcheck_atype1(ylcadr(e), YLASymbol);
+    if(2 == pcsz) { fromi = 0; } 
+    else {
+        ylnfcheck_atype1(ylcaddr(e), YLADouble);
         fromi = (int)yladbl(ylcaddr(e));
     }
     
@@ -299,7 +290,7 @@ YLDEFNF(start_with, 2, 3) {
 
     /* check index range */
     if(0 > fromi || fromi >= strsz) {
-        yllog((YLLogW, "<!string.start-with!> invalid index value : %d\n", fromi)); 
+        ylnflogE1("invalid index value : %d\n", fromi); 
         return ylnil();
     }
 
@@ -313,20 +304,14 @@ YLDEFNF(index_of, 2, 3) {
     int           fromi;
 
     /* check parameter type */
-    if(yleis_nil(ylcddr(e))) {
-        /* check input parameter */
-        ylcheck_chain_atom_type1(string.index-of, e, YLASymbol);
-        fromi = 0;
-    } else {
-        if( !(ylais_type(ylcar(e), YLASymbol) 
-              && ylais_type(ylcadr(e), YLASymbol)
-              && ylais_type(ylcaddr(e), YLADouble)) ) {
-            yllog((YLLogE, "<!string.index-of!> invalid parameter type\n")); 
-            ylinterpret_undefined(YLErr_func_invalid_param);
-        }
+    ylnfcheck_atype1(ylcar(e), YLASymbol);
+    ylnfcheck_atype1(ylcadr(e), YLASymbol);
+    if(2 == pcsz) { fromi = 0; } 
+    else {
+        ylnfcheck_atype1(ylcaddr(e), YLADouble);
         fromi = (int)yladbl(ylcaddr(e));
     }
-    
+
     pstr = ylasym(ylcar(e)).sym;
     psub = ylasym(ylcadr(e)).sym;
     strsz = strlen(pstr);
@@ -366,17 +351,11 @@ YLDEFNF(last_index_of, 2, 3) {
     int           fromi;
 
     /* check parameter type */
-    if(yleis_nil(ylcddr(e))) {
-        /* check input parameter */
-        ylcheck_chain_atom_type1(string.last-index-of, e, YLASymbol);
-        fromi = 0xfffffff; /* set to bit enough */
-    } else {
-        if( !(ylais_type(ylcar(e), YLASymbol) 
-              && ylais_type(ylcadr(e), YLASymbol)
-              && ylais_type(ylcaddr(e), YLADouble)) ) {
-            yllog((YLLogE, "<!string.last-index-of!> invalid parameter type\n")); 
-            ylinterpret_undefined(YLErr_func_invalid_param);
-        }
+    ylnfcheck_atype1(ylcar(e), YLASymbol);
+    ylnfcheck_atype1(ylcadr(e), YLASymbol);
+    if(2 == pcsz) { fromi = 0xfffffff; } /* set to bit enough */
+    else {
+        ylnfcheck_atype1(ylcaddr(e), YLADouble);
         fromi = (int)yladbl(ylcaddr(e));
     }
     
@@ -428,7 +407,7 @@ YLDEFNF(replace, 3, 3) {
     unsigned int lenstr, lennew, lenold;
     yle_t*       r;
     /* check input parameter */
-    ylcheck_chain_atom_type1(string.replace, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
     
     pstr = p = ylasym(ylcar(e)).sym;
     lenstr = strlen(p);
@@ -479,13 +458,12 @@ YLDEFNF(substring, 2, 3) {
     const char*  pstr;
     unsigned int lenstr;
     
-    if( !(ylais_type(ylcar(e), YLASymbol) 
-          && ylais_type(ylcadr(e), YLADouble)
-          && ( yleis_nil(ylcddr(e)) || ylais_type(ylcaddr(e), YLADouble)) )) {
-        yllog((YLLogE, "<!string.last-index-of!> invalid parameter type\n")); 
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
-    
+
+    /* check parameter type */
+    ylnfcheck_atype1(ylcar(e), YLASymbol);
+    ylnfcheck_atype1(ylcadr(e), YLADouble);
+    if(pcsz > 2) { ylnfcheck_atype1(ylcaddr(e), YLADouble); }
+
     pstr = ylasym(ylcar(e)).sym;
     lenstr = strlen(pstr);
 
@@ -522,7 +500,7 @@ YLDEFNF(to_lower_case, 1, 1) {
     int           delta;
     yle_t*        r;
     
-    ylcheck_chain_atom_type1(string.to-lower-case, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
     
     p = ylasym(ylcar(e)).sym;
     pe = p + strlen(p);
@@ -549,7 +527,7 @@ YLDEFNF(to_upper_case, 1, 1) {
     int           delta;
     yle_t*        r;
     
-    ylcheck_chain_atom_type1(string.to-upper-case, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
     
     p = ylasym(ylcar(e)).sym;
     pe = p + strlen(p);
@@ -577,7 +555,7 @@ YLDEFNF(trim, 1, 1) {
 
 #define __is_ws(c) (' ' == (c) || '\n' == (c) || '\r' == (c) || '\t' == (c))
     
-    ylcheck_chain_atom_type1(string.trim, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
 
     p = ylasym(ylcar(e)).sym;
     pend = p + strlen(p);

@@ -27,6 +27,7 @@
 #ifndef ___STACk_h___
 #define ___STACk_h___
 
+#include "yldevut.h"
 
 typedef struct {
     void**          item;
@@ -37,8 +38,11 @@ typedef struct {
 
 static inline ylstk_t*
 ylstk_create(unsigned int limit, void(*freecb)(void* item)) {
+    /* In most case, we cannot keep executing interpreter if we fail to allocate stack */
     ylstk_t*   s = ylmalloc(sizeof(ylstk_t));
+    if(!s) { ylassert(FALSE); }
     s->item = ylmalloc(sizeof(void*)*limit);
+    if(!s->item) { ylassert(FALSE); }
     s->limit = limit;
     s->sz = 0;
     s->fcb = freecb;
@@ -73,7 +77,7 @@ ylstk_size(ylstk_t* s) {
 static inline void
 ylstk_push(ylstk_t* s, void* item) {
     if(s->sz >= s->limit) {
-        yllog((YLLogE, "Internal Error in Stack. Limit: %d\n", s->limit));
+        yllogE1("Internal Error in Stack. Limit: %d\n", s->limit);
         ylinterpret_undefined(YLErr_internal);
     }
     s->item[s->sz++] = item;
@@ -84,7 +88,7 @@ ylstk_pop(ylstk_t* s) {
     if(s->sz) {
         return s->item[--s->sz];
     } else { 
-        yllog((YLLogE, "Internal Error in Stack. Try to pop on empty stack!\n"));
+        yllogE0("Internal Error in Stack. Try to pop on empty stack!\n");
         ylinterpret_undefined(YLErr_internal);
     }
 }
@@ -94,7 +98,7 @@ ylstk_peek(ylstk_t* s) {
     if(s->sz) {
         return s->item[s->sz-1];
     } else { 
-        yllog((YLLogE, "Internal Error in Stack. Try to peek on empty stack!\n"));
+        yllogE0("Internal Error in Stack. Try to peek on empty stack!\n");
         ylinterpret_undefined(YLErr_internal);
     }
 }

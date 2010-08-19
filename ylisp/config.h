@@ -39,7 +39,7 @@
 #define __ENABLE_ASSERT
 
 /* #define __DBG_GEN */  /* general debugging - usually required */
-/* #define __DBG_EVAL */ /* to debug evaluation */
+/* #define __DBG_EVAL*/  /* to debug evaluation */
 /* #define __DBG_MEM */  /* to debug memory pool and GC */
 
 

@@ -119,7 +119,7 @@ main(int argc, char* argv[]) {
 
 
 void
-yllibylbase_register() {
+ylcnf_onload() {
 
     /* return if fail to register */
 #define NFUNC(n, s, type, desc) \
@@ -130,7 +130,7 @@ yllibylbase_register() {
 }
 
 void
-yllibylbase_unregister() {
+ylcnf_onunload() {
 
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc.in"

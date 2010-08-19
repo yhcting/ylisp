@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* enable logging & debugging */
 #define __ENABLE_ASSERT
@@ -82,7 +83,7 @@ _update_assoc(yle_t** x, yle_t* y) {
         *x = ylcons(y, ylnil());
     } else {
         if(yleis_atom(*x)) {
-            yllog((YLLogE, "LET: incorrect argument syntax\n"));
+            yllogE0("<!let!> incorrect argument syntax\n");
             ylinterpret_undefined(YLErr_func_invalid_param);
         } else {
             *x = ylcons(y, *x);
@@ -98,7 +99,7 @@ _evarg(yle_t* e, yle_t** a) {
        || yleis_atom(ylcar(e))
        || !yleis_atom(ylcaar(e))) {
         /* ylinterpret_undefined.. syntax error */
-        yllog((YLLogE, "LET: incorrect argument syntax\n"));
+        yllogE0("<!let!> incorrect argument syntax\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
 
@@ -111,7 +112,7 @@ _evarg(yle_t* e, yle_t** a) {
 YLDEFNF(f_let, 2, 9999) {
     yle_t*  p;
     if(yleis_atom(ylcar(e)) && !yleis_nil(ylcar(e))) { 
-        yllog((YLLogE, "LET: incorrect argument syntax\n"));
+        ylnflogE0("incorrect argument syntax\n");
         ylinterpret_undefined(YLErr_func_invalid_param); 
     }
     _evarg(ylcar(e), &a);
@@ -145,7 +146,7 @@ YLDEFNF(f_while, 2, 9999) {
             ylmp_pop();
 
         } else {
-            yllog((YLLogE, "Loop count exceeded limits(%d)\n", __MAX_LOOP_COUNT));
+            ylnflogE1("Loop count exceeded limits(%d)\n", __MAX_LOOP_COUNT);
             ylinterpret_undefined(YLErr_func_fail);
         }
     }
@@ -159,7 +160,7 @@ YLDEFNF(atom, 1, 1) {
 
 YLDEFNF(clone, 1, 1) {
     if(yleis_nil(e)) {
-        yllog((YLLogE, "<!clone!> nil cannot be cloned!!\n"));
+        ylnflogE0("nil cannot be cloned!!\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
     return yleclone_chain(ylcar(e));
@@ -177,7 +178,7 @@ YLDEFNF(cdr, 1, 1) {
 
 YLDEFNF(setcar, 2, 2) {
     if( yleis_atom(ylcar(e)) ) {
-        yllog((YLLogE, "<!setcar!> invalid parameter type\n"));
+        ylnflogE0("invalid parameter type\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
     ylpsetcar(ylcar(e), ylcadr(e));
@@ -186,7 +187,7 @@ YLDEFNF(setcar, 2, 2) {
 
 YLDEFNF(setcdr, 2, 2) {
     if( yleis_atom(ylcar(e)) ) {
-        yllog((YLLogE, "<!setcar!> invalid parameter type\n"));
+        ylnflogE0("invalid parameter type\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
     ylpsetcdr(ylcar(e), ylcadr(e));
@@ -213,7 +214,7 @@ YLDEFNF(list, 0, 9999) {
 
 YLDEFNF(assert, 1, 1) {
     if(yleis_nil(ylcar(e))) {
-        yllog((YLLogE, "<!assert!> ASSERT FAILS\n"));
+        ylnflogE0("ASSERT FAILS\n");
         ylinterpret_undefined(YLErr_eval_assert);
     } else {
         return ylt();
@@ -230,7 +231,52 @@ YLDEFNF(print, 1, 9999) {
         ylprint(("%s", yleprint(ylcar(e)) ));
         e = ylcdr(e);
     } while(!yleis_nil(e));
+    return ylt();
 } YLENDNF(print)
+
+YLDEFNF(log, 2, 9999) {
+    const char*  lvstr;
+    int          loglv;
+    ylnfcheck_atype1(ylcar(e), YLASymbol);
+    lvstr = ylasym(ylcar(e)).sym;
+    if(0 == lvstr[0] || 0 != lvstr[1]) { goto invalid_loglv; }
+    switch(lvstr[0]) {
+        case 'v': loglv = YLLogV; break;
+        case 'd': loglv = YLLogD; break;
+        case 'i': loglv = YLLogI; break;
+        case 'w': loglv = YLLogW; break;
+        case 'e': loglv = YLLogE; break;
+        default: goto invalid_loglv;
+    }
+    do {
+        yllog((loglv, "%s", yleprint(ylcar(e)) ));
+        e = ylcdr(e);
+    } while(!yleis_nil(e));
+    return ylt();
+
+ invalid_loglv:
+    ylnflogE1("Invalid loglevel: %s\n", lvstr);
+    return ylnil();
+} YLENDNF(log)
+
+YLDEFNF(to_string, 1, 1) {
+    unsigned int len;
+    const char*  estr;
+    char*        s;
+    yle_t*       r;
+    estr = yleprint(ylcar(e));
+    ylassert(estr);
+    len = strlen(estr);
+    s = ylmalloc(len+1); /* +1 for trailing 0 */
+    if(!s) {
+        ylnflogE1("Fail to alloc memory for string : %d\n", len);
+        return ylnil();
+    }
+    strcpy(s, estr);
+    r = ylmp_get_block();
+    ylaassign_sym(r, s);
+    return r;
+} YLENDNF(to_string)
 
 /*===========================
  * Simple calculations
@@ -238,7 +284,7 @@ YLDEFNF(print, 1, 9999) {
 
 YLDEFNF(mod, 2, 2) {
     long   r = 0;
-    ylcheck_chain_atom_type1(add, e, YLADouble);
+    ylnfcheck_atype_chain1(e, YLADouble);
     r = ((long)yladbl(ylcar(e))) % ((long)yladbl(ylcadr(e)));
     e = ylmp_get_block();
     ylaassign_dbl(e, r);
@@ -248,7 +294,7 @@ YLDEFNF(mod, 2, 2) {
 
 YLDEFNF(add, 2, 9999) {
     double   r = 0;
-    ylcheck_chain_atom_type1(add, e, YLADouble);
+    ylnfcheck_atype_chain1(e, YLADouble);
     while( !yleis_nil(e) ) {
         r += yladbl(ylcar(e));
         e = ylcdr(e);
@@ -260,7 +306,7 @@ YLDEFNF(add, 2, 9999) {
 
 YLDEFNF(mul, 2, 9999) {
     double   r = 0;
-    ylcheck_chain_atom_type1(mul, e, YLADouble);
+    ylnfcheck_atype_chain1(e, YLADouble);
     while( !yleis_nil(e) ) {
         r *= yladbl(ylcar(e));
         e = ylcdr(e);
@@ -272,7 +318,7 @@ YLDEFNF(mul, 2, 9999) {
 
 YLDEFNF(sub, 2, 9999) {
     double   r = 0;
-    ylcheck_chain_atom_type1(sub, e, YLADouble);
+    ylnfcheck_atype_chain1(e, YLADouble);
     r = yladbl(ylcar(e));
     e = ylcdr(e);
     while( !yleis_nil(e) ) {
@@ -287,12 +333,12 @@ YLDEFNF(sub, 2, 9999) {
 
 YLDEFNF(div, 2, 9999) {
     double   r = 0;
-    ylcheck_chain_atom_type1(div, e, YLADouble);
+    ylnfcheck_atype_chain1(e, YLADouble);
     r = yladbl(ylcar(e));
     e = ylcdr(e);
     while( yleis_nil(e) ) {
         if(0 == yladbl(ylcar(e))) {
-            yllog((YLLogE, "<!div!> divide by zero!!!\n"));
+            ylnflogE0("divide by zero!!!\n");
             ylinterpret_undefined(YLErr_func_fail);
         }
         r /= yladbl(ylcar(e));
@@ -306,11 +352,7 @@ YLDEFNF(div, 2, 9999) {
 YLDEFNF(gt, 2, 2) {
     yle_t *p1 = ylcar(e), 
           *p2 = ylcadr(e);
-    ylcheck_chain_atom_type2(gt, e, YLADouble, YLASymbol);
-    if(ylatype(ylcar(e)) != ylatype(ylcadr(e))) {
-        yllog((YLLogE, "<!gt!> Invalid paramter!\n"));
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
+    ylnfcheck_atype_chain2(e, YLADouble, YLASymbol);
     switch(ylatype(ylcar(e))) {
         case YLADouble: {
             return (yladbl(p1) > yladbl(p2))? ylt(): ylnil();
@@ -318,19 +360,14 @@ YLDEFNF(gt, 2, 2) {
         case YLASymbol: {
             return (strcmp(ylasym(p1).sym, ylasym(p2).sym) > 0)? ylt(): ylnil();
         } break;
-        default:
-            yllog((YLLogE, "<!gt!> Only number or string can be compared\n"));
     }
+    ylassert(FALSE);
 } YLENDNF(gt)
 
 YLDEFNF(lt, 2, 2) {
     yle_t *p1 = ylcar(e), 
           *p2 = ylcadr(e);
-    ylcheck_chain_atom_type2(gt, e, YLADouble, YLASymbol);
-    if(ylatype(ylcar(e)) != ylatype(ylcadr(e))) {
-        yllog((YLLogE, "<!lt!> Invalid paramter!\n"));
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
+    ylnfcheck_atype_chain2(e, YLADouble, YLASymbol);
     switch(ylatype(ylcar(e))) {
         case YLADouble: {
             return (yladbl(p1) < yladbl(p2))? ylt(): ylnil();
@@ -338,8 +375,7 @@ YLDEFNF(lt, 2, 2) {
         case YLASymbol: {
             return (strcmp(ylasym(p1).sym, ylasym(p2).sym) < 0)? ylt(): ylnil();
         } break;
-        default:
-            yllog((YLLogE, "<!lt!> Only number or string can be compared\n"));
     }
+    ylassert(FALSE);
 } YLENDNF(lt)
 

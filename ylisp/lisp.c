@@ -117,6 +117,10 @@ yleclone(const yle_t* e) {
             case YLASymbol: {
                 /* deep clone */
                 ylasym(n).sym = ylmalloc(strlen(ylasym(e).sym)+1);
+                if(!ylasym(n).sym) {
+                    yllogE1("Out Of Memory : [%d]!\n", strlen(ylasym(e).sym));
+                    ylinterpret_undefined(YLErr_out_of_memory);
+                }
                 strcpy(ylasym(n).sym, ylasym(e).sym);
             } break;
 
@@ -132,6 +136,10 @@ yleclone(const yle_t* e) {
             case YLABinary: {
                 /* deep clone */
                 ylabin(n).d = ylmalloc(ylabin(e).sz);
+                if(!ylabin(n).d) {
+                    yllogE1("Out Of Memory : [%d]!\n", ylabin(e).sz);
+                    ylinterpret_undefined(YLErr_out_of_memory);
+                }
                 memcpy(ylabin(n).d, ylabin(e).d, ylabin(e).sz);
             } break;
 
@@ -174,15 +182,15 @@ ylregister_nfunc(unsigned int version,
     char*        s;
     
     if(yldev_ver_major(version) < yldev_ver_major(YLDEV_VERSION)) {
-        yllog((YLLogE, "Version of CNF library is lower than ylisp!!\n"
+        yllogE4("Version of CNF library is lower than ylisp!!\n"
               "  ylisp[%d.%d], cnf[%d.%d]\n", 
               yldev_ver_major(YLDEV_VERSION), yldev_ver_minor(YLDEV_VERSION),
-              yldev_ver_major(version), yldev_ver_minor(version)));
+              yldev_ver_major(version), yldev_ver_minor(version));
         return YLErr_cnf_register;
     }
 
     if(YLANfunc != ftype && YLASfunc != ftype) {
-        yllog((YLLogE, "Function type should be one of ATOM_NFUNC, ylor ATOM_RAW_NFUNC"));
+        yllogE0("Function type should be one of ATOM_NFUNC, ylor ATOM_RAW_NFUNC");
         return YLErr_cnf_register;
     }
     
@@ -323,6 +331,7 @@ yleprint(const yle_t* e) {
     if(_prbuf) { ylfree(_prbuf); }
     sz = 4096; /* initial size 4KB */
     _prbuf = ylmalloc(sz); /* initial size */
+    if(!_prbuf) { goto bail;  }
     while(1) {
         p = _prbuf; pend = p + sz -1;
         if(yleis_atom(e)) {
@@ -344,9 +353,14 @@ yleprint(const yle_t* e) {
             sz *= 2;
             ylfree(_prbuf);
             _prbuf = ylmalloc(sz);
+            if(!_prbuf) { goto bail; }
         }
     }
     return _prbuf;
+    
+ bail:
+    /* Out of memory */
+    return "print error: out of memory\n";
 }
 
 #undef __addchar
@@ -376,9 +390,8 @@ ylget_more_possible_prefix(const char* prefix, char* buf, unsigned int bufsz) {
 }
 
 
-extern void ylnfunc_init();
-extern void ylsfunc_init();
-extern void yltrie_ini();
+extern ylerr_t ylnfunc_init();
+extern ylerr_t ylsfunc_init();
 
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
 #include "nfunc.in"
@@ -388,20 +401,25 @@ extern void yltrie_ini();
 /* this SHOULD BE called first */
 ylerr_t
 ylinit(ylsys_t* sysv) {
+    ylerr_t      ret = YLOk;
     register int i;
 
     /* Check system parameter! */
     if(!(sysv && sysv->print
          && sysv->assert && sysv->malloc 
          && sysv->free )) { 
-        return YLErr_init; 
+        goto bail;
     }
     
     _sysv = sysv;
 
-    ylsfunc_init();
-    yltrie_init();
-    ylnfunc_init();
+    if( YLOk != ylsfunc_init()
+        || YLOk != yltrie_init()
+        || YLOk != ylnfunc_init()
+        || YLOk != ylmp_init() ) {
+        goto bail;
+    }
+
 
     /* init predefined expression */
     yleset_type(&_predefined_true, YLEAtom | YLASymbol | YLEReachable);
@@ -423,16 +441,17 @@ ylinit(ylsys_t* sysv) {
     ylercnt(&_predefined_nil) = 1;
     ylercnt(&_predefined_quote) = 1;
 
-    ylmp_init();
-
 #define NFUNC(n, s, type, desc)                                         \
-    ylregister_nfunc(YLDEV_VERSION, s, (ylnfunc_t)YLNFN(n), type, ">> lib: ylisp <<\n" desc);
+    if(YLOk != ylregister_nfunc(YLDEV_VERSION, s, (ylnfunc_t)YLNFN(n), type, ">> lib: ylisp <<\n" desc)) { goto bail; }
 #include "nfunc.in"
 #undef NFUNC
 
 
 
     return YLOk;
+
+ bail:
+    return YLErr_init; 
 }
 
 void

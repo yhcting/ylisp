@@ -10,19 +10,24 @@
 (assert (eq '7890 (caddr lns)))
 (assert (eq 'abcd (car (cdddr lns))))
 
-(let ((r '()))
-    (set 'r (string.pcre-match '"([0-9]+)([a-z]+)\\s" '"  hahah 12abc123abcd effff" '""))
-    (assert (eq '"123abcd " (car r)))
-    (assert (eq '123 (cadr r)))
-    (assert (eq 'abcd (caddr r))))
+; test pcre if possible!
+(cond 
+    ((is-set 'string.pcre-match)
+        (let ((r '()))
+            (set 'r (string.pcre-match '"([0-9]+)([a-z]+)\\s" '"  hahah 12abc123abcd effff" '""))
+            (assert (eq '"123abcd " (car r)))
+            (assert (eq '123 (cadr r)))
+            (assert (eq 'abcd (caddr r)))
+            (set 'r (string.pcre-match '"^([0-9]+)([a-z]+)" '"123aBcD fff" '"i"))
+            (assert (eq '123aBcD (car r)))))
+    ('t 't))
 
-(let ((r '()))
-    (set 'r (string.pcre-match '"^([0-9]+)([a-z]+)" '"123aBcD fff" '"i"))
-    (assert (eq '123aBcD (car r))))
-
-(let ((r '()) (subj '"hahaha my name is cho!"))
-    (set 'r (string.pcre-replace '"name" '"full name" subj '""))
-    (assert (eq r '"hahaha my full name is cho!")))
+(cond
+    ((is-set 'string.pcre-replace)
+        (let ((r '()) (subj '"hahaha my name is cho!"))
+            (set 'r (string.pcre-replace '"name" '"full name" subj '""))
+            (assert (eq r '"hahaha my full name is cho!"))))
+    ('t 't))
 
 (assert (eq 'a (string.at 'abcdefg 0)))
 (assert (eq 'g (string.at 'abcdefg 6)))

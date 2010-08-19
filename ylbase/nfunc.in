@@ -106,6 +106,17 @@ NFUNC(print,          "print",           YLANfunc,
     "print <exp1> <exp2> ...\n"
     "    -print expression detail values.\n")
 
+NFUNC(log,            "log",             YLANfunc,
+    "log <level> <exp1> <exp2> ...\n"
+    "    -send to logger. This logs exactly same string with 'print'.\n"
+    "    @<level> [Symbol] : one of 'v, d, i, w, e'. verbose, develop, info, warning, error respectively.\n")
+
+NFUNC(to_string,      "to-string",       YLANfunc,
+    "to-string <exp> : [Symbol]\n"
+    "    -get printable string of <exp> - same with the one of 'print <exp>'.\n")
+
+
+
 /* Functions for simple calculation*/
 NFUNC(add,            "+",               YLANfunc,
     "+ <value1> <value2> ... : [Double]\n"

@@ -205,6 +205,15 @@ _parse_option(int argc, char* argv[]) {
     return 0;
 }
 
+static int
+_print(const char* format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    vprintf(format, ap);
+    va_end(ap);
+    fflush(stdout);
+}
+
 static void
 _log(int lv, const char* format, ...) {
     if(lv >= _loglv) {
@@ -212,13 +221,45 @@ _log(int lv, const char* format, ...) {
         va_start(ap, format);
         vprintf(format, ap);
         va_end(ap);
+        fflush(stdout);
     }
+}
+
+static void*
+_readf(unsigned int* outsz, const char* fpath) {
+    unsigned char*  buf = NULL;
+    FILE*           fh = NULL;
+    unsigned int    sz;
+
+    fh = fopen(fpath, "r");
+    if(!fh) { goto bail; }
+
+    /* do ylnot check error.. very rare to fail!! */
+    fseek(fh, 0, SEEK_END);
+    sz = ftell(fh);
+    fseek(fh, 0, SEEK_SET);
+
+    buf = malloc(sz);
+    if(!buf) { goto bail; }
+
+    if(1 != fread(buf, sz, 1, fh)) { goto bail;  }
+    fclose(fh);
+
+    *outsz = sz;
+    return buf;
+
+ bail:
+    if(fh) { fclose(fh); }
+    if(buf) { free(buf); }
+    return NULL;
 }
 
 int
 main(int argc, char* argv[]) {
-    ylsys_t   sys;
-    char      c;
+    ylsys_t        sys;
+    char           c;
+    unsigned char* strm;
+    unsigned int   strmsz;
     struct timeval tv0, tv1;
 
     /* ylset system parameter */
@@ -229,25 +270,26 @@ main(int argc, char* argv[]) {
     sys.free = free;
     if(YLOk != ylinit(&sys)) {
         printf("Fail to initailize ylisp!\n");
-        goto bail;
+        return 0;
     }
 
-    if(!_parse_option(argc, argv)) { goto bail; }
-    if(!_set_signal_handler()) { goto bail; }
+    if(!_parse_option(argc, argv)) { return 0; }
+    if(!_set_signal_handler()) { return 0; }
 
-
-#define __INIT_TEST_CMD                                                 \
-    "(load-cnf '../lib/libylbase.so 'yllibylbase_register)\n"           \
-        "(interpret-file '../yls/base.yl)\n"                            \
-        "(interpret-file '../yls/test_base.yl)\n"                       \
-        "(interpret-file '../yls/ylcon_initrc.yl)\n"
+    strm = _readf(&strmsz, "../yls/ylcon_initrc.yl");
+    if(!strm) {
+        printf("Fail to read initrc file\n");
+        return 0;
+    }
 
     gettimeofday(&tv0, NULL);
-    if(YLOk != ylinterpret(__INIT_TEST_CMD, strlen(__INIT_TEST_CMD))) {
+    if(YLOk != ylinterpret(strm, strmsz)) {
         printf("Test Fails!!!\n");
         return 0;
     }
     gettimeofday(&tv1, NULL);
+
+    free(strm);
 
     printf("Sanity Test is passed!\n"
            "Time taken : %ld sec + %ld microsec\n"
@@ -260,6 +302,4 @@ main(int argc, char* argv[]) {
 
     return 0;
 
- bail:
-    return 0;
 }

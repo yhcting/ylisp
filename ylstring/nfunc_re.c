@@ -46,7 +46,7 @@ _change_to_pcre_option(const char* optstr) {
             case 'm': opt |= PCRE_MULTILINE;    break;
             case 's': opt |= PCRE_DOTALL;       break;
             default:
-                yllog((YLLogE, "Unsupported option! [%c]\n", *p));
+                yllogE1("<!pcre_xxx!> Unsupported option! [%c]\n", *p);
                 ylinterpret_undefined(YLErr_func_fail);
         }
         p++;
@@ -67,7 +67,7 @@ YLDEFNF(pcre_match, 3, 3) {
     const char   *pattern, *subject, *errmsg;
 
 
-    ylcheck_chain_atom_type1(string.pcre_match, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
 
     pattern = ylasym(ylcar(e)).sym;
     subject = ylasym(ylcadr(e)).sym;
@@ -75,8 +75,8 @@ YLDEFNF(pcre_match, 3, 3) {
 
     re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
     if(!re) {
-        yllog((YLLogE, "<!string.pcre_match!> PCRE compilation failed.\n"
-                       "offset %d: %s\n", err_offset, errmsg));
+        ylnflogE2("PCRE compilation failed.\n"
+                  "    offset %d: %s\n", err_offset, errmsg);
         /* This is a kind of function parameter error!! */
         ylinterpret_undefined(YLErr_func_fail);
     }
@@ -104,7 +104,7 @@ YLDEFNF(pcre_match, 3, 3) {
         ; /* nothing to do */
     } else {
         /* error case */
-        yllog((YLLogE, "<!string.pcre_match!> PCRE error in match [%d]\n", rc));
+        ylnflogE1("PCRE error in match [%d]\n", rc);
         ylinterpret_undefined(YLErr_func_fail);
     }
     return ylcdr(hd);
@@ -126,7 +126,7 @@ YLDEFNF(pcre_replace, 4, 4) {
     int           ovect[_OVECCNT];  /* out vector */
     const char   *pattern, *subst, *subject, *errmsg;
 
-    ylcheck_chain_atom_type1(string.pcre_replace, e, YLASymbol);
+    ylnfcheck_atype_chain1(e, YLASymbol);
 
     pattern = ylasym(ylcar(e)).sym;
     subst = ylasym(ylcadr(e)).sym;
@@ -135,8 +135,8 @@ YLDEFNF(pcre_replace, 4, 4) {
 
     re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
     if(!re) {
-        yllog((YLLogE, "<!string.pcre_replace!> PCRE compilation failed.\n"
-                       "offset %d: %s\n", err_offset, errmsg));
+        ylnflogE2("PCRE compilation failed.\n"
+                  "    offset %d: %s\n", err_offset, errmsg);
         /* This is a kind of function parameter error!! */
         ylinterpret_undefined(YLErr_func_fail);
     }
@@ -166,7 +166,7 @@ YLDEFNF(pcre_replace, 4, 4) {
         ; /* nothing to do */
     } else {
         /* error case */
-        yllog((YLLogE, "<!string.pcre_replace!> PCRE error in match [%d]\n", rc));
+        ylnflogE1("PCRE error in match [%d]\n", rc);
         ylinterpret_undefined(YLErr_func_fail);
     }
 

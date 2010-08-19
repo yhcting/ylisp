@@ -91,6 +91,13 @@ _free_description(char* desc) {
 static inline _value_t*
 _alloc_trie_value(int ty, yle_t* e) {
     _value_t* v = ylmalloc(sizeof(_value_t));
+    if(!v) { 
+        /* 
+         * if allocing such a small size of memory fails, we can't do anything!
+         * Just ASSERT IT!
+         */
+        ylassert(FALSE); 
+    }
     v->ty = ty; v->desc = &_dummy_empty_desc;
     v->e = e;
     yleref(e); /* e is reference manually! */
@@ -107,6 +114,13 @@ _free_trie_value(_value_t* v) {
 static inline _node_t*
 _alloc_trie_node() {
     _node_t* n = ylmalloc(sizeof(_node_t));
+    if(!n) { 
+        /* 
+         * if allocing such a small size of memory fails, we can't do anything!
+         * Just ASSERT IT!
+         */
+        ylassert(FALSE); 
+    }
     memset(n, 0, sizeof(_node_t));
     return n;
 }
@@ -213,10 +227,11 @@ _walk_node(void* user, _node_t* n,
     return _walk_node_internal(user, n, cb, (unsigned char*)buf, bsz-1, 0);
 }
 
-void
+ylerr_t
 yltrie_init() {
     /* initialize */
     memset(&_trie, 0, sizeof(_trie));
+    return YLOk;
 }
 
 static void _delete_trie_node(_node_t* n) {
@@ -242,6 +257,7 @@ yltrie_insert(const char* sym, int ty, yle_t* e) {
     _value_t* esv = n->v;
 
     n->v = _alloc_trie_value(ty, e);
+    if(!n->v) { return FALSE; }
     if(esv) {
         ret = TRUE;
         /* there is already inserted values */
@@ -312,7 +328,7 @@ yle_t*
 yltrie_get(int* outty, const char* sym) {
     _node_t* n = _get_node(sym, FALSE);
     if(n && n->v) {
-        *outty = n->v->ty;
+        if(outty) { *outty = n->v->ty; }
         return n->v->e;
     } else {
         return NULL;
@@ -326,6 +342,7 @@ yltrie_set_description(const char* sym, const char* description) {
         unsigned int sz = strlen(description);
         char*        desc;
         desc = ylmalloc(sz+1);
+        if(!desc) { ylassert(FALSE); }
         memcpy(desc, description, sz);
         desc[sz] = 0; /* trailing 0 */
 
