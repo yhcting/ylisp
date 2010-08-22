@@ -54,16 +54,16 @@
 #define yleis_reachable(e)      ((e)->t & YLEReachable)
 
 /* macros for easy accessing */
-#define yleatom(e)  ((e)->u.a)
-#define ylasym(e)   ((e)->u.a.u.sym)
-#define ylanfunc(e) ((e)->u.a.u.nfunc)
-#define yladbl(e)   ((e)->u.a.u.dbl)
-#define ylabin(e)   ((e)->u.a.u.bin)
+#define yleatom(e)      ((e)->u.a)
+#define ylasym(e)       ((e)->u.a.u.sym)
+#define ylanfunc(e)     ((e)->u.a.u.nfunc)
+#define yladbl(e)       ((e)->u.a.u.dbl)
+#define ylabin(e)       ((e)->u.a.u.bin)
 
-#define ylpcar(e)   ((e)->u.p.car)
-#define ylpcdr(e)   ((e)->u.p.cdr)
+#define ylpcar(e)       ((e)->u.p.car)
+#define ylpcdr(e)       ((e)->u.p.cdr)
 
-#define yleis_nil(e)             (ylnil() == (e))
+#define yleis_nil(e)    (ylnil() == (e))
 
 /*
  * This function SHOULD NOT BE CALLED DIRECTLY

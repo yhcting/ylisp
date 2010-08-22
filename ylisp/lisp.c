@@ -23,7 +23,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "ylisp.h"
 #include "lisp.h"
 #include "trie.h"
 #include "mempool.h"

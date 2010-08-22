@@ -24,10 +24,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "ylsfunc.h"
 #include "trie.h"
 #include "lisp.h"
 #include "mempool.h"
+
 
 /**********************************************************
  * Basic Functions for interpreting

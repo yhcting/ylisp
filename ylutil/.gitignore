@@ -1,0 +1,12 @@
+.*
+*~
+*.o
+*.a
+*.so
+ylutil
+GPATH
+GRTAGS
+GSYMS
+GTAGS
+ID
+

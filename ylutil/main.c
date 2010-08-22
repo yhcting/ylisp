@@ -38,8 +38,8 @@ static int _mblk = 0;
 static const char* _exp = 
     "(load-cnf '../lib/libylbase.so)\n"
     "(interpret-file '../yls/base.yl)\n"
-    "(interpret-file '../yls/string.yl)\n"
-    "(interpret-file '../yls/test_string.yl)\n"
+    "(interpret-file '../yls/util.yl)\n"
+    "(interpret-file '../yls/test_util.yl)\n"
     ;
 
 void*
@@ -76,7 +76,6 @@ _assert(int a) {
 
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
 #   include "nfunc.in"
-#   include "nfunc_re.in"
 #undef NFUNC
 
 int
@@ -95,11 +94,9 @@ main(int argc, char* argv[]) {
 #define NFUNC(n, s, type, desc)  \
     if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, desc)) { return; }
 #   include "nfunc.in"
-#   include "nfunc_re.in"
 #undef NFUNC
 
     if(YLOk != ylinterpret(_exp, strlen(_exp))) {
-        printf("Error during interpret\n");
         return;
     }
 
@@ -112,55 +109,27 @@ main(int argc, char* argv[]) {
 
 #else /* __YLDBG__ */
 
-#include <dlfcn.h>
 #include "yldevut.h"
 
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
 #   include "nfunc.in"
-#   include "nfunc_re.in"
 #undef NFUNC
 
-
-static void* _pcrelib = NULL;
 
 void
 ylcnf_onload() {
-
     /* return if fail to register */
 #define NFUNC(n, s, type, desc)  \
-    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylstring <<\n" desc)) { return; }
+    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylutil <<\n" desc)) { return; }
 #   include "nfunc.in"
 #undef NFUNC
 
-    /* if there is pcre, let's use it! */
-    _pcrelib = dlopen("/usr/local/lib/libpcre.so", RTLD_NOW | RTLD_GLOBAL);
-    if(_pcrelib) {
-#define NFUNC(n, s, type, desc)                                         \
-        if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylstring <<\n" desc)) { return; }
-#   include "nfunc_re.in"
-#undef NFUNC
-    }
 }
 
 void
 ylcnf_onunload() {
-
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc.in"
 #undef NFUNC
-
-    if(_pcrelib) { /* re is loaded */
-#define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
-#   include "nfunc_re.in"
-#undef NFUNC
-        /*
-         * All functions that uses 'libpcre.so' SHOULD BE HERE.
-         * We don't care of others who uses 'libm.so' out of here!
-         * Let's close it!
-         */
-        dlclose(_pcrelib);
-    }
 }
-
-
 #endif /* __YLDBG__ */
