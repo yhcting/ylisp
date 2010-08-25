@@ -57,20 +57,20 @@ NFUNC(apply,                  "apply",                   YLASfunc,
     "    *ex\n"
     "        (apply list a b) ; => (list 'a 'b) => (a b)\n")
 
-NFUNC(mset,                   "mset",                    YLASfunc,
-    "mset <symbol> <exp> (<desc>)\n"
-    "    -Special s-function. Macro version of 'set'. Arguements are not evaluated.\n"
+NFUNC(f_mset,                 "f-mset",                  YLANfunc,
+    "f-mset <symbol> <exp> (<desc>)\n"
+    "    -Special s-function. Macro version of 'set'.\n"
     "     Evaluating <symbol> is same with evaluating <exp>.\n"
     "    @symbol[Symbol]: symbol name.\n"
     "    @exp:            lisp expression.\n"
     "    @desc[Symbol]:   description of this symbol.\n"
     "    @return:         This is macro.\n"
     "    *ex\n"
-    "        (mset a +) ;(a 7 8) => (+ 7 8)\n"
-    "        (mset zzz rrr)\n"
-    "        (mset rrr ttt)\n"
-    "        (mset ttt (car (list yy x y)))\n"
-    "        (mset yy (car '(ab cd)))\n"
+    "        (f-mset 'a '+) ;(a 7 8) => (+ 7 8)\n"
+    "        (f-mset 'zzz 'rrr)\n"
+    "        (f-mset 'rrr 'ttt)\n"
+    "        (f-mset 'ttt '(car (list yy x y)))\n"
+    "        (f-mset 'yy '(car '(ab cd)))\n"
     "        ;(eq zzz 'ab) => t\n")
 
 NFUNC(eq,                     "eq",                      YLANfunc,

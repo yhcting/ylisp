@@ -62,7 +62,7 @@ YLDEFNF(apply, 1, 9999) {
     return ylapply(ylcar(e), ylcdr(e), a);
 } YLENDNF(apply)
 
-YLDEFNF(mset, 2, 3) {
+YLDEFNF(f_mset, 2, 3) {
     if(pcsz > 2) {
         if(ylais_type(ylcaddr(e), YLASymbol))  {
             return ylmset(ylcar(e), ylcadr(e), ylasym(ylcaddr(e)).sym);
@@ -73,7 +73,7 @@ YLDEFNF(mset, 2, 3) {
     } else {
         return ylmset(ylcar(e), ylcadr(e), NULL);
     }
-} YLENDNF(mset)
+} YLENDNF(f_mset)
 
 /* eq [car [e]; EQ] -> [eval [cadr [e]; a] = eval [caddr [e]; a]] */
 YLDEFNF(eq, 2, 2) {

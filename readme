@@ -165,11 +165,38 @@ External dependency
 
 Things to think of
 ------------------
-    ylmalloc & ylfree are used for various-size-blocks, and called very often. 
-    So, if we don't do anything, external memory fragmentation is unavoidable.
-    (In most case, I didn't handle the case of failing ylmalloc.)
-    But, I'm not sure that we should take care of it. Can we ignore it? Hmm...
-    Handling external memory fragmentation is always big headache!!
+    Memory External Fragmentation
+        ylmalloc & ylfree are used for various-size-blocks, and called very often. 
+        So, if we don't do anything, external memory fragmentation is unavoidable.
+        (In most case, I didn't handle the case of failing ylmalloc.)
+        But, I'm not sure that we should take care of it. Can we ignore it? Hmm...
+        Handling external memory fragmentation is always big headache!!
+    Process vs. Thread (ylisp uses thread based interpreting.)
+        ylisp uses 'interpret thread' to escape easily from interpret stage in case of error.
+        But, using process is safer and more stable than using thread.
+        Using process means,
+            At the moment of interpret, fork new 'interpret process'. 
+            And at the end of interpreting, only changes of global symbol status are passed and reflected to original parent process(main process).
+        What is pros and cons of process based interpreting?
+        Pros:
+            * It definitely safer and more stable.
+            * We don't need to care about memory leak of interpreter!
+                - After interpreting, interpret-process is ended. 
+                  And memory is automatically reclaimed by OS.
+            * We can separate main process from interpret process.
+                - Main process manages only global symbol status. 
+                  And interpret process are in charge of interpreting S-Expression.
+            * We can easily kill interpreting process in case of unexpected execution, without any damages of main ylisp process.
+                - Just killing child interpret-process is ok.
+                  We can count on OS for all other things to do to clean up.
+        Cons:
+            * More difficult to implement.
+            * Global symbol status should be independent on interpreting in terms of OS resources.
+                - For example, we cannot support following use cases.
+                    + open socket and save it's handle to the symbol.
+                    + use this when it required.
+                  Because these are two different process, allocated OS resources by interpet-process are reclaimed when it finished. So, keep it at global symbol is impossible. 
+                  It's big loss at usability's point of view!
 
 
 Creating CNF 

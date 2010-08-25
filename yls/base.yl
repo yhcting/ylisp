@@ -1,6 +1,24 @@
 ; ==============================
 ; Define basic S-Functions!!!
 ; ==============================
+(f-mset 'mset
+    '(mlambda() (apply f-mset))
+'"mset <symbol> <exp> (<desc>)
+    -Special s-function. Macro version of 'set'. parameters are not evaluted!.
+    Evaluating <symbol> is same with evaluating <exp>.
+    @symbol[Symbol]: symbol name.
+    @exp:            lisp expression.
+    @desc[Symbol]:   description of this symbol.
+    @return:         This is macro.
+    *ex
+        (mset a +) ;(a 7 8) => (+ 7 8)
+        (mset zzz rrr)
+        (mset rrr ttt)
+        (mset ttt (car (list yy x y)))
+        (mset yy (car '(ab cd)))
+        ;(eq zzz 'ab) => t
+")
+
 (mset defun 
     (mlambda (nAME aRG dESC bODY)
         (mset nAME
