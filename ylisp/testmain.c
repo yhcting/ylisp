@@ -78,7 +78,9 @@ _log(int lv, const char* format, ...) {
 
 static void
 _assert(int a) {
-    if(!a){ assert(0); }
+    if(!a){ 
+        assert(0); 
+    }
 }
 
 

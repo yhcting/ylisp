@@ -57,6 +57,239 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
  * For debugging !
  *---------------------------------*/
 
+
+/* =======================
+ * aif interfaces - START
+ * =======================*/
+
+#define _DEFAIF_EQ_START(sUFFIX, tY)                                    \
+    static int                                                          \
+    _aif_##sUFFIX##_eq(const yle_t* e0, const yle_t* e1) {              \
+        ylassert(ylais_type(e0, tY) && ylais_type(e1, tY));             \
+        do
+
+#define _DEFAIF_EQ_END while(0); ylassert(FALSE); }
+
+#define _DEFAIF_CLONE_START(sUFFIX, tY)                                 \
+    static yle_t*                                                       \
+    _aif_##sUFFIX##_clone(const yle_t* e) {                             \
+        yle_t* n;                                                       \
+        ylassert(ylais_type(e, tY));                                    \
+        n = ylmp_get_block();                                           \
+        memcpy(n, e, sizeof(yle_t));                                    \
+        ylercnt(n) = 0; /* this is not referenced yet */                \
+            do
+
+#define _DEFAIF_CLONE_END while(0); ylassert(n); return n; }
+
+#define _DEFAIF_TO_STRING_START(sUFFIX, tY)                             \
+    static const char*                                                  \
+    _aif_##sUFFIX##_to_string(const yle_t* e) {                         \
+        ylassert(ylais_type(e, tY));                                    \
+        do
+
+#define _DEFAIF_TO_STRING_END while(0); ylassert(FALSE); }
+
+#define _DEFAIF_CLEAN_START(sUFFIX, tY)                                 \
+    static void                                                         \
+    _aif_##sUFFIX##_clean(yle_t* e) {                                   \
+        ylassert(ylais_type(e, tY));                                    \
+        do
+
+#define _DEFAIF_CLEAN_END while(0); }
+
+
+#define _MAX_ATOM_PR_BUFSZ   256
+static char _atom_prbuf[_MAX_ATOM_PR_BUFSZ];
+
+/* --- aif sym --- */
+_DEFAIF_EQ_START(sym, YLASymbol) {
+    /* trivial case : compare pointed address first */
+    if(ylasym(e0).sym == ylasym(e1).sym) {
+        /* predefined nil can be compared here */
+        return 1;
+    } else {
+        return (0 == strcmp(ylasym(e0).sym, ylasym(e1).sym))? 1: 0;
+    }
+} _DEFAIF_EQ_END
+
+_DEFAIF_CLONE_START(sym, YLASymbol) {
+    /* deep clone */
+    ylasym(n).sym = ylmalloc(strlen(ylasym(e).sym)+1);
+    if(!ylasym(n).sym) {
+        yllogE1("Out Of Memory : [%d]!\n", strlen(ylasym(e).sym)+1);
+        ylinterpret_undefined(YLErr_out_of_memory);
+    }
+    strcpy(ylasym(n).sym, ylasym(e).sym);
+} _DEFAIF_CLONE_END
+
+_DEFAIF_TO_STRING_START(sym, YLASymbol) {
+    return (&_predefined_nil == e)? "nil": ylasym(e).sym;
+} _DEFAIF_TO_STRING_END
+
+_DEFAIF_CLEAN_START(sym, YLASymbol) {
+    if(ylasym(e).sym) { ylfree(ylasym(e).sym); }
+} _DEFAIF_CLEAN_END
+
+
+/* --- aif nfunc --- */
+_DEFAIF_EQ_START(nfunc, YLANfunc) {
+    if(ylanfunc(e0).f == ylanfunc(e1).f) { return 1; }
+    else { return 0; }
+} _DEFAIF_EQ_END
+
+_DEFAIF_CLONE_START(nfunc, YLANfunc) {
+    /* nothing to do */
+    return n;
+} _DEFAIF_CLONE_END
+
+_DEFAIF_TO_STRING_START(nfunc, YLANfunc) {
+    if(_MAX_ATOM_PR_BUFSZ <= snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, 
+                                      "<!%s!>", ylanfunc(e).name)) {
+        /* atom pr buf is too small.. */
+        yllogE1("Atom print buffer size is not enough!: Current [%d]\n", _MAX_ATOM_PR_BUFSZ);
+        ylassert(FALSE);
+    }
+    return _atom_prbuf;
+} _DEFAIF_TO_STRING_END
+
+_DEFAIF_CLEAN_START(nfunc, YLANfunc) {
+    /* nothing to do */
+} _DEFAIF_CLEAN_END
+
+
+/* --- aif sfunc --- */
+_DEFAIF_EQ_START(sfunc, YLASfunc) {
+    if(ylanfunc(e0).f == ylanfunc(e1).f) { return 1; }
+    else { return 0; } /* don't care about others.. */
+} _DEFAIF_EQ_END
+
+_DEFAIF_CLONE_START(sfunc, YLASfunc) {
+    /* nothing to do */
+} _DEFAIF_CLONE_END
+
+_DEFAIF_TO_STRING_START(sfunc, YLASfunc) {
+    if(_MAX_ATOM_PR_BUFSZ <= snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, 
+                                      "<!%s!>", ylanfunc(e).name)) {
+        /* atom pr buf is too small.. */
+        yllogE1("Atom print buffer size is not enough!: Current [%d]\n", _MAX_ATOM_PR_BUFSZ);
+        ylassert(FALSE);
+    }
+    return _atom_prbuf;
+} _DEFAIF_TO_STRING_END
+
+_DEFAIF_CLEAN_START(sfunc, YLASfunc) {
+    /* nothing to do */
+} _DEFAIF_CLEAN_END
+
+
+
+/* --- aif double --- */
+_DEFAIF_EQ_START(dbl, YLADouble) {
+    return (yladbl(e0) == yladbl(e1))? 1: 0;
+} _DEFAIF_EQ_END
+
+_DEFAIF_CLONE_START(dbl, YLADouble) {
+    /* nothing to do */
+} _DEFAIF_CLONE_END
+
+_DEFAIF_TO_STRING_START(dbl, YLADouble) {
+    int cnt;
+    if((double)((int)yladbl(e)) == yladbl(e)) {
+        cnt = snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, "%d", (int)(yladbl(e)));
+    } else {
+        cnt = snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, "%f", yladbl(e));
+    }
+    if(_MAX_ATOM_PR_BUFSZ <= cnt) {
+        /* atom pr buf is too small.. */
+        yllogE1("Atom print buffer size is not enough!: Current [%d]\n", _MAX_ATOM_PR_BUFSZ);
+        ylassert(FALSE);
+    }
+    return _atom_prbuf;
+} _DEFAIF_TO_STRING_END
+
+_DEFAIF_CLEAN_START(dbl, YLADouble) {
+    /* nothing to do */
+} _DEFAIF_CLEAN_END
+
+
+
+/* --- aif binary --- */
+_DEFAIF_EQ_START(bin, YLABinary) {
+    if(ylabin(e0).sz == ylabin(e1).sz
+       && (0 == memcmp(ylabin(e0).d, ylabin(e1).d, ylabin(e0).sz)) ) {
+        return 1;
+    } else {
+        return 0; 
+    }
+} _DEFAIF_EQ_END
+
+_DEFAIF_CLONE_START(bin, YLABinary) {
+    /* deep clone */
+    ylabin(n).d = ylmalloc(ylabin(e).sz);
+    if(!ylabin(n).d) {
+        yllogE1("Out Of Memory : [%d]!\n", ylabin(e).sz);
+        ylinterpret_undefined(YLErr_out_of_memory);
+    }
+    memcpy(ylabin(n).d, ylabin(e).d, ylabin(e).sz);
+} _DEFAIF_CLONE_END
+
+_DEFAIF_TO_STRING_START(bin, YLABinary) {
+    return ">>BIN DATA<<";
+} _DEFAIF_TO_STRING_END
+
+_DEFAIF_CLEAN_START(bin, YLABinary) {
+    if(ylabin(e).d) { ylfree(ylabin(e).d); }
+} _DEFAIF_CLEAN_END
+
+
+#undef _MAX_ATOM_PR_BUFSZ
+
+#undef _DEFAIF_EQ_START
+#undef _DEFAIF_EQ_END
+#undef _DEFAIF_CLONE_START
+#undef _DEFAIF_CLONE_END
+#undef _DEFAIF_TO_STRING_START
+#undef _DEFAIF_TO_STRING_END
+#undef _DEFAIF_CLEAN_START
+#undef _DEFAIF_CLEAN_END
+
+
+
+#define _DEFAIF_VAR(sUFFIX)                     \
+    static ylatomif_t _aif_##sUFFIX = {         \
+        &_aif_##sUFFIX##_eq,                    \
+        &_aif_##sUFFIX##_clone,                 \
+        &_aif_##sUFFIX##_to_string,             \
+        &_aif_##sUFFIX##_clean                  \
+}
+
+
+_DEFAIF_VAR(sym);
+_DEFAIF_VAR(nfunc);
+_DEFAIF_VAR(sfunc);
+_DEFAIF_VAR(dbl);
+_DEFAIF_VAR(bin);
+
+#undef _DEFAIF_VAR
+
+const ylatomif_t*
+ylget_aif_sym() { return &_aif_sym; }
+
+const ylatomif_t*
+ylget_aif_nfunc() { return &_aif_nfunc; }
+
+const ylatomif_t*
+ylget_aif_sfunc() { return &_aif_sfunc; }
+
+const ylatomif_t*
+ylget_aif_dbl() { return &_aif_dbl; }
+
+const ylatomif_t*
+ylget_aif_bin() { return &_aif_bin; }
+
+
+
 /**
  * ylcons requires GC. So, code becomes complicated.
  */
@@ -64,27 +297,8 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
 void
 yleclean(yle_t* e) {
     if(yleis_atom(e)) {
-        switch(ylatype(e)) {
-            case YLASymbol: {
-                if(ylasym(e).sym) { ylfree(ylasym(e).sym); }
-            } break;
-
-            case YLASfunc:
-            case YLANfunc: {
-                ; /* nothing to do */
-            } break;
-
-            case YLADouble: {
-                ; /* nothing to do */
-            } break;
-
-            case YLABinary: {
-                if(ylabin(e).d) { ylfree(ylabin(e).d); }
-            } break;
-
-            default:
-                ylassert(FALSE);
-        }
+        if(ylaif(e)->clean) { (*ylaif(e)->clean)(e); }
+        else { yllogW0("There is an atom that doesn't support/allow CLEAN!\n"); }
     } else {
         /*
          * cdr and car may be already collected by GC.
@@ -99,62 +313,31 @@ yleclean(yle_t* e) {
 
 yle_t*
 yleclone(const yle_t* e) {
-    yle_t* n; /* new one */
-
     ylassert(e);
 
     /* handle special case "nil" */
-    if(ylfalse() != ylnull((yle_t*)e)) {
-        return ylnil();
-    }
+    if(yleis_nil(e)) { return ylnil(); }
 
-    n = ylmp_get_block();
-    memcpy(n, e, sizeof(yle_t));
-    ylercnt(n) = 0; /* this is not referenced yet */
     if(yleis_atom(e)) {
-        switch(ylatype(e)) {
-            case YLASymbol: {
-                /* deep clone */
-                ylasym(n).sym = ylmalloc(strlen(ylasym(e).sym)+1);
-                if(!ylasym(n).sym) {
-                    yllogE1("Out Of Memory : [%d]!\n", strlen(ylasym(e).sym));
-                    ylinterpret_undefined(YLErr_out_of_memory);
-                }
-                strcpy(ylasym(n).sym, ylasym(e).sym);
-            } break;
-
-            case YLANfunc:
-            case YLASfunc: {
-                ; /* nothing to do */
-            } break;
-
-            case YLADouble: {
-                ; /* nothing to do */
-            } break;
-
-            case YLABinary: {
-                /* deep clone */
-                ylabin(n).d = ylmalloc(ylabin(e).sz);
-                if(!ylabin(n).d) {
-                    yllogE1("Out Of Memory : [%d]!\n", ylabin(e).sz);
-                    ylinterpret_undefined(YLErr_out_of_memory);
-                }
-                memcpy(ylabin(n).d, ylabin(e).d, ylabin(e).sz);
-            } break;
-
-            default:
-                ylassert(FALSE);
+        if(ylaif(e)->clone) { return (*ylaif(e)->clone)(e); }
+        else {
+            yllogE0("There is an atom that doesn't support/allow CLONE!\n");
+            ylinterpret_undefined(YLErr_eval_undefined);
+            return NULL; /* to make compiler be happy */
         }
     } else {
+        yle_t* n; /* new one */
+        n = ylmp_get_block();
+        memcpy(n, e, sizeof(yle_t));
+        ylercnt(n) = 0; /* this is not referenced yet */
         /* 
          * we should increase reference count of each car/cdr.
          * exp, is cloned. So, one more exp refers car/cdr.
          */
         yleref(ylpcar(n));
         yleref(ylpcdr(n));
-        ;/* nothing to do */
+        return n;
     }
-    return n;
 }
 
 
@@ -195,6 +378,8 @@ ylregister_nfunc(unsigned int version,
     
     e = ylmp_get_block();
     yleset_type(e, YLEAtom | ftype);
+    if(YLANfunc == ftype) { ylaif(e) = ylget_aif_nfunc(); }
+    else { ylaif(e) = ylget_aif_sfunc(); }
     ylanfunc(e).f = nfunc;
     ylanfunc(e).name = sym;
 
@@ -242,26 +427,12 @@ ylchain_size(const yle_t* e) {
 static char*
 _aprint(char* p, char* pend, yle_t* e) {
     int  cw; /* character written */
-    switch(ylatype(e)) {
-        case YLASymbol: {
-            cw = snprintf(p, pend-p, "%s", yleis_nil(e)? "nil": ylasym(e).sym);
-        } break;
-
-        case YLANfunc:
-        case YLASfunc: {
-            cw = snprintf(p, pend-p, "<!%s!>", ylanfunc(e).name);
-        } break;
-
-        case YLADouble: {
-            cw = snprintf(p, pend-p, "%f", yladbl(e));
-        } break;
-
-        case YLABinary: {
-            cw = snprintf(p, pend-p, ">>BIN DATA<<");
-        } break;
-
-        default:
-            ylassert(FALSE);
+    if(ylaif(e)->to_string) {
+        cw = snprintf(p, pend-p, "%s", (*ylaif(e)->to_string)(e));
+    } else {
+        yllogW0("There is an atom that doesn't support/allow PRINT!\n");
+        /* !X! is special notation to represet 'it's not printable' */
+        cw = snprintf(p, pend-p, "!X!");
     }
     if(cw < 0 || cw >= (pend-p)) { return NULL; }
     else { return p + cw; }
@@ -272,6 +443,7 @@ _eprint(char* p, char* pend, yle_t* e) {
 
 #define __call(func) do { p = func; if(!p) { return NULL; } } while(0)
 #define __addchar(c) if(p<pend) { *p++ = c; } else { return NULL; }
+#define __addNULL()  do { __addchar('N'); __addchar('U'); __addchar('L'); __addchar('L'); } while(0)
 
     if(yleis_atom(e)) {
         _aprint(p, pend, e);
@@ -290,8 +462,7 @@ _eprint(char* p, char* pend, yle_t* e) {
                 __call(_aprint(p, pend, ylcar(e)));
             }
         } else {
-            __addchar('N'); __addchar('U'); __addchar('L'); __addchar('L');
-            __addchar(' ');
+            __addNULL(); __addchar(' ');
         }
 
         if(ylcdr(e)) {
@@ -305,11 +476,12 @@ _eprint(char* p, char* pend, yle_t* e) {
                 __call(_eprint(p, pend, ylcdr(e)));
             }
         } else {
-            __addchar('N'); __addchar('U'); __addchar('L'); __addchar('L');
+            __addNULL();
         }
     }
     return p;
 
+#undef __addNULL
 #undef __addchar
 #undef __call
 }
@@ -389,6 +561,11 @@ ylget_more_possible_prefix(const char* prefix, char* buf, unsigned int bufsz) {
 }
 
 
+
+/* =======================
+ * aif interfaces - END
+ * =======================*/
+
 extern ylerr_t ylnfunc_init();
 extern ylerr_t ylsfunc_init();
 
@@ -444,8 +621,6 @@ ylinit(ylsys_t* sysv) {
     if(YLOk != ylregister_nfunc(YLDEV_VERSION, s, (ylnfunc_t)YLNFN(n), type, ">> lib: ylisp <<\n" desc)) { goto bail; }
 #include "nfunc.in"
 #undef NFUNC
-
-
 
     return YLOk;
 

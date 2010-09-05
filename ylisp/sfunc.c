@@ -58,44 +58,11 @@ yleq(const yle_t* e1, const yle_t* e2) {
 
     if(yleis_atom(e1) && yleis_atom(e2)) {
         if(ylatype(e1) == ylatype(e2)) {
-            switch(ylatype(e1)) {
-                case YLASymbol: {
-                    /* trivial case : compare pointed address first */
-                    if(ylasym(e1).sym == ylasym(e2).sym) {
-                        /* predefined nil can be compared here */
-                        return ylt();
-                    } else {
-                        if (0 != strcmp(ylasym(e1).sym, ylasym(e2).sym)) {
-                            /* false */
-                            return ylnil();
-                        } else {
-                            /* true */
-                            return ylt();
-                        }
-                    }
-                } break;
-
-                case YLANfunc:
-                case YLASfunc: {
-                    if(ylanfunc(e1).f == ylanfunc(e2).f) { return ylt(); }
-                    else { return ylnil(); }
-                } break;
-
-                case YLADouble: {
-                    return (yladbl(e1) == yladbl(e2))? ylt(): ylnil();
-                } break;
-
-                case YLABinary: {
-                    if(ylabin(e1).sz == ylabin(e2).sz
-                       && (0 == memcmp(ylabin(e1).d, ylabin(e2).d, ylabin(e1).sz)) ) {
-                        return ylt();
-                    } else {
-                        return ylnil();
-                    }
-                } break;
-
-                default:
-                    ylassert(FALSE);
+            if(ylaif(e1)->eq) { 
+                return ((*ylaif(e1)->eq)(e1, e2))? ylt(): ylnil(); 
+            } else {
+                yllogW0("There is an atom that doesn't support/allow CLEAN!\n");
+                return ylnil(); /* default is 'not equal' */
             }
         } else {
             return ylnil();

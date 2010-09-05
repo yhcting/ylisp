@@ -106,14 +106,21 @@ public class Main extends JFrame {
             String pre   = orig.substring(0, caretpos);
             String post  = orig.substring(caretpos);
             
-            maxi = 0;
+            maxi = -1;
             for(i=0; i<delimiters.length; i++) {
                 j = pre.lastIndexOf(delimiters[i]);
-                if(maxi<j) { maxi = j; }
+                if(maxi<(j+1)) { maxi = j+1; }
             }
             
-            if( maxi < (pre.length() - 1) ) {
-                int r = nativeAutoComplete(pre.substring(maxi+1));
+            { // Just Scope
+                int r;
+                if(0 <= maxi) {
+                    // Normal case
+                    r = nativeAutoComplete(pre.substring(maxi)); 
+                } else {
+                    // In case of first word
+                    r = nativeAutoComplete(pre.substring(0)); 
+                }
                 switch(r) {
                     case _AC_MORE_PREFIX: {
                         String more = nativeGetLastNativeMessage();
@@ -131,7 +138,7 @@ public class Main extends JFrame {
                     default: // error case
                         ; // nothing to do
                 }
-            }
+            } // Just Scope
         }
     }
     

@@ -54,16 +54,18 @@
 #define yleis_reachable(e)      ((e)->t & YLEReachable)
 
 /* macros for easy accessing */
-#define yleatom(e)      ((e)->u.a)
-#define ylasym(e)       ((e)->u.a.u.sym)
-#define ylanfunc(e)     ((e)->u.a.u.nfunc)
-#define yladbl(e)       ((e)->u.a.u.dbl)
-#define ylabin(e)       ((e)->u.a.u.bin)
+#define yleatom(e)              ((e)->u.a)
+#define ylaif(e)                ((e)->u.a.aif)
+#define ylasym(e)               ((e)->u.a.u.sym)
+#define ylanfunc(e)             ((e)->u.a.u.nfunc)
+#define yladbl(e)               ((e)->u.a.u.dbl)
+#define ylabin(e)               ((e)->u.a.u.bin)
+#define ylacd(e)                ((e)->u.a.u.cd)
 
-#define ylpcar(e)       ((e)->u.p.car)
-#define ylpcdr(e)       ((e)->u.p.cdr)
+#define ylpcar(e)               ((e)->u.p.car)
+#define ylpcdr(e)               ((e)->u.p.cdr)
 
-#define yleis_nil(e)    (ylnil() == (e))
+#define yleis_nil(e)            (ylnil() == (e))
 
 /*
  * This function SHOULD NOT BE CALLED DIRECTLY
@@ -411,26 +413,58 @@ ylpassign(yle_t* e, yle_t* car, yle_t* cdr) {
     ylpsetcdr(e, cdr);
 }
 
+static inline yle_t*
+ylpcreate(yle_t* car, yle_t* cdr) {
+    yle_t* e = ylmp_get_block();
+    ylpassign(e, car, cdr);
+    return e;
+}
+
 /**
  * @sym: [in] responsibility for memory handling is passed to @se.
  */
 static inline void
 ylaassign_sym(yle_t* e, char* sym) {
     yleset_type(e, YLEAtom | YLASymbol);
+    ylaif(e) = ylget_aif_sym();
     ylasym(e).sym = sym;
 }
+
+static inline yle_t*
+ylacreate_sym(char* sym) {
+    yle_t* e = ylmp_get_block();
+    ylaassign_sym(e, sym);
+    return e;
+}
+
 
 static inline void
 ylaassign_dbl(yle_t* e, double d) {
     yleset_type(e, YLEAtom | YLADouble);
+    ylaif(e) = ylget_aif_dbl();
     yladbl(e) = d;
+}
+
+static inline yle_t*
+ylacreate_dbl(double d) {
+    yle_t* e = ylmp_get_block();
+    ylaassign_dbl(e, d);
+    return e;
 }
 
 static inline void
 ylaassign_bin(yle_t* e, char* data, unsigned int len) {
     yleset_type(e, YLEAtom | YLABinary);
+    ylaif(e) = ylget_aif_bin();
     ylabin(e).d = data;
     ylabin(e).sz = len;
+}
+
+static inline yle_t*
+ylacreate_bin(char* data, unsigned int len) {
+    yle_t* e = ylmp_get_block();
+    ylaassign_bin(e, data, len);
+    return e;
 }
 
 /*=====================================

@@ -5,7 +5,7 @@
 (interpret-file '../yls/math.yl)
 (interpret-file '../yls/test_math.yl)
 (load-cnf '../lib/libylsystem.so)
-;(interpret-file '../yls/test_system.yl)
+(interpret-file '../yls/test_system.yl)
 (load-cnf '../lib/libylstring.so)
 (interpret-file '../yls/test_string.yl)
 (interpret-file '../yls/util.yl)

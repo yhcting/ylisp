@@ -63,7 +63,7 @@ _print(const char* format, ...) {
     ret = vprintf(format, args);
     va_end (args);
     /* we want to print its string immediately */
-    /* fflush(); */
+    /* fflush(stdout); */
     return ret;
 }
 
@@ -270,6 +270,7 @@ _jni_Main_nativeAutoComplete
     /* we need to assess directly..here... */
     _msgappended(strlen(_msg.b));
 
+
     switch(ret) {
         case 0: {
             if(_msg.p > _msg.b) {
@@ -316,7 +317,7 @@ _jni_Main_nativeAutoComplete
         } break;
 
         default:
-            printf("Internal error to try auto-completion. Out of memory?\n");
+            _print("Internal error to try auto-completion. Out of memory?\n");
             ret = -1; /* error case */
     }
 

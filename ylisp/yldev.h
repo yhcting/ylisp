@@ -46,6 +46,9 @@
 #define YLASfunc           0x02 /**< parameter is passed before evaluation */
 #define YLADouble          0x03 /**< Double type */
 #define YLABinary          0x04 /**< Binary data */
+#define YLACustom          0x10 /**< Custom data - this is not defined at ylisp-core */
+/* Number [0x10, 0xff] is reserved for custom use */
+
 #define YLAtype_mask       0x000000ff
 
 #define YLEPair            0           
@@ -56,7 +59,51 @@
  * Struct to represent ylatom data
  *===================================*/
 
+/* -------------------------
+ * Structures for atom data type
+ * -------------------------*/
+
+
 struct yle;
+
+/*
+ * +Interfaces for atom operation+
+ *    Each function pointer can be NULL.
+ *    And this means, 'this operation is NOT supported or allowed'
+ * 
+ * !NOTE & WARNING!
+ *    clone : [IMPORTANT]
+ *        'clone' is ONLY USED for 'mlambda' and 'mset'.
+ *        So, custom atom that doesn't allow/suport cloning, 
+ *            SHOULD NOT be used at mlambda and mset!.
+ *        Using atom which have NULL-clone-value at 'mlambda' or 'mset',
+ *            cause 'ylinterpret_undefined' and interpreting is stopped with error.
+ *
+ *    eq :
+ *        if NULL, yleq S-function always returns 'nil' - FALSE - with warning log.
+ *
+ *    to_string :
+ *        if NULL, yleprint always returns special string - "!X!" - with warning log.
+ *
+ *    clean :
+ *        if NULL, yleclean does nothing except for warning log.
+ */
+typedef struct {
+    /*
+     * @return : 1 if equal. Otherwise 0
+     */
+    int           (*eq)(const struct yle*, const struct yle*);
+    /*
+     * @return : NULL if error!
+     */
+    struct yle*   (*clone)(const struct yle*);
+    /*
+     * @return : static buffer. NULL if fails (ex. OOM)
+     */
+    const char*   (*to_string)(const struct yle*);
+    void          (*clean)(struct yle*);
+} ylatomif_t; /* atom inteface
+
 /* nfunc : Native FUNCtion */
 typedef struct yle* (*ylnfunc_t)(struct yle*, struct yle*);
 
@@ -65,6 +112,14 @@ typedef struct yle {
     unsigned int      r; /**< reference count */
     union {
         struct {
+            /*
+             * Interfaces to handle atom.
+             */
+            const ylatomif_t*    aif;
+
+            /*
+             * atom data
+             */
             union {
                 struct {
                     char*          sym;
@@ -81,7 +136,8 @@ typedef struct yle {
                     unsigned int sz;  /**< data size */
                     char*        d;   /**< data */
                 } bin;
-                
+
+                void*      cd; /* any data for custom atom(YLACustom) - Custom Data*/
             } u;
         } a; /* ylatom */
 
@@ -133,6 +189,25 @@ ylsysv();
  */
 extern yle_t*
 ylmp_get_block();
+
+/*
+ * get aif for predefined type!
+ */
+extern const ylatomif_t*
+ylget_aif_sym();
+
+extern const ylatomif_t*
+ylget_aif_nfunc();
+
+extern const ylatomif_t*
+ylget_aif_sfunc();
+
+extern const ylatomif_t*
+ylget_aif_dbl();
+
+extern const ylatomif_t*
+ylget_aif_bin();
+
 
 extern ylerr_t
 ylregister_nfunc(unsigned int version,

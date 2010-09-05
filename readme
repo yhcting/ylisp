@@ -1,12 +1,16 @@
+=================================
+* High Level Description
+=================================
+
 Introduction
 ------------
     Goal of YLISP is Rapid Tool Development Tool.
     So, YLISP doesn't want to be complete programming language like Common Lisp.
     And execution speed(performance) is not considered enough, too.
     Instead of it, YLISP focuses on supporting mechanism to add and use customized-native-function(CNF)s easily.
-    Consumer can easily extend their own CNFs by programming plug-ins.
+    Consumer can easily extend their own CNFs by programming plugins.
     Lisp is function based language. So, Consumer can define their own semantics with S-Expression syntax.
-    (That is, consumer can make their own lisp by extending CNF plug-ins)
+    (That is, consumer can make their own lisp by extending CNF plugins)
     YLISP's mathmatical model comes from (http://www-formal.stanford.edu/jmc/recursive (by John McCarthy)).
     
     Main features that YLISP library provides are:
@@ -14,9 +18,9 @@ Introduction
         * Lisp evaluation mechanism (fundamental S-Functions are built-in (ex. lambda, mlambda, set, mset) in the library)
         * Garbage collection mechanism.
         * Mechanism to update/lookup global symbols.
-        * Interface to load/unload CNF plug-ins(libraries).
+        * Interface to load/unload CNF plugins(libraries).
 
-    At this project, some plug-ins are already implemented. Those can be good examples.
+    At this project, some plugins are already implemented. Those can be good examples.
 
     YLISP has been compiled and tested only on:
         * Linux(Ubuntu)
@@ -56,12 +60,17 @@ How Do I Use It?
     .... What I am talking about now?? :-) ....
 
 
-Programming Policy
-------------------
-    non-compatible coding style (ex. codes works only on GCC) is tried to be avoided.
-    So, codes are based on C89 & Posix.
-    (That is, features of C99 are not used intentionally except for 'inline')
+External dependency
+-------------------
+    YLISP uses thread and plugin loading - dynamic loading. And it plugin uses base symbol directly. 
+    So, "-rdynamic -ldl -lpthread" options are required when creating executable file with YLISP.a library.
 
+
+
+
+=================================
+* Guide for customizing by using plugins
+=================================
 
 Directory/File Structure
 ------------------------
@@ -79,16 +88,62 @@ Directory/File Structure
         jsrc/:
             Java source code for GUI.
     ylbase:
-        Plug-in for native function extension. Very basic and fundamental functions are implemented here.
-        Without any special reason, this plug-in should be loaded at the begining.
+        Plugin for native function extension. Very basic and fundamental functions are implemented here.
+        Without any special reason, this plugin should be loaded at the begining.
     ylmath/ylstring/ylsystem
-        Plug-in for native function extension. Followings are the list of library name and register functions.
+        Plugin for native function extension. Followings are the list of library name and register functions.
         libylbase.so
         libylmath.so
         libylstring.so
         libylsystem.so
     yls
         YLISP script files.
+
+
+Creating CNF 
+------------
+    * At first, see existing CNF plugins.
+    * Things to obey
+        - Assigning values to element data (yle_t) SHOULD NOT be done. Use interface functions/macros to do this!
+    * Interface for create CNF plugins.
+        Files :
+            ylisp.h : headers to implement YLISP front-end.
+            yldev.h : essential header for developing CNF that includes data types and constants.
+            yldevut.h / ylsfunc.h : This has several interface macros/functions for CNF developers.
+       ylmp_get_block() :
+           Memory for yle_t should be taken from memory pool by using this.
+       ylpcreate(), ylpassign(), ylpsetcar(), ylpsetcdr()
+        - Setting car or cdr value of pair should be done by calling one of those
+          (Those functions handle reference count automatically.)
+          If not, GC may not work correctly!
+    * There should be two functions in CNF plugin. 'ylcnf_onload/ylcnf_onunload'.
+      At the moment of loading plugin library by evaluating 'load-cnf', 'ylcnf_onload' is called.
+      And at the moment of unload plugin library by evaluating 'unload-cnf', 'ylcnf_onunload' is called.
+      So, CNF plugin should register new native functions at 'ylcnf_onload' and unregister at 'ylcnf_onunload'.
+
+
+Adding new-type-atom(henceforth NTA)
+------------------------------------
+    * Following symbols at "yldev.h, yldevut.h" are related with this.
+        - YLACustom       : base value for customized NTA
+        - ylatomif_t      : interface for handling NTA
+        - yle_t.u.a.u.cd  : data pointer for NTA
+        - ylacd()         : macro to access yle_t.u.a.u.cd
+    * Following functions can be good example.
+        - ylacreate_xxx, ylaassign_xxx
+
+
+
+
+=================================
+* Internal details for hackers
+=================================
+
+Programming Policy
+------------------
+    non-compatible coding style (ex. codes works only on GCC) is tried to be avoided.
+    So, codes are based on C89 & Posix.
+    (That is, features of C99 are not used intentionally except for 'inline')
 
 
 Parsing S-Expression
@@ -107,10 +162,6 @@ Parsing S-Expression
             xxx"yyy"xxx : 3 symbol. xxx, yyy, xxx
 
 
-Data Structure
---------------
-
-    
 Machine representation of S-Expression
 --------------------------------------
     predefined variable is used to represents NIL.
@@ -147,7 +198,7 @@ GC(Garbage collection)
         - Newly allocated dangling memory blocks - blocks whose reference count is zero - are freed except for those referred by return value.
         - If memory pool usage exceeded predefined threshold and interpreting request is done, than Full-Scanning-GC(FSGC) is triggered to collect dangling cyclic-cross-referred-blocks. 
           Why FSGC can be done only after interpreting request is done? Because, at that moment, interpret state depends only on global symbols. So, we can assume lots of things - this make GC easier!
-          Actually, there are two options. one is using FSGC as an main GC method. the other is current implemented way. In terms of efficient memory usage, the former is better. But, to implement this, we should be careful when use memory block and returned value. And this makes it more difficult to implement CNF plug-in. So, at the cost of a little inefficient memory usage, we can get interpreter design for easy-to-extend-CNF.
+          Actually, there are two options. one is using FSGC as an main GC method. the other is current implemented way. In terms of efficient memory usage, the former is better. But, to implement this, we should be careful when use memory block and returned value. And this makes it more difficult to implement CNF plugin. So, at the cost of a little inefficient memory usage, we can get interpreter design for easy-to-extend-CNF.
           (In my opinion, reference-based-GC can cover most cases. So, we don't need to worry about memory inefficiency too much)
 
 
@@ -155,12 +206,6 @@ Error handling
 --------------
     To avoid cascading return chain - return from callee to caller and it's caller again and again... - in case of unexpected state, YLISP creates thread for interpreting stream and wait to join. 
     So, at the unexpected moment, exiting from thread is enough!. Therefore, we can free from cascading return chain. This saves programming efforts dramatically.
-
-
-External dependency
--------------------
-    YLISP uses thread and plug-in loading - dynamic loading. And it plug-in uses base symbol directly. 
-    So, "-rdynamic -ldl -lpthread" options are required when creating executable file with YLISP.a library.
 
 
 Things to think of
@@ -199,27 +244,11 @@ Things to think of
                   It's big loss at usability's point of view!
 
 
-Creating CNF 
-------------
-    * At first, see existing CNF plug-ins.
-    * Things to obey
-        - Assigning values to element data (yle_t) SHOULD NOT be done. Use interface functions/macros to do this!
-    * Interface for create CNF plug-ins.
-        Files :
-            ylisp.h : headers to implement YLISP front-end.
-            yldev.h : essential header for developing CNF that includes data types and constants.
-            yldevut.h / ylsfunc.h : This has several interface macros/functions for CNF developers.
-       ylmp_get_block() :
-           Memory for yle_t should be taken from memory pool by using this.
-       ylpassign(), ylpsetcar(), ylpsetcdr()
-        - Setting car or cdr value of pair should be done by calling one of those
-          (Those functions handle reference count automatically.)
-          If not, GC may not work correctly!
-    * There should be two functions in CNF plug-in. 'ylcnf_onload/ylcnf_onunload'.
-      At the moment of loading plug-in library by evaluating 'load-cnf', 'ylcnf_onload' is called.
-      And at the moment of unload plug-in library by evaluating 'unload-cnf', 'ylcnf_onunload' is called.
-      So, CNF plug-in should register new native functions at 'ylcnf_onload' and unregister at 'ylcnf_onunload'.
 
+
+=================================
+* Others
+=================================
 
 Known Bugs
 ----------
