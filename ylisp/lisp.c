@@ -23,9 +23,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "lisp.h"
 #include "trie.h"
 #include "mempool.h"
+#include "ylut.h"
 
 /*=======================
  * Local varaible 
@@ -424,29 +424,31 @@ ylchain_size(const yle_t* e) {
  * But... Re-factoring may be required at future.
  */
 
-static char*
-_aprint(char* p, char* pend, yle_t* e) {
+/*
+ * Simple macro used for printing functions(_aprint, _eprint, yleprint)
+ */
+#define _fcall(fEXP) do { if( !fEXP ) { goto bail; } } while(0)
+
+static int
+_aprint(ylutdynb_t* b, yle_t* e) {
     int  cw; /* character written */
     if(ylaif(e)->to_string) {
-        cw = snprintf(p, pend-p, "%s", (*ylaif(e)->to_string)(e));
+        _fcall(ylutstr_append(b, (*ylaif(e)->to_string)(e)));
     } else {
         yllogW0("There is an atom that doesn't support/allow PRINT!\n");
         /* !X! is special notation to represet 'it's not printable' */
-        cw = snprintf(p, pend-p, "!X!");
+        _fcall(ylutstr_append(b, "!X!"));
     }
-    if(cw < 0 || cw >= (pend-p)) { return NULL; }
-    else { return p + cw; }
+    return TRUE;
+
+ bail:
+    return FALSE;
 }
 
-static char*
-_eprint(char* p, char* pend, yle_t* e) {
-
-#define __call(func) do { p = func; if(!p) { return NULL; } } while(0)
-#define __addchar(c) if(p<pend) { *p++ = c; } else { return NULL; }
-#define __addNULL()  do { __addchar('N'); __addchar('U'); __addchar('L'); __addchar('L'); } while(0)
-
+static int
+_eprint(ylutdynb_t* b, yle_t* e) {
     if(yleis_atom(e)) {
-        _aprint(p, pend, e);
+        _fcall(_aprint(b, e));
     } else {
         /*
          * When cdr/car can be NULL? Free block in memory pool has NULL car/cdr value.
@@ -455,35 +457,34 @@ _eprint(char* p, char* pend, yle_t* e) {
          */
         if(ylcar(e)) {
             if(!yleis_atom(ylcar(e))) {
-                __addchar('(');
-                __call(_eprint(p, pend, ylcar(e)));
-                __addchar(')');
+                _fcall(ylutstr_append(b, "("));
+                _fcall(_eprint(b, ylcar(e)));
+                _fcall(ylutstr_append(b, ")"));
             } else {
-                __call(_aprint(p, pend, ylcar(e)));
+                _fcall(_aprint(b, ylcar(e)));
             }
         } else {
-            __addNULL(); __addchar(' ');
+            _fcall(ylutstr_append(b, "NULL "));
         }
 
         if(ylcdr(e)) {
             if( yleis_atom(ylcdr(e)) ) {
                 if(!yleis_nil(ylcdr(e))) {
-                    __addchar('.');
-                    __call(_aprint(p, pend, ylcdr(e)));
+                    _fcall(ylutstr_append(b, "."));
+                    _fcall(_aprint(b, ylcdr(e)));
                 }
             } else {
-                __addchar(' ');
-                __call(_eprint(p, pend, ylcdr(e)));
+                _fcall(ylutstr_append(b, " "));
+                _fcall(_eprint(b, ylcdr(e)));
             }
         } else {
-            __addNULL();
+            _fcall(ylutstr_append(b, "NULL"));
         }
     }
-    return p;
+    return TRUE;
 
-#undef __addNULL
-#undef __addchar
-#undef __call
+ bail:
+    return FALSE;
 }
 
 /**
@@ -492,51 +493,38 @@ _eprint(char* p, char* pend, yle_t* e) {
 const char*
 yleprint(const yle_t* e) {
 
-#define __call(func) do { if(p) { p = func; } } while(0)
-#define __addchar(c) if(p && p<pend) { *p++ = c; } else { p = NULL; }
+#define __DEFAULT_BSZ 4096
 
-    char* p;
-    char* pend;
-    int   sz;
+    static ylutdynb_t dynb = {0, 0, NULL};
 
-    if(_prbuf) { ylfree(_prbuf); }
-    sz = 4096; /* initial size 4KB */
-    _prbuf = ylmalloc(sz); /* initial size */
-    if(!_prbuf) { goto bail;  }
-    while(1) {
-        p = _prbuf; pend = p + sz -1;
-        if(yleis_atom(e)) {
-            __call(_aprint(p, pend, (yle_t*)e));
-        } else {
-            __addchar('(');
-            __call(_eprint(p, pend, (yle_t*)e));
-            __addchar(')');
-        }
-        /* add trailing NULL */
-        if(p) { 
-            *p++ = 0; 
-            break; /* end! */
-        } else { 
-            /* 
-             * not engouth buffer size 
-             * increase buffer and retry!
-             */
-            sz *= 2;
-            ylfree(_prbuf);
-            _prbuf = ylmalloc(sz);
-            if(!_prbuf) { goto bail; }
-        }
+    /*
+     * newly allocates or shrinks
+     */
+    if(!dynb.b || ylutstr_len(&dynb) > __DEFAULT_BSZ) {
+        ylutdynb_clean(&dynb);
+        _fcall(ylutstr_init(&dynb, __DEFAULT_BSZ));
+    } else {
+        ylutstr_reset(&dynb);
     }
-    return _prbuf;
+
+    if(yleis_atom(e)) {
+        _fcall(_aprint(&dynb, (yle_t*)e));
+    } else {
+        _fcall(ylutstr_append(&dynb, "("));
+        _fcall(_eprint(&dynb, (yle_t*)e));
+        _fcall(ylutstr_append(&dynb, ")"));
+    }
+
+    return ylutstr_string(&dynb);
     
  bail:
     /* Out of memory */
     return "print error: out of memory\n";
+
+#undef __DEFAULT_BSZ
 }
 
-#undef __addchar
-#undef __call
-
+#undef _fcall
 
 
 int

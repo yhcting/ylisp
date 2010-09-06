@@ -35,7 +35,7 @@
 #define __ENABLE_LOG
 
 #include "ylsfunc.h"
-
+#include "ylut.h"
 
 static char*
 _alloc_str(const char* str) {
@@ -50,49 +50,38 @@ _alloc_str(const char* str) {
     return p;
 }
 
+/*
+ * @outsz: 
+ *    in case of fail: 0 means OK, otherwise error!
+ */
 static void*
 _readf(unsigned int* outsz, const char* func, const char* fpath, int btext) {
     char*        buf = NULL;
     unsigned int sz;
     FILE*        fh;
 
-    fh = fopen(fpath, "r");
-    if(!fh) {
-        ylassert(0);
-        yllogW2("<!%s!> Cannot open file [%s]\n", func, fpath);
-        goto bail;
-    }
+    if(outsz) { *outsz = 1; } /* 1 means, 'not 0' */
+    buf = ylutfile_read(&sz, fpath, btext);
+    if(buf) { if(outsz){*outsz=sz;} }
+    else {
+        switch(sz) {
+            case YLOk:
+                if(outsz){*outsz = 0;}
+            break;
 
-    /* do ylnot check error.. very rare to fail!! */
-    fseek(fh, 0, SEEK_END);
-    sz = ftell(fh);
-    fseek(fh, 0, SEEK_SET);
+            case YLErr_io:
+                yllogW2("<!%s!> Error: File IO [%s]\n", func, fpath);
+            break;
 
-    buf = ylmalloc((unsigned int)sz+((btext)? 1: 0)); /* +1 for trailing 0 */
-    if(!buf) {
-        ylassert(0);
-        yllogW2("<!%s!> Not enough memory to load file [%s]\n", func, fpath);
-        goto bail;
-    }
+            case YLErr_out_of_memory:
+                yllogW2("<!%s!> Not enough memory to load file [%s]\n", func, fpath);
+            break;
 
-    if(1 != fread(buf, sz, 1, fh)) {
-        ylassert(0);
-        yllogW2("<!%s!> Fail to read file [%s]\n", func, fpath);
-        goto bail;
+            default:
+                ylassert(FALSE);
+        }
     }
-    if(btext) { 
-        if(outsz) { *outsz = sz+1; }
-        buf[sz] = 0; /* add trailing 0 */
-    } else {
-        if(outsz) { *outsz = sz; }
-    }
-    fclose(fh);
     return buf;
-
- bail:
-    if(fh) { fclose(fh); }
-    if(buf) { ylfree(buf); }
-    return NULL;
 }
 
 
@@ -189,7 +178,7 @@ YLDEFNF(shell, 1, 1) {
             /* file exists. So, there is valid output */
             fclose(fh);
             buf = _readf(NULL, "shell", __outf_name, TRUE);
-            ylassert(buf);
+            if(!buf) { ylnflogW0("Cannot read shell output!!\n"); goto bail; }
         } else {
             /* There is no output from command */
             buf = ylmalloc(1);
@@ -357,7 +346,7 @@ YLDEFNF(freadb, 1, 1) {
     ylnfcheck_atype_chain1(e, YLABinary);
     
     buf = _readf(&sz, "freadb", ylasym(ylcar(e)).sym, FALSE);
-    if(!buf) { goto bail; }
+    if(!buf && 0 != sz) { goto bail; }
 
     r = ylmp_get_block();
     ylaassign_bin(r, buf, sz);

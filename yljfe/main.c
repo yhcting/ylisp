@@ -34,6 +34,12 @@
 #include "jni.h"
 #include "ylisp.h"
 
+/*
+ * "ylut.h" is optional.
+ * This is included to use utility functions.
+ * (Using 'ylut.h' is not essential!)
+ */
+#include "ylut.h"
 
 #define _MAX_SYM_LEN          1024
 #define _INIT_OUTBUFSZ        4*1024 /* normal page size */
@@ -48,11 +54,6 @@ enum {
 
 static int _loglv = YLLogW;
 
-static struct {
-    char*  b;        /* address of buffer */
-    char*  p;        /* next position write */
-    char*  plimit;   /* limit address (exclusive) */
-} _msg;
 
 static int
 _print(const char* format, ...) {
@@ -82,116 +83,7 @@ static void
 _assert(int a) { assert(a); }
 
 
-/* -------------------------------------
- * Functions for native message - START
- * -------------------------------------*/
-
-static inline void
-_msginit() {
-    /* initialize */
-    _msg.p = _msg.b = (char*)malloc(_INIT_OUTBUFSZ);
-    _msg.plimit = _msg.b + _INIT_OUTBUFSZ;
-}
-
-static inline unsigned int
-_msgbuf_freesz() { return _msg.plimit - _msg.p - 1; } /* -1 for secure trailing 0 */
-
-static inline unsigned int
-_msgbuf_usedsz() { return _msg.p - _msg.b; }
-
-static inline unsigned int
-_msgbufsz() { return _msg.plimit - _msg.b - 1; } /* -1 for secure trailing 0 */
-
-static inline void
-_msgbuf_shrink() {
-    if(_msg.plimit - _msg.b > _INIT_OUTBUFSZ) { 
-        free(_msg.b);
-        _msg.p = _msg.b = malloc(_INIT_OUTBUFSZ);
-        _msg.plimit = _msg.p + _INIT_OUTBUFSZ;
-    }
-}
-
-/* 
- * return allocated size if success, 0 if fails
- */
-static inline unsigned int
-_msgbuf_expand() {
-    char*           tmp;
-    unsigned int    dsz, lsz;
-    lsz = _msg.plimit - _msg.b;
-    dsz = _msg.p - _msg.b;
-    tmp = malloc(lsz*2);
-    if(tmp) {
-        memcpy(tmp, _msg.b, dsz);
-        free(_msg.b);
-        _msg.b = tmp;
-        _msg.p = _msg.b + dsz;
-        _msg.plimit = _msg.b + lsz*2;
-        return lsz*2;
-    } else {
-        return 0;
-    }
-}
-
-/* 
- * return 1 if success to get enough space. Otherwise 0.
- */
-static inline unsigned int
-_msgbuf_secure(unsigned int sz_to_add) {
-    while( sz_to_add > _msgbuf_freesz()
-           && _msgbuf_expand()) {}
-    return sz_to_add <= _msgufsz();
-}
-
-static inline void
-_msgstart() {
-    _msgbuf_shrink();
-    _msg.p = _msg.b;
-    *_msg.p = 0;
-}
-
-
-static int
-_msgappend(const char* format, ...) {
-    va_list       args;
-    int           ret;
-    char*         tmp;
-    int           cw = 0, cwsv; /* charactera written */
-
-    va_start (args, format);
-    do {
-        cwsv = cw;
-        cw = vsnprintf (_msg.p, _msgbuf_freesz(), format, args);
-        if(cw >= _msgbuf_freesz()) {
-            if(!_msgbuf_expand()) {
-                _print("Not enough memory to alloc space for native message! \n"
-                       "Memory size requried : %d"
-                       "Message is truncated!\n", _msgbufsz()*2);
-                cw = cwsv;
-                break;
-            }
-        } else { break; }
-    } while(1);
-    _msg.p += cw;
-    va_end (args);
-
-    return cw;
-}
-
-static inline char*
-_msgbuf_pointer() { return _msg.p; }
-
-static inline const char*
-_msgstring() { *_msg.p = 0; return _msg.b; }
-
-static inline void
-_msgappended(unsigned int sz) { _msg.p += sz; }
-
-/* -------------------------------------
- * Functions for native message - END
- * -------------------------------------*/
-
-
+ylutdynb_t dynb = {0, 0, NULL};
 
 /* ===========================================
  * JNI Functions - START
@@ -211,7 +103,7 @@ _jni_Main_nativeInterpret
 
     stream = (*jenv)->GetStringUTFChars(jenv, jstr, NULL);
 
-    _msgstart();
+    ylutstr_reset(&dynb);
     if( YLOk != ylinterpret(stream, strlen(stream)) ) {
         jret = JNI_FALSE;
     }
@@ -230,12 +122,21 @@ static jstring JNICALL
 _jni_Main_nativeGetLastNativeMessage
 (JNIEnv* jenv, jobject jobj) {
     jstring jret;
-    jret = ((*jenv)->NewStringUTF(jenv, _msgstring()));
+    jret = ((*jenv)->NewStringUTF(jenv, ylutstr_string(&dynb)));
     if(!jret) {
         _print("Not enough Java memory to get native message!\n"
-               "Native message size : %d\n", _msgbuf_usedsz());
+               "Native message size : %d\n", ylutstr_len(&dynb));
     }
-    _msgbuf_shrink();
+
+    /* shrink */
+    if(ylutstr_len(&dynb) > _INIT_OUTBUFSZ) {
+        ylutdynb_clean(&dynb);
+        if( !ylutstr_init(&dynb, _INIT_OUTBUFSZ) ) {
+            /* fail to alloc page... may be due to external fragmentation?? */
+            assert(0);
+        }
+    }
+
     return jret;
 }
 
@@ -265,15 +166,14 @@ _jni_Main_nativeAutoComplete
 
     prefix = (*jenv)->GetStringUTFChars(jenv, jprefix, NULL);
 
-    _msgstart();
-    ret = yltrie_get_more_possible_prefix(prefix, _msgbuf_pointer(), _msgbuf_freesz());
-    /* we need to assess directly..here... */
-    _msgappended(strlen(_msg.b));
-
+    ylutstr_reset(&dynb);
+    ret = yltrie_get_more_possible_prefix(prefix, ylutstr_ptr(&dynb), ylutdynb_freesz(&dynb));
+    /* we need to assess directly..here... due to limitation of API */
+    dynb.sz += strlen(ylutstr_string(&dynb));
 
     switch(ret) {
         case 0: {
-            if(_msg.p > _msg.b) {
+            if(ylutstr_len(&dynb) > 0) {
                 ret = _AC_MORE_PREFIX;
             } else {
                 /* we need to retrieve candidates.. */
@@ -393,38 +293,8 @@ _start_java(JavaVM* jvm, JNIEnv* jenv) {
 }
 
 
-static void*
-_readf(unsigned int* outsz, const char* fpath) {
-    unsigned char*  buf = NULL;
-    FILE*           fh = NULL;
-    unsigned int    sz;
-
-    fh = fopen(fpath, "r");
-    if(!fh) { goto bail; }
-
-    /* do ylnot check error.. very rare to fail!! */
-    fseek(fh, 0, SEEK_END);
-    sz = ftell(fh);
-    fseek(fh, 0, SEEK_SET);
-
-    buf = malloc(sz);
-    if(!buf) { goto bail; }
-
-    if(1 != fread(buf, sz, 1, fh)) { goto bail;  }
-    fclose(fh);
-
-    *outsz = sz;
-    return buf;
-
- bail:
-    if(fh) { fclose(fh); }
-    if(buf) { free(buf); }
-    return NULL;
-}
-
 int
 main(int argc, char* argv[]) {
-    _msginit();
     /* initialize ylisp */
     { /* just scope */
         ylsys_t     sys;
@@ -441,11 +311,14 @@ main(int argc, char* argv[]) {
         }
     }
 
+    /* This should be called after ylinit() */
+    ylutstr_init(&dynb, _INIT_OUTBUFSZ);
+
     /* run initial scripts if required */
     if(argc > 1) {
         unsigned char*   strm;
         unsigned int     strmsz;
-        strm = _readf(&strmsz, "../yls/yljfe_initrc.yl");
+        strm = ylutfile_read(&strmsz, "../yls/yljfe_initrc.yl", 0);
         if(!strm) {
             printf("Fail to read initrc file..\n");
             return 0;

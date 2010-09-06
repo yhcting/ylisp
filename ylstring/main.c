@@ -29,7 +29,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <assert.h>
-#include "yldevut.h"
+#include "yldev.h"
 
 #define _LOGLV  YLLogV
 
@@ -113,7 +113,7 @@ main(int argc, char* argv[]) {
 #else /* __YLDBG__ */
 
 #include <dlfcn.h>
-#include "yldevut.h"
+#include "yldev.h"
 
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
 #   include "nfunc.in"

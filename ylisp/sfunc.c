@@ -24,8 +24,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include "trie.h"
-#include "lisp.h"
-
 
 /* global error number */
 extern int errno;

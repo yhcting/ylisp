@@ -39,6 +39,8 @@ typedef enum {
 
     YLErr_internal,
 
+    YLErr_io, /* io error */
+
     YLErr_cnf_register,
 
     YLErr_syntax_unknown,

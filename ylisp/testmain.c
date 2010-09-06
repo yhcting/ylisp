@@ -28,8 +28,6 @@
 #include <assert.h>
 #include <string.h>
 
-#include "ylisp.h"
-#include "lisp.h"
 #include "trie.h"
 
 #define _LOGLV  YLLogW
@@ -84,36 +82,6 @@ _assert(int a) {
 }
 
 
-static void*
-_readf(unsigned int* outsz, const char* fpath) {
-    unsigned char*  buf = NULL;
-    FILE*           fh = NULL;
-    unsigned int    sz;
-
-    fh = fopen(fpath, "r");
-    if(!fh) { goto bail; }
-
-    /* do ylnot check error.. very rare to fail!! */
-    fseek(fh, 0, SEEK_END);
-    sz = ftell(fh);
-    fseek(fh, 0, SEEK_SET);
-
-    buf = malloc(sz);
-    if(!buf) { goto bail; }
-
-    if(1 != fread(buf, sz, 1, fh)) { goto bail;  }
-    fclose(fh);
-
-    *outsz = sz;
-    return buf;
-
- bail:
-    if(fh) { fclose(fh); }
-    if(buf) { free(buf); }
-    return NULL;
-}
-
-
 int
 main(int argc, char* argv[]) {
     ylsys_t          sys;
@@ -130,7 +98,7 @@ main(int argc, char* argv[]) {
     ylinit(&sys);
 
 #if 1
-    strm = _readf(&strmsz, "../yls/test.yl");
+    strm = (unsigned char*)ylutfile_read(&strmsz, "../yls/test.yl", FALSE);
 #else
     strm = _exp;
     strmsz = strlen(_exp);

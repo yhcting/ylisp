@@ -23,7 +23,6 @@
 #include <memory.h>
 #include "mempool.h"
 #include "stack.h"
-#include "list.h"
 
 /*
  * Full scan is trigerred when memory usage is over than _FULLSCAN_TRIGGER_POINT
@@ -44,8 +43,8 @@ static struct {
     yle_t*     fbis[MPSIZE];    /**< Free Block IndexS */
     yle_t*     ubis[MPSIZE];    /**< Used Block IndexS */
     /* for easy sanity check, below two should be grow in opposite direction */
-    int        fbi;                   /**< Free Block Index - grow to bottom */
-    int        ubi;                   /**< Used Block Index - grow to top */
+    int        fbi;             /**< Free Block Index - grow to bottom */
+    int        ubi;             /**< Used Block Index - grow to top */
 } _epl; /**< s-Expression PooL */
 
 static struct {

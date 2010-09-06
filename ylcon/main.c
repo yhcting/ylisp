@@ -32,6 +32,13 @@
 
 #include "ylisp.h"
 
+/*
+ * "ylut.h" is optional.
+ * This is included to use utility functions.
+ * (Using 'ylut.h' is not essential!)
+ */
+#include "ylut.h"
+
 static int _loglv = YLLogW;
 
 static int _handle_console_command(char* stream);
@@ -225,35 +232,6 @@ _log(int lv, const char* format, ...) {
     }
 }
 
-static void*
-_readf(unsigned int* outsz, const char* fpath) {
-    unsigned char*  buf = NULL;
-    FILE*           fh = NULL;
-    unsigned int    sz;
-
-    fh = fopen(fpath, "r");
-    if(!fh) { goto bail; }
-
-    /* do ylnot check error.. very rare to fail!! */
-    fseek(fh, 0, SEEK_END);
-    sz = ftell(fh);
-    fseek(fh, 0, SEEK_SET);
-
-    buf = malloc(sz);
-    if(!buf) { goto bail; }
-
-    if(1 != fread(buf, sz, 1, fh)) { goto bail;  }
-    fclose(fh);
-
-    *outsz = sz;
-    return buf;
-
- bail:
-    if(fh) { fclose(fh); }
-    if(buf) { free(buf); }
-    return NULL;
-}
-
 int
 main(int argc, char* argv[]) {
     ylsys_t        sys;
@@ -276,7 +254,7 @@ main(int argc, char* argv[]) {
     if(!_parse_option(argc, argv)) { return 0; }
     if(!_set_signal_handler()) { return 0; }
 
-    strm = _readf(&strmsz, "../yls/ylcon_initrc.yl");
+    strm = ylutfile_read(&strmsz, "../yls/ylcon_initrc.yl", 0);
     if(!strm) {
         printf("Fail to read initrc file\n");
         return 0;

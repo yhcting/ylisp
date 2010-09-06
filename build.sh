@@ -9,6 +9,9 @@ check_exit_status() {
 
 clear
 
+rm -rf include
+rm -rf lib
+
 mkdir include
 mkdir lib
 

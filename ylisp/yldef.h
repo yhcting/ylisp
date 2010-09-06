@@ -18,55 +18,33 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-
-
-#ifndef ___LISp_h___
-#define ___LISp_h___
-
-#include "config.h"
-/*
- * For debugging
+/**
+ * Define FUNDAMENTAL and YLISP-INDEPENDENT constants/macros
+ * These macros are de-facto standard!
+ * So, we don't need to worry about symbol conflicts.
  */
-#ifdef __DBG_EVAL
-#   define dbg_eval(x)     do{ x } while(0)
-#else /* _YLDBG_EVAL */
-#   define dbg_eval(x)
-#endif /* _YLDBG_EVAL */
 
-#ifdef __DBG_MEM
-#   define dbg_mem(x)      do{ x } while(0)
-#else /* __DBG_MEM */
-#   define dbg_mem(x)
-#endif /* __DBG_MEM */
+#ifndef ___DEf_h___
+#define ___DEf_h___
 
-#ifdef __DBG_GEN
-#   define dbg_gen(x)      do{ x } while(0)
-#else /* __DBG_MEM */
-#   define dbg_gen(x)
-#endif /* __DBG_MEM */
+#ifndef NULL
+#   define NULL ((void*)0)
+#endif
 
+#ifndef TRUE
+#   define TRUE 1
+#endif
 
-#include "ylsfunc.h"
+#ifndef FALSE
+#   define FALSE 0
+#endif
 
-extern void
-yleclean(yle_t* e);
+#ifndef offset_of
+#   define offset_of(type, member) ((unsigned int) &((type*)0)->member)
+#endif
 
-yle_t*
-ylapply(yle_t* f, yle_t* args, yle_t* a);
+#ifndef container_of
+#   define container_of(ptr, type, member) ((type*)(((char*)(ptr)) - offset_of(type, member)))
+#endif
 
-/*
- * get current evaluation id.
- */
-unsigned int
-ylget_eval_id();
-
-
-/*
- * to avoid symbol name (function name) conflicts with plug-ins
- * ylisp uses special naming rules!
- */
-#undef  YLNFN
-#define YLNFN(n)    __Yl__LNF__##n##__
-
-
-#endif /* ___LISp_h___ */
+#endif /* ___DEf_h___ */

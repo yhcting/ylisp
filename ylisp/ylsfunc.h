@@ -35,7 +35,7 @@
 #ifndef ___YLSFUNc_h___
 #define ___YLSFUNc_h___
 
-#include "yldevut.h"
+#include "yldev.h"
 
 
 /* Non-static S-Functions */
