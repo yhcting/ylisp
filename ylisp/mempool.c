@@ -293,7 +293,7 @@ ylmp_scan_gc(ylmp_gcscanty_t ty) {
 }
 
 void
-ylmp_manual_gc() {
+ylmp_recovery_gc() {
     if(ylstk_size(_ststk) > 0) {
         ylstk_clean(_ststk);
         _epl.ubi = 0;

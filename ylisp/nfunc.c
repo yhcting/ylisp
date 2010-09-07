@@ -244,7 +244,7 @@ YLDEFNF(interpret_file, 1, 1) {
             goto bail;
         }
     
-        if(YLOk !=  ylinterpret(buf, sz)) {
+        if(YLOk !=  ylinterpret_internal(buf, sz)) {
             ylnflogE1("ERROR at interpreting [%s]\n", fname);
             goto bail;
         }

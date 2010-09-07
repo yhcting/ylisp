@@ -62,8 +62,8 @@ How Do I Use It?
 
 External dependency
 -------------------
-    YLISP uses thread and plugin loading - dynamic loading. And it plugin uses base symbol directly. 
-    So, "-rdynamic -ldl -lpthread" options are required when creating executable file with YLISP.a library.
+    YLISP uses thread, per-process timer and plugin loading - dynamic loading. And it plugin uses base symbol directly. 
+    So, "-rdynamic -ldl -lrt -lpthread" options are required when creating executable file with YLISP.a library.
 
 
 
@@ -199,12 +199,13 @@ GC(Garbage collection)
         - fixed-size-memory-pool is used. We may use dynamically-growing-memory-pool.
     Reference count is used.
         - every memory block has reference count.
-    GC is triggered when evaluation is finished.
+    GC is triggered.
         - Newly allocated dangling memory blocks - blocks whose reference count is zero - are freed except for those referred by return value.
         - If memory pool usage exceeded predefined threshold and interpreting request is done, than Full-Scanning-GC(FSGC) is triggered to collect dangling cyclic-cross-referred-blocks. 
           Why FSGC can be done only after interpreting request is done? Because, at that moment, interpret state depends only on global symbols. So, we can assume lots of things - this make GC easier!
           Actually, there are two options. one is using FSGC as an main GC method. the other is current implemented way. In terms of efficient memory usage, the former is better. But, to implement this, we should be careful when use memory block and returned value. And this makes it more difficult to implement CNF plugin. So, at the cost of a little inefficient memory usage, we can get interpreter design for easy-to-extend-CNF.
           (In my opinion, reference-based-GC can cover most cases. So, we don't need to worry about memory inefficiency too much)
+        - When there is no interpreting request for pre-defined duration, FSGC is triggered.
 
 
 Error handling

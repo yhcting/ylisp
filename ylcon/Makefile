@@ -20,7 +20,7 @@ DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 
 CFLAGS+=
 # temp block... no lib to link
-LDFLAGS+= -rdynamic -ldl -lpthread
+LDFLAGS+= -rdynamic -ldl -lrt -lpthread
 #LDFLAGS+=-L$(EXTLIB_DIR) -l$(EXT_LIBRARY)
 #LDFLAGS+= -ldl
 

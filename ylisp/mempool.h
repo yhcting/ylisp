@@ -48,8 +48,10 @@ ylmp_deinit();
  * This may corrupt current running interpreting.
  * So, if you don't know what you are doing, DON'T USE THIS!
  */
+
+/* GC when interpreting error occurs */
 extern void
-ylmp_manual_gc();
+ylmp_recovery_gc();
 
 extern void
 ylmp_scan_gc(ylmp_gcscanty_t ty);

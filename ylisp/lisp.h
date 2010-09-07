@@ -60,6 +60,12 @@ ylapply(yle_t* f, yle_t* args, yle_t* a);
 unsigned int
 ylget_eval_id();
 
+/*
+ * only for internel use - for 'interpret-file' command!
+ * (To know whether interpreting started by user request or by batch script)
+ */
+ylerr_t
+ylinterpret_internal(const char* stream, unsigned int streamsz);
 
 /*
  * to avoid symbol name (function name) conflicts with plug-ins

@@ -556,6 +556,7 @@ ylget_more_possible_prefix(const char* prefix, char* buf, unsigned int bufsz) {
 
 extern ylerr_t ylnfunc_init();
 extern ylerr_t ylsfunc_init();
+extern ylerr_t ylinterp_init();
 
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
 #include "nfunc.in"
@@ -580,7 +581,8 @@ ylinit(ylsys_t* sysv) {
     if( YLOk != ylsfunc_init()
         || YLOk != yltrie_init()
         || YLOk != ylnfunc_init()
-        || YLOk != ylmp_init() ) {
+        || YLOk != ylmp_init() 
+        || YLOk != ylinterp_init()) {
         goto bail;
     }
 

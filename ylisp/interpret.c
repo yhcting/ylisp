@@ -24,7 +24,8 @@
  * Main parser...
  * Simple FSA(Finite State Automata) is used to parse syntax.
  */
-
+#include <signal.h>
+#include <time.h>
 #include <pthread.h>
 #include <string.h>
 #include "lisp.h"
@@ -62,12 +63,10 @@ typedef struct _fsas {
     void         (*exit)         (const struct _fsas*, _fsa_t*);
 } _fsas_t; /* FSA State */
 
-/* -------------------------
- * States
- * -------------------------*/
-
 /* =====================================
- * State Functions 
+ *
+ * State Automata
+ *
  * =====================================*/
 
 #define _DECL_FSAS_FUNC(nAME)                                           \
@@ -540,7 +539,6 @@ _fsas_escape_exit(const _fsas_t* fsas, _fsa_t* fsa) {
 
 /* ------------------------------------------ */
 
-
 static void*
 _interp_automata(void* arg) {
     const char*       p;
@@ -600,8 +598,110 @@ _interp_automata(void* arg) {
     }
 }
 
+
+/* =====================================
+ *
+ * GC Triggering Timer (GCTT)
+ *     - Full scanning GC is triggered if there is no interpreting request during pre-defined time (Doing expensive operation at the idle moment).
+ *
+ * =====================================*/
+#define _GCTT_DELAY     1 /* sec */
+#define _GCTT_SIG       SIGRTMIN
+#define _GCTT_CLOCKID   CLOCK_REALTIME
+
+static timer_t         _gcttid;
+static pthread_mutex_t _gcttmutex = PTHREAD_MUTEX_INITIALIZER;
+
+static inline void
+_gctt_lock() {
+    if(0 > pthread_mutex_lock(&_gcttmutex)) { ylassert(0); }
+}
+
+static inline void
+_gctt_unlock() {
+    if(0 > pthread_mutex_unlock(&_gcttmutex)) { ylassert(0); }
+}
+
+static void
+__gctt_settime(long sec) {
+    struct itimerspec its;
+
+    /* Start the timer */
+    its.it_value.tv_sec = sec;
+    its.it_value.tv_nsec = 0;
+
+    /* This is one-time shot! */
+    its.it_interval.tv_sec = 0;
+    its.it_interval.tv_nsec = 0;
+
+    
+    if(0 > timer_settime(_gcttid, 0, &its, NULL) ) { ylassert(0); }
+}
+
+static inline void
+_gctt_set_timer() {
+    __gctt_settime(_GCTT_DELAY);
+}
+
+static inline void
+_gctt_unset_timer() {
+    __gctt_settime(0);
+}
+
+static inline void
+_gctt_handler(int sig, siginfo_t* si, void* uc) {
+    _gctt_lock();
+    ylmp_scan_gc(YLMP_GCSCAN_FULL);
+    _gctt_unlock();
+}
+
+int
+_gctt_create() {
+    struct sigevent      sev;
+    struct itimerspec    its;
+    struct sigaction     sa;
+
+    /* initialize mutex */
+    if( 0 > pthread_mutex_init(&_gcttmutex, NULL) ) {
+        yllogE0("Error gctt : pthread_mutex_init\n");
+        return -1;
+    }
+
+    /* Establish handler for timer signal */
+    sa.sa_flags = SA_SIGINFO;
+    sa.sa_sigaction = _gctt_handler;
+    sigemptyset(&sa.sa_mask);
+    if ( -1 == sigaction(_GCTT_SIG, &sa, NULL) ) {
+        yllogE0("Error gctt : sigaction\n");
+        pthread_mutex_destroy(&_gcttmutex);
+        return -1;
+    }
+
+    /* Create the timer */
+    sev.sigev_notify = SIGEV_SIGNAL;
+    sev.sigev_signo = _GCTT_SIG;
+    sev.sigev_value.sival_ptr = &_gcttid;
+    if ( -1 == timer_create(_GCTT_CLOCKID, &sev, &_gcttid) ) {
+        yllogE0("Error gctt : timer_create\n");
+        pthread_mutex_destroy(&_gcttmutex);
+        return -1;
+    }
+
+    return 0;
+}
+/* Unset locally used preprocess symbols */
+#undef _GCTT_CLOCKID
+#undef _GCTT_SIG
+#undef _GCTT_DELAY
+
+/* =====================================
+ *
+ * Public interfaces
+ *
+ * =====================================*/
+
 ylerr_t
-ylinterpret(const char* stream, unsigned int streamsz) {
+ylinterpret_internal(const char* stream, unsigned int streamsz) {
     /* Declar space to use */
     static char          elembuf[_MAX_SINGLE_ELEM_STR_LEN];
 
@@ -639,7 +739,6 @@ ylinterpret(const char* stream, unsigned int streamsz) {
     }
 
     if(YLOk != ret) {
-        ylmp_manual_gc();
         ylprint(("Interpret FAILS! : ERROR Line : %d\n", fsa.line));
         goto bail;
     }
@@ -657,8 +756,32 @@ ylinterpret(const char* stream, unsigned int streamsz) {
     return ret;
 }
 
+
+ylerr_t
+ylinterpret(const char* stream, unsigned int streamsz) {
+    ylerr_t  ret;
+
+    _gctt_lock();
+    _gctt_unset_timer();
+
+    ret = ylinterpret_internal(stream, streamsz);
+    if(YLOk == ret) { _gctt_set_timer(); }
+    else { ylmp_recovery_gc(); }
+
+    _gctt_unlock();
+
+    return ret;
+}
+
 void
 ylinterpret_undefined(int reason) {
     pthread_exit((void*)reason);
 }
 
+ylerr_t 
+ylinterp_init() {
+    if(0 > _gctt_create() ) {
+        return YLErr_internal;
+    }
+    return YLOk;
+}

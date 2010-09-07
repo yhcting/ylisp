@@ -21,7 +21,7 @@ DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 CFLAGS+= -fPIC -g
 # temp block... no lib to link
 #LDFLAGS+=-static
-LDFLAGS+= -rdynamic -ldl -lpthread
+LDFLAGS+= -rdynamic -ldl -lrt -lpthread
 #LDFLAGS+= -ldl -lpthread
 SOFLAGS+=
 
