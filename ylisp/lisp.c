@@ -68,7 +68,7 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
         ylassert(ylais_type(e0, tY) && ylais_type(e1, tY));             \
         do
 
-#define _DEFAIF_EQ_END while(0); ylassert(FALSE); }
+#define _DEFAIF_EQ_END while(0); ylassert(0); }
 
 #define _DEFAIF_CLONE_START(sUFFIX, tY)                                 \
     static yle_t*                                                       \
@@ -88,7 +88,7 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
         ylassert(ylais_type(e, tY));                                    \
         do
 
-#define _DEFAIF_TO_STRING_END while(0); ylassert(FALSE); }
+#define _DEFAIF_TO_STRING_END while(0); ylassert(0); }
 
 #define _DEFAIF_CLEAN_START(sUFFIX, tY)                                 \
     static void                                                         \
@@ -148,7 +148,7 @@ _DEFAIF_TO_STRING_START(nfunc, YLANfunc) {
                                       "<!%s!>", ylanfunc(e).name)) {
         /* atom pr buf is too small.. */
         yllogE1("Atom print buffer size is not enough!: Current [%d]\n", _MAX_ATOM_PR_BUFSZ);
-        ylassert(FALSE);
+        ylassert(0);
     }
     return _atom_prbuf;
 } _DEFAIF_TO_STRING_END
@@ -173,7 +173,7 @@ _DEFAIF_TO_STRING_START(sfunc, YLASfunc) {
                                       "<!%s!>", ylanfunc(e).name)) {
         /* atom pr buf is too small.. */
         yllogE1("Atom print buffer size is not enough!: Current [%d]\n", _MAX_ATOM_PR_BUFSZ);
-        ylassert(FALSE);
+        ylassert(0);
     }
     return _atom_prbuf;
 } _DEFAIF_TO_STRING_END
@@ -203,7 +203,7 @@ _DEFAIF_TO_STRING_START(dbl, YLADouble) {
     if(_MAX_ATOM_PR_BUFSZ <= cnt) {
         /* atom pr buf is too small.. */
         yllogE1("Atom print buffer size is not enough!: Current [%d]\n", _MAX_ATOM_PR_BUFSZ);
-        ylassert(FALSE);
+        ylassert(0);
     }
     return _atom_prbuf;
 } _DEFAIF_TO_STRING_END
@@ -427,7 +427,7 @@ ylchain_size(const yle_t* e) {
 /*
  * Simple macro used for printing functions(_aprint, _eprint, yleprint)
  */
-#define _fcall(fEXP) do { if( !fEXP ) { goto bail; } } while(0)
+#define _fcall(fEXP) do { if( 0 > fEXP ) { goto bail; } } while(0)
 
 static int
 _aprint(ylutdynb_t* b, yle_t* e) {
@@ -439,10 +439,10 @@ _aprint(ylutdynb_t* b, yle_t* e) {
         /* !X! is special notation to represet 'it's not printable' */
         _fcall(ylutstr_append(b, "!X!"));
     }
-    return TRUE;
+    return 0;
 
  bail:
-    return FALSE;
+    return -1;
 }
 
 static int
@@ -481,10 +481,10 @@ _eprint(ylutdynb_t* b, yle_t* e) {
             _fcall(ylutstr_append(b, "NULL"));
         }
     }
-    return TRUE;
+    return 0;
 
  bail:
-    return FALSE;
+    return -1;
 }
 
 /**

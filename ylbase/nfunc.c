@@ -361,7 +361,7 @@ YLDEFNF(gt, 2, 2) {
             return (strcmp(ylasym(p1).sym, ylasym(p2).sym) > 0)? ylt(): ylnil();
         } break;
     }
-    ylassert(FALSE);
+    ylassert(0);
 } YLENDNF(gt)
 
 YLDEFNF(lt, 2, 2) {
@@ -376,6 +376,6 @@ YLDEFNF(lt, 2, 2) {
             return (strcmp(ylasym(p1).sym, ylasym(p2).sym) < 0)? ylt(): ylnil();
         } break;
     }
-    ylassert(FALSE);
+    ylassert(0);
 } YLENDNF(lt)
 

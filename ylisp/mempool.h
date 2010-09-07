@@ -36,9 +36,6 @@ typedef enum {
     YLMP_GCSCAN_FULL,
 } ylmp_gcscanty_t;
 
-/*
- * @return: TRUE if success, FALSE if fails
- */
 extern ylerr_t
 ylmp_init();
 

@@ -95,7 +95,7 @@ YLDEFNF(set, 2, 3) {
 
 YLDEFNF(unset, 1, 1) {
     ylnfcheck_atype_chain1(e, YLASymbol);
-    if(yltrie_delete(ylasym(ylcar(e)).sym)) { return ylt(); }
+    if(0 <= yltrie_delete(ylasym(ylcar(e)).sym)) { return ylt(); }
     else { return ylnil(); }
 } YLENDNF(unset)
 

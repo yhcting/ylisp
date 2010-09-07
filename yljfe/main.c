@@ -131,7 +131,7 @@ _jni_Main_nativeGetLastNativeMessage
     /* shrink */
     if(ylutstr_len(&dynb) > _INIT_OUTBUFSZ) {
         ylutdynb_clean(&dynb);
-        if( !ylutstr_init(&dynb, _INIT_OUTBUFSZ) ) {
+        if( 0 > ylutstr_init(&dynb, _INIT_OUTBUFSZ) ) {
             /* fail to alloc page... may be due to external fragmentation?? */
             assert(0);
         }

@@ -46,7 +46,7 @@ _alloc_str(const char* str) {
      * So, let's skip handling allocation-failure.
      */
     if(p) { strcpy(p, str); }
-    else { ylassert(FALSE); }
+    else { ylassert(0); }
     return p;
 }
 
@@ -78,7 +78,7 @@ _readf(unsigned int* outsz, const char* func, const char* fpath, int btext) {
             break;
 
             default:
-                ylassert(FALSE);
+                ylassert(0);
         }
     }
     return buf;

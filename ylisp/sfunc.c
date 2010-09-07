@@ -164,15 +164,15 @@ ylmset(yle_t* x, yle_t* y, const char* desc) {
 /*
  * assumption : 
  *    form of 'a' is ((u1 v1) (u2 v2) ...)
- *    e : ylnot ylatom!
+ *    e : not atom!
  */
 static inline int
 _mreplace(yle_t* e, yle_t* a) {
-    int     r = TRUE;
+    int     r = 0;
     /* @e SHOULD NOT be an atom! */
     if(!e || yleis_atom(e) || !a) { 
         yllogE0("Wrong syntax of mlambda!\n");
-        return FALSE; 
+        return -1; 
     }
 
     dbg_eval(yllogV1("---- macro replace -------\n"
@@ -201,7 +201,7 @@ _mreplace(yle_t* e, yle_t* a) {
     }
 
     /* check error */
-    if(!r) { return FALSE; }
+    if(0 > r) { return -1; }
     if(yleis_atom(ylcdr(e))) {
         yle_t* n;
         n = _list_find(ylcdr(e), a);
@@ -387,7 +387,7 @@ yleval(yle_t* e, yle_t* a) {
                  *  --> Now expression is preserved!
                  */
                 yle_t* exp = yleclone_chain(ylcaddar(e));
-                if(!_mreplace(exp, ylappend(ylpair(ylcadar(e), ylcdr(e)), ylnil()))) {
+                if(0 > _mreplace(exp, ylappend(ylpair(ylcadar(e), ylcdr(e)), ylnil()))) {
                     yllogE0("Fail to mreplace!!\n");
                     ylinterpret_undefined(YLErr_eval_undefined);
                 } else {

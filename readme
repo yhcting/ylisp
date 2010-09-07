@@ -144,6 +144,11 @@ Programming Policy
     non-compatible coding style (ex. codes works only on GCC) is tried to be avoided.
     So, codes are based on C89 & Posix.
     (That is, features of C99 are not used intentionally except for 'inline')
+    Return value of general int-type-function
+        >=0 : for success (value greater than 0 means additional information - usually warning info.)
+        <0  : for fail or error.(it's value is error cause)
+        ex.
+            'FALSE(0)' means 'Success. And its return value is FALSE'
 
 
 Parsing S-Expression

@@ -45,16 +45,17 @@ yltrie_deinit();
 
 /**
  * @return: 
- *    FALSE: newly inserted
- *    TRUE : overwritten
+ *   -1: error
+ *    0: newly inserted
+ *    1: overwritten
  */
 extern int
 yltrie_insert(const char* sym, int ty, yle_t* e);
 
 /**
  * @return: 
- *    FASLE: cannot be found
- *    TRUE : deleted.
+ *    <0: fail. cannot be found
+ *    0 : deleted.
  */
 extern int
 yltrie_delete(const char* sym);

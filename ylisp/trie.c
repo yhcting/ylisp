@@ -96,7 +96,7 @@ _alloc_trie_value(int ty, yle_t* e) {
          * if allocing such a small size of memory fails, we can't do anything!
          * Just ASSERT IT!
          */
-        ylassert(FALSE); 
+        ylassert(0); 
     }
     v->ty = ty; v->desc = &_dummy_empty_desc;
     v->e = e;
@@ -119,7 +119,7 @@ _alloc_trie_node() {
          * if allocing such a small size of memory fails, we can't do anything!
          * Just ASSERT IT!
          */
-        ylassert(FALSE); 
+        ylassert(0); 
     }
     memset(n, 0, sizeof(_node_t));
     return n;
@@ -188,6 +188,7 @@ _walk_node_internal(void* user, _node_t* n,
     if(n->v) { 
         /* round-up base on 8. And add trailing 0 */
         if(buf) { buf[bitoffset>>3] = 0 ; }
+        /* keep going? */
         if(!cb(user, (char*)buf, n->v)) { return 1; }
     }
 
@@ -220,7 +221,7 @@ _walk_node_internal(void* user, _node_t* n,
  */
 static int
 _walk_node(void* user, _node_t* n,
-           /* return TRUE for keep going, FALSE for stop here */
+           /* return : b_keepgoing => return TRUE for keep going, FALSE for stop here */
            int(cb)(void* user, const char* sym, _value_t* v),
            char* buf, unsigned int bsz) {
     /* buffer size in '_walk_node_internal' doesn't include space for trailing 0 */
@@ -252,18 +253,19 @@ yltrie_deinit() {
 
 int
 yltrie_insert(const char* sym, int ty, yle_t* e) {
-    int       ret = FALSE;
     _node_t*  n = _get_node((const unsigned char*)sym, TRUE);
     _value_t* esv = n->v;
 
     n->v = _alloc_trie_value(ty, e);
-    if(!n->v) { return FALSE; }
+    if(!n->v) { return -1; /* error case */ }
     if(esv) {
-        ret = TRUE;
         /* there is already inserted values */
         _free_trie_value(esv);
-    } else { _trie.sz ++; }
-    return ret;
+        return 1; /* overwritten */
+    } else { 
+        _trie.sz ++; 
+        return 0; /* newly created */
+    }
 }
 
 
@@ -320,8 +322,8 @@ _delete_sym_node(_node_t* t, const unsigned char* p) {
 
 int
 yltrie_delete(const char* sym) {
-    if(0 > _delete_sym_node(&_trie.rt, sym)) { return FALSE; }
-    else { return TRUE; }
+    if(0 > _delete_sym_node(&_trie.rt, sym)) { return -1; }
+    else { return 0; }
 }
 
 yle_t*
@@ -342,15 +344,15 @@ yltrie_set_description(const char* sym, const char* description) {
         unsigned int sz = strlen(description);
         char*        desc;
         desc = ylmalloc(sz+1);
-        if(!desc) { ylassert(FALSE); }
+        if(!desc) { ylassert(0); }
         memcpy(desc, description, sz);
         desc[sz] = 0; /* trailing 0 */
 
         _free_description(n->v->desc);
         n->v->desc = desc;
-        return TRUE;
+        return 0;
     } else {
-        return FALSE;
+        return -1;
     }
 }
 
@@ -442,7 +444,7 @@ yltrie_get_more_possible_prefix(const char* prefix,
         if(cnt > 1) { ret = TRIEMeet_branch; break; }
         else if(0 == cnt) { 
             /* This is unexpected case on this trie algorithm */
-            ylassert(FALSE);
+            ylassert(0);
             /* ylassert(n->v); ret = TRIEMeet_leaf; break; */
         }
         c |= j;
@@ -521,7 +523,7 @@ _cb_get_candidates(void* user, const char* sym, _value_t* v) {
     if(st->i >= st->ppbsz) { return FALSE; } /* we should stop here! */
     strcpy(st->ppbuf[st->i], sym);
     st->i++;
-    return TRUE;
+    return TRUE; /* keep going */
 }
 
 int

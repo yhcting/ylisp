@@ -101,7 +101,7 @@ yle_t*
 ylmp_get_block() {
     if(_epl.fbi <= 0) {
         yllogE1("Not enough Memory Pool.. Current size is %d\n", MPSIZE);
-        ylassert(FALSE);
+        ylassert(0);
     } else {
         --_epl.fbi;
         /* it's taken out from pool! */
@@ -112,7 +112,7 @@ ylmp_get_block() {
         _epl.ubi++;
         if(_epl.ubi >= MPSIZE) {
             yllogE0("Not enough used block checker..\n");
-            ylassert(FALSE);
+            ylassert(0);
         }
 
         if(_used_block_count() > _stat.hwm) { _stat.hwm = _used_block_count(); }
@@ -264,7 +264,7 @@ ylmp_pop() {
         yllogE0("Oops in memory pool...\n"
                 "reference count of one of predefined symbols is too big...\n"
                 "Definitely, there is unexpected error somewhere of memory block management!\n");
-        ylassert(FALSE);
+        ylassert(0);
     }
 
 

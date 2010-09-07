@@ -79,9 +79,9 @@ ylutdynb_expand(ylutdynb_t* b) {
         ylfree(b->b);
         b->b = tmp;
         b->limit *= 2;
-        return TRUE;
+        return 0;
     } else {
-        return FALSE;
+        return -1;
     }
 }
 
@@ -95,24 +95,23 @@ ylutdynb_shrink(ylutdynb_t* b, unsigned int sz_to) {
             memcpy(tmp, b->b, b->sz);
             b->b = tmp;
             b->limit = sz_to;
-            return TRUE;
+            return 0;
         }
     }
-    return FALSE;
+    return -1;
 }
 
 int
 ylutdynb_append(ylutdynb_t* b, const unsigned char* d, unsigned int dsz) {
-    if( !ylutdynb_secure(b, dsz) ) { return FALSE; }
+    if( 0 > ylutdynb_secure(b, dsz) ) { return -1; }
     memcpy(ylutdynb_ptr(b), d, dsz);
     b->sz += dsz;
-    return TRUE;
+    return 0;
 }
 
 int
 ylutstr_append(ylutdynb_t* b, const char* format, ...) {
     va_list       args;
-    int           ret = TRUE;
     char*         tmp;
     int           cw = 0, cwsv; /* charactera written */
 
@@ -121,7 +120,7 @@ ylutstr_append(ylutdynb_t* b, const char* format, ...) {
         cwsv = cw;
         cw = vsnprintf (ylutstr_ptr(b), ylutdynb_freesz(b), format, args);
         if( cw >= ylutdynb_freesz(b) ) {
-            if( !ylutdynb_expand(b) ) {
+            if( 0 > ylutdynb_expand(b) ) {
                 cw = cwsv;
                 break;
             }

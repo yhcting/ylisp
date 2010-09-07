@@ -40,9 +40,9 @@ static inline ylstk_t*
 ylstk_create(unsigned int limit, void(*freecb)(void* item)) {
     /* In most case, we cannot keep executing interpreter if we fail to allocate stack */
     ylstk_t*   s = ylmalloc(sizeof(ylstk_t));
-    if(!s) { ylassert(FALSE); }
+    if(!s) { ylassert(0); }
     s->item = ylmalloc(sizeof(void*)*limit);
-    if(!s->item) { ylassert(FALSE); }
+    if(!s->item) { ylassert(0); }
     s->limit = limit;
     s->sz = 0;
     s->fcb = freecb;

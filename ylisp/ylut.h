@@ -206,14 +206,14 @@ ylutdynb_ptr(ylutdynb_t* b) {
 }
 
 /*
- * @return: TRUE if success.
+ * @return: 0 if success.
  */
 static inline int
 ylutdynb_init(ylutdynb_t* b, unsigned int init_limit) {
     b->sz = 0;
     b->b = (unsigned char*)ylmalloc(init_limit);
-    if(b->b) { b->limit = init_limit; return TRUE; }
-    else { b->limit = 0; return FALSE; }
+    if(b->b) { b->limit = init_limit; return 0; }
+    else { b->limit = 0; return -1; }
 }
 
 static inline void
@@ -231,7 +231,7 @@ ylutdynb_clean(ylutdynb_t* b) {
 /*
  * increase buffer size by two times.
  * due to using memcpy, it cannot be static inline
- * @return: FALSE if fails.
+ * @return: <0 if fails.
  */
 extern int
 ylutdynb_expand(ylutdynb_t* b);
@@ -239,7 +239,7 @@ ylutdynb_expand(ylutdynb_t* b);
 static inline int
 ylutdynb_secure(ylutdynb_t* b, unsigned int sz_required) {
     while( sz_required > ylutdynb_freesz(b)
-           && ylutdynb_expand(b) ) {}
+           && !ylutdynb_expand(b) ) {}
     return sz_required <= ylutdynb_freesz(b);
 }
 
@@ -286,15 +286,17 @@ ylutstr_reset(ylutdynb_t* b) {
 
 static inline int
 ylutstr_init(ylutdynb_t* b, unsigned int init_limit) {
-    if(ylutdynb_init(b, init_limit+1)) {
+    if(0 <= ylutdynb_init(b, init_limit+1)) {
         ylutstr_reset(b);
-        return TRUE;
+        return 0;
     } 
-    return FALSE;
+    return -1;
 }
 
 /*
- * @return: number of bytes appended if success, <0 if fails
+ * @return: 
+ *    number of bytes appended.
+ *    '0' means nothing appended. may be error?
  */
 extern int
 ylutstr_append(ylutdynb_t* b, const char* format, ...);
