@@ -219,7 +219,7 @@ _mreplace(yle_t* e, yle_t* a) {
  * < additional constraints : x is atomic >
  */
 const yle_t*
-_assoc(int* outhvty, yle_t* x, yle_t* y) {
+_assoc(int* ovty, yle_t* x, yle_t* y) {
     yle_t* r;
     if( !ylais_type(x, YLASymbol) ) {
         yllogE0("Only symbol can be associated!\n");
@@ -234,12 +234,27 @@ _assoc(int* outhvty, yle_t* x, yle_t* y) {
     r = _list_find(x, y);
     if(r) { 
         /* Found! in local association yllist */
-        *outhvty = TRIE_VType_set;
+        *ovty = TRIE_VType_set;
         return ylcadr(r);
     } else {
-        r = (yle_t*)yltrie_get(outhvty, ylasym(x).sym);
+        r = (yle_t*)yltrie_get(ovty, ylasym(x).sym);
         if(r) { 
-            return r;
+            if(TRIE_VType_macro == *ovty) {
+                /* 
+                 * !! IMPORTANT NOTE !!
+                 *    This SHOULD NOT BE THE ONE IN GLOBAL SPACE!!
+                 *    Expression should be preserved!
+                 *    Concept of macro(mset/mlambda) is different from 'set/lambda'.
+                 *    Concept is NOT "get and use stored data".
+                 *        - in this context, retrieved data can be changed!.
+                 *    But, concept is "Replace it with pre-defined expression!"
+                 *        - in this context, pre-defined expression SHOULD NOT be changed at any cases.
+                 *    So, we should use cloned one!
+                 */
+                return yleclone_chain(r);
+            } else {
+                return r;
+            }
         } else {
             /* 
              * check whether this represents number or not
@@ -250,7 +265,7 @@ _assoc(int* outhvty, yle_t* x, yle_t* y) {
             d = strtod(ylasym(x).sym, &endp);
             if( 0 == *endp && ERANGE != errno ) {
                 /* default is "NOT macro". So set as 'TRIE_VType_set' */
-                *outhvty = TRIE_VType_set;
+                *ovty = TRIE_VType_set;
                 /* right coversion - let's assign double type atom*/
                 return ylacreate_dbl(d);
             }
@@ -308,7 +323,7 @@ yleval(yle_t* e, yle_t* a) {
         if(YLASymbol == ylatype(e)) {
             r = (yle_t*)_assoc(&vty, e, a);
             if(TRIE_VType_macro == vty) {
-                /* this is macro!. evaluate it again with replaced value! */
+                /* this is macro!. evaluate it again */
                 r = yleval(r, a);
             }
         } else {
@@ -322,14 +337,10 @@ yleval(yle_t* e, yle_t* a) {
             r = (yle_t*)_assoc(&vty, car_e, a);
             if(TRIE_VType_macro == vty) {
                 /* 
-                 * this is macro symbol! replace target expression with symbol.
-                 * NOTE!
-                 *    This SHOULD NOT BE THE ONE IN GLOBAL SPACE!!
-                 *    Expression should be preserved!
-                 *    (So, we should use cloned one!)
-                 * evaluate it with replaced value!
+                 * This is macro symbol! replace target expression with symbol.
+                 * And evaluate it with replaced value!
                  */
-                r = yleval( ylpcreate(yleclone_chain(r), ylcdr(e)), a );
+                r = yleval( ylcons(r, ylcdr(e)), a );
             } else {
                 if(yleis_atom(r)) {
                     if(YLANfunc == ylatype(r)) {

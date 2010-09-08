@@ -311,11 +311,11 @@ static void
 _fsas_list_enter(const _fsas_t* fsas, _fsa_t* fsa) {
     yle_t*  pe = NULL;
     /* add new pair node for list */
-    yle_t*  pair = ylpcreate(ylnil(), ylnil());
+    yle_t*  pair = ylcons(ylnil(), ylnil());
 
     ylpsetcdr(fsa->pe, pair);
     /* create sentinel */
-    pe = ylpcreate(ylnil(), ylnil());
+    pe = ylcons(ylnil(), ylnil());
     ylpsetcar(pair, pe);
 
     /* pair is new tail of this list */
@@ -359,11 +359,11 @@ _fsas_list_exit(const _fsas_t* fsas, _fsa_t* fsa) {
 static void
 _fsas_squote_enter(const _fsas_t* fsas, _fsa_t* fsa) {
     /* add quote and connect with it*/
-    yle_t*   pair = ylpcreate(ylnil(), ylnil());
+    yle_t*   pair = ylcons(ylnil(), ylnil());
     yle_t*   pe;
 
     ylpsetcdr(fsa->pe, pair);
-    pe = ylpcreate(ylq(), ylnil());
+    pe = ylcons(ylq(), ylnil());
     ylpsetcar(pair, pe);
     ylstk_push(fsa->pestk, pair);
     fsa->pe = pe;
@@ -432,7 +432,7 @@ _fsas_symbol_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t**
 
 static void
 _fsas_symbol_exit(const _fsas_t* fsas, _fsa_t* fsa) {
-    yle_t* pair = ylpcreate(ylnil(), ylnil());
+    yle_t* pair = ylcons(ylnil(), ylnil());
     yle_t* se = _create_atom_sym(fsa->b, (unsigned int)(fsa->pb - fsa->b));
     ylpsetcar(pair, se);
     ylpsetcdr(fsa->pe, pair);

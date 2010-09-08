@@ -417,7 +417,7 @@ YLDEFNF(readdir, 1, 1) {
         yle_t            *ne, *t;  /* new exp / tail */
         
         /* initialize sentinel */
-        sentinel = ylpcreate(ylnil(), ylnil());
+        sentinel = ylcons(ylnil(), ylnil());
         t = sentinel;
         while(dit = readdir(dip)) {
             /* ignore '.', '..' in the directory */

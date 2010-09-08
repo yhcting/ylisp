@@ -119,7 +119,7 @@ YLDEFNF(split_to_line, 1, 1) {
     ylnfcheck_atype_chain1(e, YLASymbol);
 
     /* get dummy pair head */
-    rt = rh = ylpcreate(ylnil(), ylnil());
+    rt = rh = ylcons(ylnil(), ylnil());
 
     p = ylasym(ylcar(e)).sym;;
     while(1) {

@@ -23,8 +23,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <memory.h>
-#include "ylut.h"
-#include "yldev.h"
+#include "lisp.h"
 
 
 void*
@@ -87,12 +86,12 @@ ylutdynb_expand(ylutdynb_t* b) {
 
 int
 ylutdynb_shrink(ylutdynb_t* b, unsigned int sz_to) {
-    if( b->limit > sz_to 
-        && b->sz < sz_to ) {
+    if( b->limit > sz_to  && b->sz < sz_to ) {
         unsigned char* tmp = (unsigned char*)ylmalloc(sz_to);
         if(tmp) {
             ylassert(b->b);
             memcpy(tmp, b->b, b->sz);
+            ylfree(b->b);
             b->b = tmp;
             b->limit = sz_to;
             return 0;
@@ -119,6 +118,7 @@ ylutstr_append(ylutdynb_t* b, const char* format, ...) {
     do {
         cwsv = cw;
         cw = vsnprintf (ylutstr_ptr(b), ylutdynb_freesz(b), format, args);
+        ylassert(cw >= 0);
         if( cw >= ylutdynb_freesz(b) ) {
             if( 0 > ylutdynb_expand(b) ) {
                 cw = cwsv;

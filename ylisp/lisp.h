@@ -47,6 +47,9 @@
 
 
 #include "ylsfunc.h"
+#include "ylut.h"
+
+
 
 extern void
 yleclean(yle_t* e);

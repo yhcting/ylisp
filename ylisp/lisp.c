@@ -25,7 +25,7 @@
 
 #include "trie.h"
 #include "mempool.h"
-#include "ylut.h"
+#include "lisp.h"
 
 /*=======================
  * Local varaible 
@@ -37,7 +37,7 @@ static ylerr_t  _err  = YLOk;
  * print buffer. This is used in yleprint 
  * (DO NOT USE THIS ELSEWHERE)
  */
-static char*    _prbuf = NULL; 
+static ylutdynb_t _prdynb = {0, 0, NULL};
 
 static yle_t   _predefined_true;
 static yle_t   _predefined_nil;
@@ -65,7 +65,6 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
 #define _DEFAIF_EQ_START(sUFFIX, tY)                                    \
     static int                                                          \
     _aif_##sUFFIX##_eq(const yle_t* e0, const yle_t* e1) {              \
-        ylassert(ylais_type(e0, tY) && ylais_type(e1, tY));             \
         do
 
 #define _DEFAIF_EQ_END while(0); ylassert(0); }
@@ -74,7 +73,6 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
     static yle_t*                                                       \
     _aif_##sUFFIX##_clone(const yle_t* e) {                             \
         yle_t* n;                                                       \
-        ylassert(ylais_type(e, tY));                                    \
         n = ylmp_get_block();                                           \
         memcpy(n, e, sizeof(yle_t));                                    \
         ylercnt(n) = 0; /* this is not referenced yet */                \
@@ -85,7 +83,6 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
 #define _DEFAIF_TO_STRING_START(sUFFIX, tY)                             \
     static const char*                                                  \
     _aif_##sUFFIX##_to_string(const yle_t* e) {                         \
-        ylassert(ylais_type(e, tY));                                    \
         do
 
 #define _DEFAIF_TO_STRING_END while(0); ylassert(0); }
@@ -93,7 +90,6 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
 #define _DEFAIF_CLEAN_START(sUFFIX, tY)                                 \
     static void                                                         \
     _aif_##sUFFIX##_clean(yle_t* e) {                                   \
-        ylassert(ylais_type(e, tY));                                    \
         do
 
 #define _DEFAIF_CLEAN_END while(0); }
@@ -413,7 +409,7 @@ static int
 _aprint(ylutdynb_t* b, yle_t* e) {
     int  cw; /* character written */
     if(ylaif(e)->to_string) {
-        _fcall(ylutstr_append(b, (*ylaif(e)->to_string)(e)));
+        _fcall(ylutstr_append(b, "%s", (*ylaif(e)->to_string)(e)));
     } else {
         yllogW0("There is an atom that doesn't support/allow PRINT!\n");
         /* !X! is special notation to represet 'it's not printable' */
@@ -467,6 +463,7 @@ _eprint(ylutdynb_t* b, yle_t* e) {
     return -1;
 }
 
+
 /**
  * @return: buffer pointer. MAX buffer size is 1KB
  */
@@ -474,28 +471,25 @@ const char*
 yleprint(const yle_t* e) {
 
 #define __DEFAULT_BSZ 4096
-
-    static ylutdynb_t dynb = {0, 0, NULL};
-
     /*
      * newly allocates or shrinks
      */
-    if(!dynb.b || ylutstr_len(&dynb) > __DEFAULT_BSZ) {
-        ylutdynb_clean(&dynb);
-        _fcall(ylutstr_init(&dynb, __DEFAULT_BSZ));
+    if(!_prdynb.b || ylutstr_len(&_prdynb) > __DEFAULT_BSZ) {
+        ylutdynb_clean(&_prdynb);
+        _fcall(ylutstr_init(&_prdynb, __DEFAULT_BSZ));
     } else {
-        ylutstr_reset(&dynb);
+        ylutstr_reset(&_prdynb);
     }
 
     if(yleis_atom(e)) {
-        _fcall(_aprint(&dynb, (yle_t*)e));
+        _fcall(_aprint(&_prdynb, (yle_t*)e));
     } else {
-        _fcall(ylutstr_append(&dynb, "("));
-        _fcall(_eprint(&dynb, (yle_t*)e));
-        _fcall(ylutstr_append(&dynb, ")"));
+        _fcall(ylutstr_append(&_prdynb, "("));
+        _fcall(_eprint(&_prdynb, (yle_t*)e));
+        _fcall(ylutstr_append(&_prdynb, ")"));
     }
 
-    return ylutstr_string(&dynb);
+    return ylutstr_string(&_prdynb);
     
  bail:
     /* Out of memory */
@@ -602,5 +596,5 @@ void
 yldeinit() {
     yltrie_deinit();
     ylmp_deinit();
-    if(_prbuf) { ylfree(_prbuf); }
+    ylutdynb_clean(&_prdynb);
 }

@@ -109,8 +109,10 @@ main(int argc, char* argv[]) {
         return 0;
     }
 
+    ylfree(strm);
     yldeinit();
     printf("MBLK : %d\n", get_mblk_size());
+
     assert(0 == get_mblk_size());
 
     printf("End of Test\n");
