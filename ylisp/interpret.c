@@ -211,15 +211,7 @@ _fsa_add_symchar(_fsa_t* fsa, char c) {
 }
 
 static inline yle_t*
-_create_pair() {
-    yle_t* e = ylmp_get_block();
-    ylpassign(e, ylnil(), ylnil());
-    return e;
-}
-
-static inline yle_t*
 _create_atom_sym(char* sym, unsigned int len) {
-    yle_t* e = ylmp_get_block();
     char* str = ylmalloc(sizeof(char)*(len+1));
     if(!str) {
         yllogE1("Out Of Memory : [%d]!\n", len);
@@ -227,9 +219,7 @@ _create_atom_sym(char* sym, unsigned int len) {
     }
     memcpy(str, sym, len);
     str[len] = 0; /* ylnull-terminator */
-    ylaassign_sym(e, str);
-    return e;
-
+    return ylacreate_sym(str);
 }
 
 static inline void
@@ -321,11 +311,11 @@ static void
 _fsas_list_enter(const _fsas_t* fsas, _fsa_t* fsa) {
     yle_t*  pe = NULL;
     /* add new pair node for list */
-    yle_t*  pair = _create_pair();
+    yle_t*  pair = ylpcreate(ylnil(), ylnil());
 
     ylpsetcdr(fsa->pe, pair);
     /* create sentinel */
-    pe = _create_pair(); 
+    pe = ylpcreate(ylnil(), ylnil());
     ylpsetcar(pair, pe);
 
     /* pair is new tail of this list */
@@ -369,11 +359,11 @@ _fsas_list_exit(const _fsas_t* fsas, _fsa_t* fsa) {
 static void
 _fsas_squote_enter(const _fsas_t* fsas, _fsa_t* fsa) {
     /* add quote and connect with it*/
-    yle_t*   pair = _create_pair();
-    yle_t*   pe  = ylmp_get_block();
+    yle_t*   pair = ylpcreate(ylnil(), ylnil());
+    yle_t*   pe;
 
     ylpsetcdr(fsa->pe, pair);
-    ylpassign(pe, ylq(), ylnil());
+    pe = ylpcreate(ylq(), ylnil());
     ylpsetcar(pair, pe);
     ylstk_push(fsa->pestk, pair);
     fsa->pe = pe;
@@ -442,7 +432,7 @@ _fsas_symbol_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t**
 
 static void
 _fsas_symbol_exit(const _fsas_t* fsas, _fsa_t* fsa) {
-    yle_t* pair = _create_pair();
+    yle_t* pair = ylpcreate(ylnil(), ylnil());
     yle_t* se = _create_atom_sym(fsa->b, (unsigned int)(fsa->pb - fsa->b));
     ylpsetcar(pair, se);
     ylpsetcdr(fsa->pe, pair);

@@ -186,20 +186,16 @@ YLDEFNF(shell, 1, 1) {
         }
     }
 
-    { /* Just scope */
-        yle_t* r;
-        if(buf) { /* Just scope */
-            r = ylmp_get_block();
-            ylaassign_sym(r, buf);
-            /* buffer is already assigned to expression. So, this SHOULD NOT be freed */
-            buf = NULL; 
-        } else {
-            ylnflogE0("Fail to read output result\n");
-            goto bail;
-        }
+    if(!buf) {
+        ylnflogE0("Fail to read output result\n");
+        goto bail;
+    } else {
+        yle_t* r = ylacreate_sym(buf);
+        /* buffer is already assigned to expression. So, this SHOULD NOT be freed */
+        buf = NULL; 
         __cleanup_process();
         return r;
-    }
+    }        
 
  bail:
     __restore_redirection();
@@ -231,13 +227,11 @@ YLDEFNF(getenv, 1, 1) {
     ylnfcheck_atype_chain1(e, YLASymbol);
     env = getenv(ylasym(ylcar(e)).sym);
     if(env) {
-        yle_t*          r = ylmp_get_block();
         unsigned int    sz = strlen(env);
         char*           v = ylmalloc(sz+1);
         memcpy(v, env, sz);
         v[sz] = 0; /* trailing 0 */
-        ylaassign_sym(r, v);
-        return r;
+        return ylacreate_sym(v);
     } else {
         return ylnil();
     }
@@ -265,12 +259,10 @@ YLDEFNF(chdir, 1, 1) {
 } YLENDNF(chdir)
 
 YLDEFNF(getcwd, 0, 0) {
-    yle_t*   r = ylmp_get_block();
     /*
      * Passing NULL at getcwd (POSIX.1-2001) - libc4, libc5, glibc
      */
-    ylaassign_sym(r, getcwd(NULL, 0));
-    return r;
+    return ylacreate_sym(getcwd(NULL, 0));
 } YLENDNF(getcwd)
 
 YLDEFNF(fstat, 1, 1) {
@@ -285,30 +277,25 @@ YLDEFNF(fstat, 1, 1) {
     }
 
     /* make 'type' pair */
-    key = ylmp_get_block();
-    ylaassign_sym(key, _alloc_str("type"));
-    v = ylmp_get_block();
+    key = ylacreate_sym(_alloc_str("type"));
     switch(st.st_mode & S_IFMT) {
-        case S_IFSOCK: ylaassign_sym(v, _alloc_str("s"));  break;
-        case S_IFLNK:  ylaassign_sym(v, _alloc_str("l"));  break;
-        case S_IFREG:  ylaassign_sym(v, _alloc_str("f"));  break;
-        case S_IFBLK:  ylaassign_sym(v, _alloc_str("b"));  break;
-        case S_IFDIR:  ylaassign_sym(v, _alloc_str("d"));  break;
-        case S_IFCHR:  ylaassign_sym(v, _alloc_str("c"));  break;
-        case S_IFIFO:  ylaassign_sym(v, _alloc_str("p"));  break;
-        default: ylaassign_sym(v, _alloc_str("u")); /* unknown */
+        case S_IFSOCK: v = ylacreate_sym(_alloc_str("s"));  break;
+        case S_IFLNK:  v = ylacreate_sym(_alloc_str("l"));  break;
+        case S_IFREG:  v = ylacreate_sym(_alloc_str("f"));  break;
+        case S_IFBLK:  v = ylacreate_sym(_alloc_str("b"));  break;
+        case S_IFDIR:  v = ylacreate_sym(_alloc_str("d"));  break;
+        case S_IFCHR:  v = ylacreate_sym(_alloc_str("c"));  break;
+        case S_IFIFO:  v = ylacreate_sym(_alloc_str("p"));  break;
+        default: v = ylacreate_sym(_alloc_str("u")); /* unknown */
     }
     /* make r as '((key v)) */
     r = ylcons(yllist(key, v), ylnil());
     
     /* make 'size' pair */
-    key = ylmp_get_block();
-    ylaassign_sym(key, _alloc_str("size"));
-    v = ylmp_get_block();
-    ylaassign_dbl(v, (double)st.st_size);
-    r = ylappend(r, ylcons(yllist(key, v), ylnil()));
+    key = ylacreate_sym(_alloc_str("size"));
+    v = ylacreate_dbl((double)st.st_size);
+    return ylappend(r, ylcons(yllist(key, v), ylnil()));
 
-    return r;
 } YLENDNF(fstat)
 
 
@@ -322,8 +309,7 @@ YLDEFNF(fread, 1, 1) {
     buf = _readf(NULL, "fread", ylasym(ylcar(e)).sym, TRUE);
     if(!buf) { goto bail; }
 
-    r = ylmp_get_block();
-    ylaassign_sym(r, buf);
+    r = ylacreate_sym(buf);
     buf = NULL; /* to prevent from free */
 
     if(fh) { fclose(fh); }
@@ -348,8 +334,7 @@ YLDEFNF(freadb, 1, 1) {
     buf = _readf(&sz, "freadb", ylasym(ylcar(e)).sym, FALSE);
     if(!buf && 0 != sz) { goto bail; }
 
-    r = ylmp_get_block();
-    ylaassign_bin(r, buf, sz);
+    r = ylacreate_bin(buf, sz);
     buf = NULL; /* to prevent from free */
 
     if(fh) { fclose(fh); }
@@ -432,8 +417,7 @@ YLDEFNF(readdir, 1, 1) {
         yle_t            *ne, *t;  /* new exp / tail */
         
         /* initialize sentinel */
-        sentinel = ylmp_get_block();
-        ylpassign(sentinel, ylnil(), ylnil());
+        sentinel = ylpcreate(ylnil(), ylnil());
         t = sentinel;
         while(dit = readdir(dip)) {
             /* ignore '.', '..' in the directory */
@@ -444,8 +428,7 @@ YLDEFNF(readdir, 1, 1) {
             fname = ylmalloc(len + 1); /* +1 for trailing 0 */
             memcpy(fname, dit->d_name, len);
             fname[len] = 0; /* trailing 0 */
-            ne = ylmp_get_block();
-            ylaassign_sym(ne, fname);
+            ne = ylacreate_sym(fname);
             ylpsetcdr(t, ylcons(ne, ylnil()));
             t = ylcdr(t);
         }

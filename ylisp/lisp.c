@@ -159,30 +159,7 @@ _DEFAIF_CLEAN_START(nfunc, YLANfunc) {
 
 
 /* --- aif sfunc --- */
-_DEFAIF_EQ_START(sfunc, YLASfunc) {
-    if(ylanfunc(e0).f == ylanfunc(e1).f) { return 1; }
-    else { return 0; } /* don't care about others.. */
-} _DEFAIF_EQ_END
-
-_DEFAIF_CLONE_START(sfunc, YLASfunc) {
-    /* nothing to do */
-} _DEFAIF_CLONE_END
-
-_DEFAIF_TO_STRING_START(sfunc, YLASfunc) {
-    if(_MAX_ATOM_PR_BUFSZ <= snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, 
-                                      "<!%s!>", ylanfunc(e).name)) {
-        /* atom pr buf is too small.. */
-        yllogE1("Atom print buffer size is not enough!: Current [%d]\n", _MAX_ATOM_PR_BUFSZ);
-        ylassert(0);
-    }
-    return _atom_prbuf;
-} _DEFAIF_TO_STRING_END
-
-_DEFAIF_CLEAN_START(sfunc, YLASfunc) {
-    /* nothing to do */
-} _DEFAIF_CLEAN_END
-
-
+/* This SHOULD BE SAME with NFUNC.. So, let's skip it! */
 
 /* --- aif double --- */
 _DEFAIF_EQ_START(dbl, YLADouble) {
@@ -267,7 +244,6 @@ _DEFAIF_CLEAN_START(bin, YLABinary) {
 
 _DEFAIF_VAR(sym);
 _DEFAIF_VAR(nfunc);
-_DEFAIF_VAR(sfunc);
 _DEFAIF_VAR(dbl);
 _DEFAIF_VAR(bin);
 
@@ -279,8 +255,12 @@ ylget_aif_sym() { return &_aif_sym; }
 const ylatomif_t*
 ylget_aif_nfunc() { return &_aif_nfunc; }
 
+/*
+ * Interface of 'sfunc' is same with the one of 'nfunc'
+ * So, just re-use _aif_nfunc!
+ */
 const ylatomif_t*
-ylget_aif_sfunc() { return &_aif_sfunc; }
+ylget_aif_sfunc() { return &_aif_nfunc; }
 
 const ylatomif_t*
 ylget_aif_dbl() { return &_aif_dbl; }
@@ -372,16 +352,16 @@ ylregister_nfunc(unsigned int version,
     }
 
     if(YLANfunc != ftype && YLASfunc != ftype) {
+    }
+    
+    if(YLANfunc == ftype) {
+        e = ylacreate_nfunc(nfunc, sym);
+    } else if(YLASfunc == ftype) {
+        e = ylacreate_sfunc(nfunc, sym);
+    } else {
         yllogE0("Function type should be one of ATOM_NFUNC, ylor ATOM_RAW_NFUNC");
         return YLErr_cnf_register;
     }
-    
-    e = ylmp_get_block();
-    yleset_type(e, YLEAtom | ftype);
-    if(YLANfunc == ftype) { ylaif(e) = ylget_aif_nfunc(); }
-    else { ylaif(e) = ylget_aif_sfunc(); }
-    ylanfunc(e).f = nfunc;
-    ylanfunc(e).name = sym;
 
     yltrie_insert(sym, TRIE_VType_set, e);
     yltrie_set_description(sym, desc);

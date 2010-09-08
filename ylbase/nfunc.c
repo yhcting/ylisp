@@ -263,7 +263,6 @@ YLDEFNF(to_string, 1, 1) {
     unsigned int len;
     const char*  estr;
     char*        s;
-    yle_t*       r;
     estr = yleprint(ylcar(e));
     ylassert(estr);
     len = strlen(estr);
@@ -273,9 +272,7 @@ YLDEFNF(to_string, 1, 1) {
         return ylnil();
     }
     strcpy(s, estr);
-    r = ylmp_get_block();
-    ylaassign_sym(r, s);
-    return r;
+    return ylacreate_sym(s);
 } YLENDNF(to_string)
 
 /*===========================
@@ -286,9 +283,7 @@ YLDEFNF(mod, 2, 2) {
     long   r = 0;
     ylnfcheck_atype_chain1(e, YLADouble);
     r = ((long)yladbl(ylcar(e))) % ((long)yladbl(ylcadr(e)));
-    e = ylmp_get_block();
-    ylaassign_dbl(e, r);
-    return e;
+    return ylacreate_dbl(r);
 } YLENDNF(add)
 
 
@@ -299,9 +294,7 @@ YLDEFNF(add, 2, 9999) {
         r += yladbl(ylcar(e));
         e = ylcdr(e);
     }
-    e = ylmp_get_block();
-    ylaassign_dbl(e, r);
-    return e;
+    return ylacreate_dbl(r);
 } YLENDNF(add)
 
 YLDEFNF(mul, 2, 9999) {
@@ -311,9 +304,7 @@ YLDEFNF(mul, 2, 9999) {
         r *= yladbl(ylcar(e));
         e = ylcdr(e);
     }
-    e = ylmp_get_block();
-    ylaassign_dbl(e, r);
-    return e;
+    return ylacreate_dbl(r);
 } YLENDNF(mul)
 
 YLDEFNF(sub, 2, 9999) {
@@ -325,9 +316,7 @@ YLDEFNF(sub, 2, 9999) {
         r -= yladbl(ylcar(e));
         e = ylcdr(e);
     }
-    e = ylmp_get_block();
-    ylaassign_dbl(e, r);
-    return e;
+    return ylacreate_dbl(r);
 } YLENDNF(sub)
 
 
@@ -344,9 +333,7 @@ YLDEFNF(div, 2, 9999) {
         r /= yladbl(ylcar(e));
         e = ylcdr(e);
     }
-    e = ylmp_get_block();
-    ylaassign_dbl(e, r);
-    return e;
+    return ylacreate_dbl(r);
 } YLENDNF(div)
 
 YLDEFNF(gt, 2, 2) {

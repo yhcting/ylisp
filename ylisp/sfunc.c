@@ -249,11 +249,10 @@ _assoc(int* outhvty, yle_t* x, yle_t* y) {
             double  d;
             d = strtod(ylasym(x).sym, &endp);
             if( 0 == *endp && ERANGE != errno ) {
-                /* right coversion - let's assign double type atom*/
-                r = ylmp_get_block();
-                ylaassign_dbl(r, d);
+                /* default is "NOT macro". So set as 'TRIE_VType_set' */
                 *outhvty = TRIE_VType_set;
-                return r;
+                /* right coversion - let's assign double type atom*/
+                return ylacreate_dbl(d);
             }
 
             yllogE1("symbol [%s] was not set!\n", ylasym(x).sym);
@@ -328,11 +327,9 @@ yleval(yle_t* e, yle_t* a) {
                  *    This SHOULD NOT BE THE ONE IN GLOBAL SPACE!!
                  *    Expression should be preserved!
                  *    (So, we should use cloned one!)
+                 * evaluate it with replaced value!
                  */
-                yle_t*  ne = ylmp_get_block();
-                ylpassign(ne, yleclone_chain(r), ylcdr(e));
-                /* evaluate it with replaced value! */
-                r = yleval(ne, a);
+                r = yleval( ylpcreate(yleclone_chain(r), ylcdr(e)), a );
             } else {
                 if(yleis_atom(r)) {
                     if(YLANfunc == ylatype(r)) {

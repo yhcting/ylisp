@@ -121,10 +121,7 @@ ylcdr(yle_t* e) {
 
 static yle_t*
 ylcons(yle_t* car, yle_t* cdr) {
-    yle_t* e;
-    e = ylmp_get_block();
-    ylpassign(e, car, cdr);
-    return e;
+    return ylpcreate(car, cdr);
 }
 
 

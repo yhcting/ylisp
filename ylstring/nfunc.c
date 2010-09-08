@@ -40,30 +40,21 @@
 
 
 YLDEFNF(length, 1, 1) {
-    yle_t*    r;
-
     ylnfcheck_atype_chain1(e, YLASymbol);
-
-    r = ylmp_get_block();
-    ylaassign_dbl( r, strlen(ylasym(ylcar(e)).sym) );
-    return r;
-    
+    return ylacreate_dbl(strlen(ylasym(ylcar(e)).sym));
 } YLENDNF(length)
 
 YLDEFNF(itos, 1, 1) {
     long      l;
     char*     b; /* buffer */
-    yle_t*    r;
 
     ylnfcheck_atype_chain1(e, YLADouble);
 
     l = (long)yladbl(ylcar(e));
     b = ylmalloc(_NUMSTRSZ);
     sprintf(b, "%ld", l);
-    r = ylmp_get_block();
-    ylaassign_sym(r, b);
-    return r;
-    
+    return ylacreate_sym(b);
+
 } YLENDNF(itos)
 
 YLDEFNF(dtos, 1, 1) {
@@ -74,9 +65,8 @@ YLDEFNF(dtos, 1, 1) {
 
     b = ylmalloc(_NUMSTRSZ);
     sprintf(b, "%f", yladbl(ylcar(e)));
-    r = ylmp_get_block();
-    ylaassign_sym(r, b);
-    return r;
+    return ylacreate_sym(b);
+
 } YLENDNF(dtos)
 
 
@@ -88,7 +78,6 @@ static const char _hextbl[] = {
  * NOT TESTED YET!!!!
  */
 YLDEFNF(btos, 1, 1) {
-    yle_t*         r;
     char*          b;  /* buffer */
     const char*    ps; /* ps : source pointer */
     char*          pd; /* pd : destination pointer */
@@ -116,9 +105,7 @@ YLDEFNF(btos, 1, 1) {
     }
     *(pd-1) = 0; /* replace last space with trailing 0 */
 
-    r = ylmp_get_block();
-    ylaassign_sym(r, b);
-    return r;
+    return ylacreate_sym(b);
 
 } YLENDNF(btos)
 
@@ -132,8 +119,7 @@ YLDEFNF(split_to_line, 1, 1) {
     ylnfcheck_atype_chain1(e, YLASymbol);
 
     /* get dummy pair head */
-    rt = rh = ylmp_get_block();
-    ylpassign(rh, ylnil(), ylnil());
+    rt = rh = ylpcreate(ylnil(), ylnil());
 
     p = ylasym(ylcar(e)).sym;;
     while(1) {
@@ -152,8 +138,7 @@ YLDEFNF(split_to_line, 1, 1) {
         ln[len] = 0; /* add trailing 0 */
 
         /* now we got line. Let's make expression and append to the list*/
-        lne = ylmp_get_block();
-        ylaassign_sym(lne, ln);
+        lne = ylacreate_sym(ln);
         ylpsetcdr(rt, ylcons(lne, ylnil()));
         rt = ylcdr(rt);
 
@@ -197,9 +182,7 @@ YLDEFNF(concat, 2, 9999) {
     }
     *p = 0; /* trailing 0 */
 
-    pe = ylmp_get_block();
-    ylaassign_sym(pe, buf);
-    return pe;
+    return ylacreate_sym(buf);
 
 } YLENDNF(concat)
 
@@ -209,7 +192,6 @@ YLDEFNF(at, 2, 2) {
     int         len;
     const char* p;
     char*       ch;
-    yle_t*      r;
 
     /* check parameter type */
     ylnfcheck_atype1(ylcar(e), YLASymbol);
@@ -225,24 +207,18 @@ YLDEFNF(at, 2, 2) {
     }
 
     p += idx;
-    r = ylmp_get_block();
     ch = ylmalloc(sizeof(char)*2); /* 1 for tailing NULL */
     *ch = *p;
     ch[1] = 0; /* trailing NULL */
-    ylaassign_sym(r, ch);
-    return r;
+    return ylacreate_sym(ch);
 
 } YLENDNF(at)
 
 
 YLDEFNF(compare, 2, 2) {
-    yle_t* r = ylmp_get_block();
-
     /* check input parameter */
     ylnfcheck_atype_chain1(e, YLASymbol);
-
-    ylaassign_dbl(r, strcmp(ylasym(ylcar(e)).sym, ylasym(ylcadr(e)).sym));
-    return r;
+    return ylacreate_dbl(strcmp(ylasym(ylcar(e)).sym, ylasym(ylcadr(e)).sym));
 } YLENDNF(compare)
 
 
@@ -334,10 +310,7 @@ YLDEFNF(index_of, 2, 3) {
             remainsz--;
         }
         if(remainsz >= subsz) {
-            yle_t*      r;
-            r = ylmp_get_block();
-            ylaassign_dbl(r, strsz-remainsz);
-            return r;
+            return ylacreate_dbl(strsz-remainsz);
         } else {
             return ylnil();
         }
@@ -379,10 +352,7 @@ YLDEFNF(last_index_of, 2, 3) {
             p--;
         }
         if(p >= pstr) {
-            yle_t*      r;
-            r = ylmp_get_block();
-            ylaassign_dbl(r, (int)(p - pstr));
-            return r;
+            return ylacreate_dbl((int)(p - pstr));
         } else {
             return ylnil();
         }
@@ -405,7 +375,6 @@ YLDEFNF(replace, 3, 3) {
     const char  *p, *pstr, *pold, *pnew, *pe;
     char        *pbuf, *pb, *pbend;
     unsigned int lenstr, lennew, lenold;
-    yle_t*       r;
     /* check input parameter */
     ylnfcheck_atype_chain1(e, YLASymbol);
     
@@ -416,13 +385,11 @@ YLDEFNF(replace, 3, 3) {
     pnew = ylasym(ylcaddr(e)).sym;
     lennew = strlen(pnew);
 
-    r = ylmp_get_block();
     /* filter trivial case */
     if(0 == lenold || lenstr < lenold) { 
         /* nothing to replace! copy it and return! */
         pbuf = ylmalloc(lenstr+1); /* =1 for tailing NULL */
         strcpy(pbuf, p);
-        ylaassign_sym(r, pbuf);
     } else {
         pe = pstr + lenstr - lenold + 1; 
         pb = pbuf = ylmalloc(lenstr + 1); /* initial size of buffer is same with string length */
@@ -444,10 +411,8 @@ YLDEFNF(replace, 3, 3) {
             pb += remainsz;
         }
         *pb = 0; /* add trailing NULL */
-        ylaassign_sym(r, pbuf);
     }
-    
-    return r;
+    return ylacreate_sym(pbuf);
 
 #undef __check_buf
     
@@ -480,17 +445,14 @@ YLDEFNF(substring, 2, 3) {
     if(bi > ei) { bi = ei; }
 
     { /* just scope */
-        yle_t*  r;
         char*   tmp;     
 
         /* make sub string */
         tmp = ylmalloc(ei-bi+1); /* +1 for tailing 0 */
         tmp[ei-bi] = 0; /* add trailing 0 */
         memcpy(tmp, pstr+bi, ei-bi);
-        
-        r = ylmp_get_block();
-        ylaassign_sym(r, tmp);
-        return r;
+
+        return ylacreate_sym(tmp);
     }
 } YLENDNF(substring)
 
@@ -498,7 +460,6 @@ YLDEFNF(to_lower_case, 1, 1) {
     const char   *p, *pe;
     char         *pbuf, *pb;
     int           delta;
-    yle_t*        r;
     
     ylnfcheck_atype_chain1(e, YLASymbol);
     
@@ -514,10 +475,8 @@ YLDEFNF(to_lower_case, 1, 1) {
         else { *pb = *p; }
         pb++; p++;
     }
-    
-    r = ylmp_get_block();
-    ylaassign_sym(r, pbuf);
-    return r;
+
+    return ylacreate_sym(pbuf);
     
 } YLENDNF(to_lower_case)
 
@@ -525,7 +484,6 @@ YLDEFNF(to_upper_case, 1, 1) {
     const char   *p, *pe;
     char         *pbuf, *pb;
     int           delta;
-    yle_t*        r;
     
     ylnfcheck_atype_chain1(e, YLASymbol);
     
@@ -542,16 +500,13 @@ YLDEFNF(to_upper_case, 1, 1) {
         pb++; p++;
     }
     
-    r = ylmp_get_block();
-    ylaassign_sym(r, pbuf);
-    return r;
+    return ylacreate_sym(pbuf);
     
 } YLENDNF(to_upper_case)
 
 YLDEFNF(trim, 1, 1) {
     const char    *ps, *pe, *p, *pend; /* p start / pend */
     char*          pbuf;
-    yle_t*         r;
 
 #define __is_ws(c) (' ' == (c) || '\n' == (c) || '\r' == (c) || '\t' == (c))
     
@@ -580,10 +535,8 @@ YLDEFNF(trim, 1, 1) {
     pbuf[pe-ps+1] = 0; /* add trailing 0 */
     
     memcpy(pbuf, ps, pe-ps+1);
-    
-    r = ylmp_get_block();
-    ylaassign_sym(r, pbuf);
-    return r;
+
+    return ylacreate_sym(pbuf);
 
 #undef __is_ws
 } YLENDNF(trim)

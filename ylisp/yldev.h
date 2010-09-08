@@ -133,27 +133,27 @@ typedef struct yle {
             union {
                 struct {
                     char*          sym;
-                } sym; /**< for ATOM SYMBOL */
+                } sym; /**< for YLASymbol */
 
                 struct {
-                    const char*    name;
+                    const char*    name;  /**< human readable function name */
                     ylnfunc_t      f;
-                } nfunc; /**< for ATOM_NFUNC */
+                } nfunc; /**< for YLANfunc/YLASfunc */
 
-                double     dbl; /**< for ATOM_DOUBLE */
+                double     dbl; /**< for YLADouble */
 
                 struct {
                     unsigned int sz;  /**< data size */
                     char*        d;   /**< data */
-                } bin;
+                } bin; /**< for YLABinary */
 
-                void*      cd; /* any data for custom atom(YLACustom) - Custom Data*/
+                void*      cd; /**< any data for custom atom(YLACustom) - Custom Data*/
             } u;
-        } a; /* ylatom */
+        } a; /**< atom */
 
         struct {
             struct yle  *car, *cdr;
-        } p; /* ylpair */
+        } p; /**< pair */
     } u;
 
     /*
@@ -600,13 +600,11 @@ ylmp_pop();
 extern unsigned int
 ylmp_stack_size(); 
 
-
 extern yle_t*
 yleclone(const yle_t* e);
 
 extern yle_t*
 yleclone_chain(const yle_t* e);
-
 
 extern int
 ylchain_size(const yle_t* e);
@@ -669,8 +667,6 @@ ylais_type(const yle_t* e, char ty) {
     return (yleis_atom(e) && ylatype(e) == ty );
 }
 
-
-
 static inline void
 ylpassign(yle_t* e, yle_t* car, yle_t* cdr) {
     yleset_type(e, YLEPair);
@@ -699,6 +695,40 @@ static inline yle_t*
 ylacreate_sym(char* sym) {
     yle_t* e = ylmp_get_block();
     ylaassign_sym(e, sym);
+    return e;
+}
+
+/* for internal use */
+static inline void
+__ylaassign_func(yle_t* e, int ty, ylnfunc_t f, const char* name) {
+    yleset_type(e, YLEAtom | ty);
+    if(YLANfunc == ty) { ylaif(e) = ylget_aif_nfunc(); }
+    else { ylaif(e) = ylget_aif_sfunc(); }
+    ylanfunc(e).f = f;
+    ylanfunc(e).name = name;
+}
+
+static inline void
+ylaassign_nfunc(yle_t* e, ylnfunc_t f, const char* name) {
+    __ylaassign_func(e, YLANfunc, f, name);
+}
+
+static inline void
+ylaassign_sfunc(yle_t* e, ylnfunc_t f, const char* name) {
+    __ylaassign_func(e, YLASfunc, f, name);
+}
+
+static inline yle_t*
+ylacreate_nfunc(ylnfunc_t f, const char* name) {
+    yle_t* e = ylmp_get_block();
+    ylaassign_nfunc(e, f, name);
+    return e;
+}
+
+static inline yle_t*
+ylacreate_sfunc(ylnfunc_t f, const char* name) {
+    yle_t* e = ylmp_get_block();
+    ylaassign_sfunc(e, f, name);
     return e;
 }
 

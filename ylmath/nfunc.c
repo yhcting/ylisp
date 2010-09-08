@@ -33,9 +33,7 @@
         double r;                                                       \
         ylnfcheck_atype_chain1(e, YLADouble);                           \
         r = nAME(yladbl(ylcar(e)));                                     \
-        e = ylmp_get_block();                                           \
-        ylaassign_dbl(e, r);                                            \
-        return e;                                                       \
+        return ylacreate_dbl(r);                                        \
     } YLENDNF(nAME)
 
 #define _MATHFUNC2(nAME)                                                \
@@ -43,9 +41,7 @@
         double r;                                                       \
         ylnfcheck_atype_chain1(e, YLADouble);                           \
         r = nAME(yladbl(ylcar(e)), yladbl(ylcadr(e)));                  \
-        e = ylmp_get_block();                                           \
-        ylaassign_dbl(e, r);                                            \
-        return e;                                                       \
+        return ylacreate_dbl(r);                                        \
     } YLENDNF(nAME)
 
 
