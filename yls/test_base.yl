@@ -82,6 +82,7 @@
     (set 't 'y)
     (let ((x 'c)(t 'z))
         (assert (eq x 'c))
+        (assert (eq y 'b))
         (set 'x 'd)
         (assert (eq x 'd)))
     (assert (eq t 'y))
@@ -119,6 +120,19 @@
     (set 'sum s))
 (assert (eq sum 55))
 
+(let ((i 0) (s 0))
+    (while (< i 11)
+        (set 's (+ s i))
+        (let ( (j 0) )
+             (+ j i))
+        (set 'i (+ i 1)))
+    (set 'sum s))
+
+(set 'i 3)
+(while (> i 0)
+    (let ((j 0))
+        (print j))
+    (set 'i (- i 1)))
 
 (assert (eq 3 (% 7 4)))
 (assert (eq 0 (% 3 3)))

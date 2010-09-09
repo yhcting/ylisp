@@ -102,9 +102,11 @@ _evarg(yle_t* e, yle_t** a) {
         yllogE0("<!let!> incorrect argument syntax\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
-
-    ylpsetcar(ylcdar(e), yleval(ylcadar(e), *a));
-    _update_assoc(a, ylcar(e));
+    /*
+     * Expression itself SHOULD NOT be changed.
+     * So, yllist(...) is used instead of ylpcar/ylpcdr!
+     */
+    _update_assoc(a, yllist(ylcaar(e), yleval(ylcadar(e), *a)));
     _evarg(ylcdr(e), a);
 }
 

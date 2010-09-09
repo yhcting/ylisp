@@ -38,7 +38,7 @@ public class Main extends JFrame {
 
     private YLJEditArea         _edit;
     private LinkedList<String>  _history = new LinkedList<String>();
-    private int                 _hi = 0;  // history index
+    private int                 _hi = -1;  // history index
     private int                 _loglv = _LogLv.Warn.v(); // default is log ouput - refer native code's implementation
 
     // ============================= ACTIONS START ==============================
@@ -50,7 +50,7 @@ public class Main extends JFrame {
             
             nativeInterpret(_edit.getText());
             addToHistory(_edit.getText());
-            _hi = 0;
+            _hi = -1;
             _edit.setText(""); // clean
         }
     }
@@ -81,6 +81,7 @@ public class Main extends JFrame {
                 _hi--;
                 _edit.setText((String)_history.get(_hi));
             } else {
+                _hi = -1;
                 _edit.setText("");
             }
         }
@@ -88,10 +89,11 @@ public class Main extends JFrame {
 
     private class PrevCommandAction extends AbstractAction {
         public void actionPerformed(ActionEvent ev) {
-            if(_hi < _history.size()) {
+            if(_hi < _history.size()-1) {
+                _hi++;                
                 _edit.setText((String)_history.get(_hi));
-                _hi++;
             } else {
+                _hi = _history.size();
                 _edit.setText("");
             }
         }

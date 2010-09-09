@@ -42,8 +42,9 @@ ylutfile_read(unsigned int* outsz, const char* fpath, int btext) {
     sz = ftell(fh);
     fseek(fh, 0, SEEK_SET);
 
-    if(0 == sz && !btext) {
-        buf = NULL;
+    /* handle special case - empty file */
+    if(0 == sz) {
+        buf = (btext)? (unsigned char*)ylmalloc(1): NULL;
     } else {
         buf = ylmalloc((unsigned int)sz+((btext)? 1: 0)); /* +1 for trailing 0 */
         if(!buf) { *outsz = YLErr_out_of_memory; goto bail; }
