@@ -478,7 +478,7 @@ extern void ylinterpret_undefined(int reason);
     do {                                                                \
         yle_t* _E = (eXP);                                              \
         while( !yleis_nil(_E) ) {                                       \
-            if(!ylais_type(ylcar(_E), tY)) {                            \
+            if(yleis_nil(ylcar(_E)) || !ylais_type(ylcar(_E), tY)) {    \
                 ylnflogE0("invalid parameter type\n");                  \
                 ylinterpret_undefined(YLErr_func_invalid_param);        \
             }                                                           \
@@ -501,7 +501,7 @@ extern void ylinterpret_undefined(int reason);
             else {                                                      \
                 _E = ylcdr(_E);                                         \
                 while( !yleis_nil(_E) ) {                               \
-                    if( !ylais_type(ylcar(_E), _aty) ) {                \
+                    if(yleis_nil(ylcar(_E)) || !ylais_type(ylcar(_E), _aty) ) { \
                         bok = FALSE; break;                             \
                     }                                                   \
                     _E = ylcdr(_E);                                     \
@@ -518,7 +518,7 @@ extern void ylinterpret_undefined(int reason);
 #define ylnfcheck_atype1(eXP, tY)                               \
     do {                                                        \
         yle_t* _E = (eXP);                                      \
-        if(!ylais_type(_E, tY)) {                               \
+        if(yleis_nil(_E) || !ylais_type(_E, tY)) {              \
             ylnflogE0("invalid parameter type\n");              \
             ylinterpret_undefined(YLErr_func_invalid_param);    \
         }                                                       \
@@ -527,8 +527,9 @@ extern void ylinterpret_undefined(int reason);
 #define ylnfcheck_atype2(eXP, tY1, tY2)                         \
     do {                                                        \
         yle_t* _E = (eXP);                                      \
-        if( !(ylais_type(_E, tY1)                               \
-              || ylais_type(_E, tY2)) ) {                       \
+        if( yleis_nil(_E)                                       \
+            || !(ylais_type(_E, tY1)                            \
+                 || ylais_type(_E, tY2)) ) {                    \
             ylnflogE0("invalid parameter type\n");              \
             ylinterpret_undefined(YLErr_func_invalid_param);    \
         }                                                       \

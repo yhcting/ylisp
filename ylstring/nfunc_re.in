@@ -26,7 +26,7 @@ NFUNC(pcre_match,           "string.pcre-match",             YLANfunc,
     "    @pattern [Symbol]: Pattern format\n"
     "    @subject [Symbol]: Subject string\n"
     "    @option [Symbol]:  Match options. 'i', 'm', 's' are supported\n"
-    "    @return : list of matched string.\n"
+    "    @return : list of matched string. nil for unmatch\n"
     "    *ex\n"
     "        (set 'r (string.pcre-match '\"\\\\s+(\\\\w+)\\\\s+\" '\"yyy haha  hehe\" '\"\"))\n"
     "        (print (car r)); ' haha  ' is printed.\n"

@@ -93,7 +93,7 @@ public class Main extends JFrame {
                 _hi++;                
                 _edit.setText((String)_history.get(_hi));
             } else {
-                _hi = _history.size();
+                _hi = _history.size();ev
                 _edit.setText("");
             }
         }
