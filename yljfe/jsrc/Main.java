@@ -40,21 +40,52 @@ public class Main extends JFrame {
     private LinkedList<String>  _history = new LinkedList<String>();
     private int                 _hi = -1;  // history index
     private int                 _loglv = _LogLv.Warn.v(); // default is log ouput - refer native code's implementation
-
+    private boolean             _binterp = false;
+    private Object              _interpobj = new Object();
+    private Thread              _interpthd = new Thread( new Runnable() {
+        public void run() {
+            while(true) {
+                // We should 'synchroized' before notify/wait !!!
+                synchronized (_interpobj) {
+                    try {
+                        _interpobj.wait();
+                    } catch (Exception e){
+                        System.out.println("Fail to wait object!!");
+                    }
+                    System.out.print("====================== Interpret =====================\n" +
+                            _edit.getText() + "\n" +
+                            "----------------------------\n\n");
+                    nativeInterpret(_edit.getText());
+                    addToHistory(_edit.getText());
+                    _hi = -1;
+                    _edit.setText(""); // clean
+                    _binterp = false;
+                }
+            }
+        }
+    });
+    
     // ============================= ACTIONS START ==============================
     private class InterpretAction extends AbstractAction {
         public void actionPerformed(ActionEvent ev) {
-            System.out.print("====================== Interpret =====================\n" +
-                         _edit.getText() + "\n" +
-                         "----------------------------\n\n");
-            
-            nativeInterpret(_edit.getText());
-            addToHistory(_edit.getText());
-            _hi = -1;
-            _edit.setText(""); // clean
+            if(!_binterp) {
+                synchronized(_interpobj) {
+                        _binterp  = true;
+                        _interpobj.notify();
+                }
+            } else {
+                System.out.println("--- Previous interpreting request is under execution!\n");
+            }
         }
     }
 
+    private class InterruptAction extends AbstractAction {
+        public void actionPerformed(ActionEvent ev) {
+            System.out.println("----interrupt----\n");
+            nativeForceStop();
+        }
+    }
+    
     private class InceaseLogLevelAction extends AbstractAction {
         public void actionPerformed(ActionEvent ev) {
             if(_loglv > _LogLv.Verbose.v()) { 
@@ -93,7 +124,7 @@ public class Main extends JFrame {
                 _hi++;                
                 _edit.setText((String)_history.get(_hi));
             } else {
-                _hi = _history.size();ev
+                _hi = _history.size();
                 _edit.setText("");
             }
         }
@@ -165,6 +196,8 @@ public class Main extends JFrame {
         pack();
         setVisible(true);
         
+        // start interpreting thread!
+        _interpthd.start();        
     }
 
     private void addToHistory(String cmd) {
@@ -182,6 +215,9 @@ public class Main extends JFrame {
         //Ctrl-r to start interpret.
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, Event.CTRL_MASK), "interpret");
         actionMap.put("interpret", new InterpretAction());
+
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, Event.CTRL_MASK), "interrupt");
+        actionMap.put("interrupt", new InterruptAction());
 
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, Event.CTRL_MASK), "Increase log level");
         actionMap.put("Increase log level", new InceaseLogLevelAction());
@@ -201,6 +237,8 @@ public class Main extends JFrame {
     
     
     private native boolean nativeInterpret(String str);
+    // interrupt current interpreting.
+    private native boolean nativeForceStop();
     private native String  nativeGetLastNativeMessage();
     private native void    nativeSetLogLevel(int lv);
     // <0 : error.

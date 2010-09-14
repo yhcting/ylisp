@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include "trie.h"
+#include "lisp.h"
 
 /* global error number */
 extern int errno;
@@ -292,6 +293,10 @@ yleval(yle_t* e, yle_t* a) {
     yle_t*       r = NULL;
     int          vty;
     unsigned int evid = _eval_id++; /* evaluation id for debugging */
+
+    /* This is right place to interrupt evaluation! */
+    ylinteval_unlock();
+    ylinteval_lock();
 
     dbg_eval(yllogV2("[%d] eval In:\n"
                      "    %s\n", evid, yleprint(e)););

@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <memory.h>
 
 /* enable logging & debugging */
@@ -115,6 +116,7 @@ YLDEFNF(shell, 1, 1) {
 #define __cleanup_process()                             \
     /* clean resources */                               \
     if(buf) { ylfree(buf); }                            \
+    if(ofh) { fclose(ofh); }                            \
     unlink(__outf_name);
 
     int         saved_stdout, saved_stderr;
@@ -149,11 +151,39 @@ YLDEFNF(shell, 1, 1) {
     /* redirect stdout to the pipe */
     if(0 > dup2(fileno(ofh), STDOUT_FILENO)) { ylnflogE0("Fail to dup stdout\n"); goto bail; }
 
+
     /* 
      * Now, we are ready to redirect 
-     * It's time to execute shell command 
+     * It's time to execute command (fork)
      */
-    system(ylasym(ylcar(e)).sym);
+    { /* Just scope */    
+        pid_t       cpid; /* child process id */
+
+        cpid = fork();
+        if(-1 == cpid) { 
+            ylnflogE0("Fail to fork!\n"); 
+            goto bail; 
+        }
+
+        if(cpid) { /* parent */
+            ylchild_proc_set(cpid);
+
+            if(-1 == waitpid(cpid, NULL, 0)) {
+                ylnflogE0("Fail to wait child process!\n");
+                ylassert(0);
+                ylchild_proc_unset();
+                kill(cpid, SIGKILL);
+                goto bail;
+            }
+
+            ylchild_proc_unset();
+        } else { /* child */
+            execl("/bin/bash", "/bin/bash", "-c", ylasym(ylcar(e)).sym, (char*)0);
+        }
+
+    } /* Just scope */
+    /* 
+
     /* flush result */
     /*
      * ****** NOTE ******
@@ -162,6 +192,7 @@ YLDEFNF(shell, 1, 1) {
      */
     fflush(ofh);
     fclose(ofh);
+    ofh = NULL;
 
     /*
      * stdout/stderr was redirected.

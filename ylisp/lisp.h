@@ -46,6 +46,12 @@
 #endif /* __DBG_MEM */
 
 
+#ifdef __DBG_INTEVAL
+#   define dbg_inteval(x)  do{ x } while(0)
+#else /* __DBG_INTEVAL */
+#   define dbg_inteval(x)
+#endif /* __DBG_INTEVAL */
+
 #include "ylsfunc.h"
 #include "ylut.h"
 
@@ -69,6 +75,23 @@ ylget_eval_id();
  */
 ylerr_t
 ylinterpret_internal(const char* stream, unsigned int streamsz);
+
+void
+ylinteval_lock();
+
+void
+ylinteval_unlock();
+
+/*
+ * Actually, 'pid_t' should be used.
+ * But we don't want to include "sys/types.h" here..
+ * So, long is used instead of 'pid_t'
+ */
+int
+ylchild_proc_set(long pid);
+
+void
+ylchild_proc_unset();
 
 /*
  * to avoid symbol name (function name) conflicts with plug-ins

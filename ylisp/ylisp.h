@@ -40,6 +40,10 @@ typedef enum {
     YLErr_internal,
 
     YLErr_io, /* io error */
+    
+    YLErr_force_stopped,
+
+    YLErr_under_interpreting,
 
     YLErr_cnf_register,
 
@@ -125,9 +129,22 @@ ylinit(ylsys_t* sysv);
 extern void
 yldeinit();
 
+/**
+ * !! IMPORTANT !!
+ *    'ylinterpret' & 'ylforce_stop' can be at different thread context.
+ *    Calling 'ylforce_stop' can stop 'interpret'
+ *    BUT, 'ylinterpret' or 'ylforce_stop' itself CANNOT BE concurrent!
+ *    (Behavior is NOT DEFINED!)
+ */
+
 extern ylerr_t
 ylinterpret(const char* stream, unsigned int streamsz);
 
+/*
+ * interrupt current interpreting.
+ */
+extern void
+ylforce_stop();
 
 /**
  * get more symbols to make longest prefix.
