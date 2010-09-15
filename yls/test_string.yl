@@ -111,9 +111,5 @@
 (assert (eq 'abc  (string.trim '"  abc   ")))
 (assert (eq '""  (string.trim '"     ")))
 
-
-
-
-
-
-
+(unset 'x)
+(unset 'lns)

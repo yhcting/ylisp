@@ -268,62 +268,91 @@ yltrie_insert(const char* sym, int ty, yle_t* e) {
     }
 }
 
+static inline int
+_delete_empty_leaf(_node_t* t) {
+    register int i;
+    /*
+     * Check followings
+     *    This node doens't have 'value'
+     *    This node is leaf.
+     */
+    for(i=0; i<16; i++) { if(t->n[i]) { break; } }
+    if(i >= 16 /* Is this leaf? */
+       && !t->v) { /* Doesn't this have 'value'? */
+        _free_trie_node(t);
+        return 1; /* true */
+    } else { return 0; } /* false */
+}
+
+
+/*
+ * @return : see '_delete_sym(...)'
+ */
+static inline int
+_delete_empty_char_leaf(_node_t* t, char c) {
+    register int  fi = c>>4;
+    register int  bi = c&0x0f;
+    if(_delete_empty_leaf(t->n[fi]->n[bi])) {
+        /*
+         * node itself is deleted!
+         * So, front node should also be checked!
+         */
+        t->n[fi]->n[bi] = NULL;
+        if(_delete_empty_leaf(t->n[fi])) {
+            t->n[fi] = NULL;
+            /* this node itself should be checked! */
+            return 1;
+        } else {
+            return 0; /* all done */
+        }
+    } else {
+        return 0; /* all done */
+    }
+}
 
 /*
  * @return:
- *     1 : needed to be delete
- *     0 : do not delete
- *     -1: cannot find node.(symbol is not in trie)
+ *     1 : needed to be checked that the node @t is empty leaf or not!
+ *     0 : all done successfully
+ *     -1: cannot find node(symbol is not in trie)
  */
 static int
-_delete_sym_node(_node_t* t, const unsigned char* p) {
+_delete_sym(_node_t* t, const unsigned char* p) {
+    register int  fi = *p>>4;
+    register int  bi = *p&0x0f;
     if(*p) {
-        register int  fi = *p>>4;
-        register int  bi = *p & 0x0f;
-        
         if(t->n[fi] && t->n[fi]->n[bi]) { /* check that there is front & back node */
-            switch(_delete_sym_node(t->n[fi]->n[bi], p+1)) {
-                case 1: {
-                    _free_trie_node(t->n[fi]->n[bi]);
-                    _free_trie_node(t->n[fi]);
-                    t->n[fi] = NULL;
-                    
-                    /* check whether there is any sub-node or not */
-                    for(fi=0; fi<16; fi++) { if(t->n[fi]) { break; } }
-
-                    /* 
-                     * if there is any sub node orr node itself has value, than
-                     * DO NOT delete this node
-                     */
-                    if(fi<16 || t->v) { return 0; } 
-                    /* 
-                     * There is no sub node and value. 
-                     * This node is just intermediate one.
-                     * So, we can delete it!
-                     */
-                    else { return 1; }
-                } break;
+            switch(_delete_sym(t->n[fi]->n[bi], p+1)) {
+                case 1:    return _delete_empty_char_leaf(t, *p);
                 case 0:    return 0;
-                default:   return -1;
             }
-        } else {
-            /* Cannot find symbol! */
-            return -1;
         }
+        /* Cannot find symbol! */
+        return -1;
     } else {
         /* 
          * End of string.
          * We need to check this node has valid data.
+         * If yes, delete value!
          * If not, symbol name is not valid one!
          */
-        return (t->v)? 1: -1;
+        if(t->v) {
+            _free_trie_value(t->v);
+            t->v = NULL;
+            return 1;
+        } else {
+            return -1;
+        }
     }
 }
 
 int
 yltrie_delete(const char* sym) {
-    if(0 > _delete_sym_node(&_trie.rt, sym)) { return -1; }
-    else { return 0; }
+    switch(_delete_sym(&_trie.rt, sym)) {
+        case 1:    _delete_empty_char_leaf(&_trie.rt, *sym); return 0;
+        case 0:    return 0;
+        default:   return -1;
+    }
 }
 
 yle_t*

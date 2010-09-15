@@ -46,3 +46,6 @@
 (assert (equal '(((a) (A))) map))
 (set 'map (util.pair.del map '(a)))
 (assert (equal '() map))
+
+(unset 'lst)
+(unset 'map)
