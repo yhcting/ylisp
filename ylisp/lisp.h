@@ -56,6 +56,8 @@
 #include "ylut.h"
 
 
+#define MAX_EVAL_DEPTH               128 /* I think this is enough */
+
 
 extern void
 yleclean(yle_t* e);
@@ -68,6 +70,15 @@ ylapply(yle_t* f, yle_t* args, yle_t* a);
  */
 unsigned int
 ylget_eval_id();
+
+/*
+ * To show 'eval' stack when interpreting fails
+ */
+void
+ylpush_eval_info(const yle_t* e);
+
+void
+ylpop_eval_info();
 
 /*
  * only for internel use - for 'interpret-file' command!

@@ -294,6 +294,9 @@ yleval(yle_t* e, yle_t* a) {
     ylinteval_unlock();
     ylinteval_lock();
 
+    /* Add evaluation stack -- for debugging */
+    ylpush_eval_info(e);
+
     dbg_eval(yllogV2("[%d] eval In:\n"
                      "    %s\n", evid, yleprint(e)););
     dbg_eval(yllogV1("    =>%s\n", yleprint(a)););
@@ -437,6 +440,9 @@ yleval(yle_t* e, yle_t* a) {
         ylmp_pop();
         ylercnt(r)--;
 
+
+        /* pop evaluation stack -- for debugging */
+        ylpop_eval_info();
 
         dbg_mem(yllogV4("END eval :\n"
                         "    MP usage : %d\n"

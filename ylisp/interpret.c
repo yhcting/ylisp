@@ -53,6 +53,8 @@ static ylstk_t*        _thdstk = NULL;
  */
 static pid_t           _cpid = -1;
 
+/* evaluation stack for debugging */
+static ylstk_t*        _evalstk = NULL;
 /* =====================================
  *
  * For synchronization!
@@ -751,6 +753,17 @@ _child_proc_kill() {
 
 /* =====================================
  *
+ * Evaluation stack
+ *
+ * =====================================*/
+static inline void
+_show_eval_stack() {
+    while(ylstk_size(_evalstk)) {
+        ylprint(("    %s\n", yleprint((yle_t*)ylstk_pop(_evalstk))));
+    }
+}
+/* =====================================
+ *
  * Public interfaces
  *
  * =====================================*/
@@ -797,6 +810,16 @@ ylchild_proc_unset() {
     _cpid = -1;
     _child_proc_unlock();
     dbg_inteval(yllogI0("## Unset proc id END\n"););
+}
+
+void
+ylpush_eval_info(const yle_t* e) {
+    ylstk_push(_evalstk, (void*)e);
+}
+
+void
+ylpop_eval_info() {
+    ylstk_pop(_evalstk);
 }
 
 ylerr_t
@@ -872,9 +895,18 @@ ylinterpret(const char* stream, unsigned int streamsz) {
             _gctt_unset_timer();
 
             ylstk_clean(_thdstk);
+            ylstk_clean(_evalstk);
+
             ret = ylinterpret_internal(stream, streamsz);
             if(YLOk == ret) { _gctt_set_timer(); }
-            else { ylmp_recovery_gc(); }
+            else { 
+                /* 
+                 * evaluation stack should be shown before GC.
+                 * (After GC, expression in the stack may be invalid one!)
+                 */
+                _show_eval_stack();
+                ylmp_recovery_gc(); 
+            }
 
             _inteval_unlock();
             _interp_unlock();
@@ -926,5 +958,6 @@ ylinterp_init() {
         return YLErr_internal;
     }
     _thdstk = ylstk_create(_MAX_THREAD_STACK_SIZE, NULL);
+    _evalstk = ylstk_create(MAX_EVAL_DEPTH, NULL);
     return YLOk;
 }

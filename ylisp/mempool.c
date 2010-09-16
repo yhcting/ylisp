@@ -33,8 +33,6 @@
  */
 #define _FULLSCAN_TRIGGER_POINT       80  /* percent */
 #define _PARTIALSCAN_TRIGGER_POINT    95  /* percent */
-#define _MAX_EVAL_DEPTH               128 /* I think this is enough */
-
 
 
 /* memory pool */
@@ -86,7 +84,7 @@ ylmp_init() {
         _mark_as_free(&_epl.pool[i]);
         _epl.fbis[i] = &_epl.pool[i];
     }
-    _ststk = ylstk_create(_MAX_EVAL_DEPTH, NULL);
+    _ststk = ylstk_create(MAX_EVAL_DEPTH, NULL);
     if(!_ststk) { return YLErr_out_of_memory;  }
     _stat.hwm = 0;
     return YLOk;
