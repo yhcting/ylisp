@@ -359,7 +359,8 @@ ylregister_nfunc(unsigned int version,
         return YLErr_cnf_register;
     }
 
-    yltrie_insert(sym, TRIE_VType_set, e);
+    /* default symbol type is 0 */
+    yltrie_insert(sym, 0, e);
     yltrie_set_description(sym, desc);
 
     return YLOk;

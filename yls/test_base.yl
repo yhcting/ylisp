@@ -158,6 +158,13 @@
 (assert (eq 5 (min 5 9)))
 (assert (eq 5 (max 5 4)))
 
+(set 'f 1234)
+(let ( (f '()) )
+     (mset f +)
+     (assert (eq 7 (f 3 4))))
+(assert (eq 1234 f))
+
+
 (unset 'rrr)
 (unset 'yyy)
 (unset 'ttt)

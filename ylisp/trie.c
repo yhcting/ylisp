@@ -60,9 +60,9 @@
 static char _dummy_empty_desc = 0;
 
 typedef struct _value {
-    int              ty;       /* type of value */
-    char*            desc;     /* description for this value */
-    yle_t*           e;
+    int        ty;     /* this should matches symbol atom type - see 'yle_t.u.a.u.sym.ty' */
+    char*      desc;   /* description for this value */
+    yle_t*     e;
 } _value_t;
 
 /* use 4 bit trie node */
@@ -89,7 +89,7 @@ _free_description(char* desc) {
 }
 
 static inline _value_t*
-_alloc_trie_value(int ty, yle_t* e) {
+_alloc_trie_value(int sty, yle_t* e) {
     _value_t* v = ylmalloc(sizeof(_value_t));
     if(!v) { 
         /* 
@@ -98,7 +98,7 @@ _alloc_trie_value(int ty, yle_t* e) {
          */
         ylassert(0); 
     }
-    v->ty = ty; v->desc = &_dummy_empty_desc;
+    v->ty = sty; v->desc = &_dummy_empty_desc;
     v->e = e;
     yleref(e); /* e is reference manually! */
     return v;
@@ -252,11 +252,11 @@ yltrie_deinit() {
 }
 
 int
-yltrie_insert(const char* sym, int ty, yle_t* e) {
+yltrie_insert(const char* sym, int sty, yle_t* e) {
     _node_t*  n = _get_node((const unsigned char*)sym, TRUE);
     _value_t* esv = n->v;
 
-    n->v = _alloc_trie_value(ty, e);
+    n->v = _alloc_trie_value(sty, e);
     if(!n->v) { return -1; /* error case */ }
     if(esv) {
         /* there is already inserted values */

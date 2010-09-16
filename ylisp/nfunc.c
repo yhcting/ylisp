@@ -65,13 +65,13 @@ YLDEFNF(apply, 1, 9999) {
 YLDEFNF(f_mset, 2, 3) {
     if(pcsz > 2) {
         if(ylais_type(ylcaddr(e), YLASymbol))  {
-            return ylmset(ylcar(e), ylcadr(e), ylasym(ylcaddr(e)).sym);
+            return ylmset(ylcar(e), ylcadr(e), a, ylasym(ylcaddr(e)).sym);
         } else {
             ylnflogE0("MSET : 3rd parameter should be description string\n");
             ylinterpret_undefined(YLErr_func_invalid_param);
         }
     } else {
-        return ylmset(ylcar(e), ylcadr(e), NULL);
+        return ylmset(ylcar(e), ylcadr(e), a, NULL);
     }
 } YLENDNF(f_mset)
 

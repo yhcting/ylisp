@@ -60,7 +60,8 @@ ylset(yle_t* x, yle_t* y, yle_t* a, const char* desc);
  * @desc: see ylset.
  */
 extern yle_t*
-ylmset(yle_t* x, yle_t* y, const char* desc);
+ylmset(yle_t* x, yle_t* y, yle_t* a, const char* desc);
+
 
 extern yle_t*
 yleval(yle_t* e, yle_t* a);

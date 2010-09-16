@@ -48,6 +48,10 @@
 #define yldev_ver_major(v) (((v)&0xffff0000)>>16)
 #define yldev_ver_minor(v) ((v)&0x0000ffff)
 
+/* --------------------------
+ * YLE types
+ * --------------------------*/
+
 /* A: means Atom */
 #define YLASymbol          0x00
 #define YLANfunc           0x01 /**< normal native C function */
@@ -63,6 +67,12 @@
 #define YLEAtom            0x80000000  /**< 0 means ylpair */ 
 #define YLEReachable       0x40000000  /**< used for GC of memory pool */
 
+
+/* --------------------------
+ * YLASymbol attributes
+ * --------------------------*/
+/* 0 is default symbol attribute */
+#define YLASymbol_macro    0x80000000  /**< symbol represets macro */
 
 /*===================================
  *
@@ -132,6 +142,7 @@ typedef struct yle {
              */
             union {
                 struct {
+                    int            ty; /**< symbol type - 0 is default value */
                     char*          sym;
                 } sym; /**< for YLASymbol */
 
@@ -203,10 +214,6 @@ typedef struct yle {
 #define yleis_atom(e)           ((e)->t & YLEAtom)
 #define ylatype(e)              ((e)->t & YLAtype_mask)
 
-#define yleset_reachable(e)     ((e)->t |= YLEReachable)
-#define yleclear_reachable(e)   ((e)->t &= ~YLEReachable)
-#define yleis_reachable(e)      ((e)->t & YLEReachable)
-
 /* macros for easy accessing */
 #define yleatom(e)              ((e)->u.a)
 #define ylaif(e)                ((e)->u.a.aif)
@@ -219,7 +226,21 @@ typedef struct yle {
 #define ylpcar(e)               ((e)->u.p.car)
 #define ylpcdr(e)               ((e)->u.p.cdr)
 
+/* 
+ * each type-specific macros 
+ */
+
+/* -- common -- */
 #define yleis_nil(e)            (ylnil() == (e))
+
+#define yleset_reachable(e)     ((e)->t |= YLEReachable)
+#define yleclear_reachable(e)   ((e)->t &= ~YLEReachable)
+#define yleis_reachable(e)      ((e)->t & YLEReachable)
+
+/* -- symbol -- */
+#define ylasymis_macro(ty)      ((ty) & YLASymbol_macro)
+#define ylasymset_macro(ty)     ((ty) |= YLASymbol_macro)
+#define ylasymclear_macro(ty)   ((ty) &= ~YLASymbol_macro)
 
 
 /*
@@ -701,6 +722,7 @@ ylaassign_sym(yle_t* e, char* sym) {
     yleset_type(e, YLEAtom | YLASymbol);
     ylaif(e) = ylget_aif_sym();
     ylasym(e).sym = sym;
+    ylasym(e).ty = 0; /* 0 is default */
 }
 
 static inline yle_t*

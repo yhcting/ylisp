@@ -25,12 +25,6 @@
 
 #include "lisp.h"
 
-/* symbol value type */
-enum {
-    TRIE_VType_macro,
-    TRIE_VType_set,
-};
-
 enum {
     TRIEMeet_branch   = 0,
     TRIEMeet_leaf,
@@ -44,13 +38,14 @@ extern void
 yltrie_deinit();
 
 /**
+ * @sty : symbol type (see comment at yldev.h 'struct ylasym_ty')
  * @return: 
  *   -1: error
  *    0: newly inserted
  *    1: overwritten
  */
 extern int
-yltrie_insert(const char* sym, int ty, yle_t* e);
+yltrie_insert(const char* sym, int sty, yle_t* e);
 
 /**
  * @return: 

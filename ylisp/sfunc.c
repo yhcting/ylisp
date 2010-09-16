@@ -87,7 +87,7 @@ yleq(const yle_t* e1, const yle_t* e2) {
  *=================================*/
 
 /**
- * assumption : x is atomic symbol, y is a yllist form ((u1 v1) ...)
+ * assumption : x is atomic symbol, y is a list form ((u1 v1) ...)
  * @return NULL if fail to find. container ylpair if found.
  */
 static inline yle_t*
@@ -108,22 +108,24 @@ _list_find(yle_t* x, yle_t* y) {
  * a is a yllist of the form ((u1 v1) ... (uN vN))
  * < additional constraints : x is atomic >
  * if x is one of u's, it changes the value of 'u'. If ylnot, it changes global lookup map.
- * @a: atomic symbol
- * @y: any S-expression
- * @a: map yllist
+ * @s:     key symbol
+ * @val:   any S-expression - value
+ * @a:     map list
+ * @desc:  description of symbol
+ * @bmc:   Is this for macro
  * @return: new value
  */
-yle_t*
-ylset(yle_t* x, yle_t* y, yle_t* a, const char* desc) {
+static yle_t*
+_set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
     yle_t* r;
-    if( !ylais_type(x, YLASymbol)
-        || ylnil() == x) {
+    if( !ylais_type(s, YLASymbol)
+        || ylnil() == s) {
         yllogE0("Only symbol can be set!\n");
         ylinterpret_undefined(YLErr_eval_undefined); 
     }
 
-    ylassert(ylasym(x).sym);
-    r = _list_find(x, a);
+    ylassert(ylasym(s).sym);
+    r = _list_find(s, a);
     if(r) {
         /* found it */
         ylassert(!yleis_atom(r));
@@ -131,35 +133,31 @@ ylset(yle_t* x, yle_t* y, yle_t* a, const char* desc) {
             yllogE0("unexpected set operation!\n");
             ylinterpret_undefined(YLErr_eval_undefined); 
         } else  {
+            ylassert(ylais_type(ylcar(r), YLASymbol));
+            if(bmac) { ylasymset_macro(ylasym(ylcar(r)).ty); }
+            else { ylasymclear_macro(ylasym(ylcar(r)).ty); }
             /* change value of local map yllist */
-            ylpsetcdr(r, ylcons(y, ylnil()));
+            ylpsetcdr(r, ylcons(val, ylnil()));
         }
     } else {
         /* not found - set to global space */
-        yltrie_insert(ylasym(x).sym, TRIE_VType_set, y);
+        if(bmac) { yltrie_insert(ylasym(s).sym, ylasymset_macro(ylasym(s).ty), val); }
+        else { yltrie_insert(ylasym(s).sym, ylasymclear_macro(ylasym(s).ty), val); }
         if(desc) {
-            yltrie_set_description(ylasym(x).sym, desc);
+            yltrie_set_description(ylasym(s).sym, desc);
         }
     }
-
-    return y;
+    return val;
 }
 
 yle_t*
-ylmset(yle_t* x, yle_t* y, const char* desc) {
-    if( !ylais_type(x, YLASymbol)
-        || ylnil() == x) {
-        yllogE0("Only symbol can be set!\n");
-        ylinterpret_undefined(YLErr_eval_undefined); 
-    }
-    ylassert(ylasym(x).sym);
-    /* mset doesn't affect to local variable! */
-    yltrie_insert(ylasym(x).sym, TRIE_VType_macro, y);
-    if(desc) {
-        yltrie_set_description(ylasym(x).sym, desc);
-    }
+ylset(yle_t* s, yle_t* val, yle_t* a, const char* desc) {
+    return _set(s, val, a, desc, FALSE);
+}
 
-    return y;
+yle_t*
+ylmset(yle_t* s, yle_t* val, yle_t* a, const char* desc) {
+    return _set(s, val, a, desc, TRUE);
 }
 
 /*
@@ -233,29 +231,27 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
      *    (For fast symbol binding!)
      */
     r = _list_find(x, y);
+
+    /* 
+     * !! IMPORTANT NOTE !!
+     *    This SHOULD NOT BE THE ONE IN GLOBAL SPACE!!
+     *    Expression should be preserved!
+     *    Concept of macro(mset/mlambda) is different from 'set/lambda'.
+     *    Concept is NOT "get and use stored data".
+     *        - in this context, retrieved data can be changed!.
+     *    But, concept is "Replace it with pre-defined expression!"
+     *        - in this context, pre-defined expression SHOULD NOT be changed at any cases.
+     *    So, we should use cloned one!
+     */
     if(r) { 
         /* Found! in local association list */
-        *ovty = TRIE_VType_set;
-        return ylcadr(r);
+        ylassert(ylais_type(ylcar(r), YLASymbol));
+        *ovty = ylasym(ylcar(r)).ty;
+        return ylasymis_macro(*ovty)? yleclone_chain(ylcadr(r)): ylcadr(r);
     } else {
         r = (yle_t*)yltrie_get(ovty, ylasym(x).sym);
         if(r) { 
-            if(TRIE_VType_macro == *ovty) {
-                /* 
-                 * !! IMPORTANT NOTE !!
-                 *    This SHOULD NOT BE THE ONE IN GLOBAL SPACE!!
-                 *    Expression should be preserved!
-                 *    Concept of macro(mset/mlambda) is different from 'set/lambda'.
-                 *    Concept is NOT "get and use stored data".
-                 *        - in this context, retrieved data can be changed!.
-                 *    But, concept is "Replace it with pre-defined expression!"
-                 *        - in this context, pre-defined expression SHOULD NOT be changed at any cases.
-                 *    So, we should use cloned one!
-                 */
-                return yleclone_chain(r);
-            } else {
-                return r;
-            }
+            return ylasymis_macro(*ovty)? yleclone_chain(r): r;
         } else {
             /* 
              * check whether this represents number or not
@@ -265,8 +261,8 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
             double  d;
             d = strtod(ylasym(x).sym, &endp);
             if( 0 == *endp && ERANGE != errno ) {
-                /* default is "NOT macro". So set as 'TRIE_VType_set' */
-                *ovty = TRIE_VType_set;
+                /* default is 0 */
+                *ovty = 0;
                 /* right coversion - let's assign double type atom*/
                 return ylacreate_dbl(d);
             }
@@ -327,7 +323,7 @@ yleval(yle_t* e, yle_t* a) {
     if( yleis_atom(e) ) { 
         if(YLASymbol == ylatype(e)) {
             r = (yle_t*)_assoc(&vty, e, a);
-            if(TRIE_VType_macro == vty) {
+            if(ylasymis_macro(vty)) {
                 /* this is macro!. evaluate it again */
                 r = yleval(r, a);
             }
@@ -340,7 +336,7 @@ yleval(yle_t* e, yle_t* a) {
         yle_t*   p;
         if(YLASymbol == ylatype(car_e) ) {
             r = (yle_t*)_assoc(&vty, car_e, a);
-            if(TRIE_VType_macro == vty) {
+            if(ylasymis_macro(vty)) {
                 /* 
                  * This is macro symbol! replace target expression with symbol.
                  * And evaluate it with replaced value!
