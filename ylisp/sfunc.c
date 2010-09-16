@@ -234,7 +234,7 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
      */
     r = _list_find(x, y);
     if(r) { 
-        /* Found! in local association yllist */
+        /* Found! in local association list */
         *ovty = TRIE_VType_set;
         return ylcadr(r);
     } else {

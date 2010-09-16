@@ -40,6 +40,7 @@ public class Main extends JFrame {
     private LinkedList<String>  _history = new LinkedList<String>();
     private int                 _hi = -1;  // history index
     private int                 _loglv = _LogLv.Warn.v(); // default is log ouput - refer native code's implementation
+    private String              _bufferText;
     private boolean             _binterp = false;
     private Object              _interpobj = new Object();
     private Thread              _interpthd = new Thread( new Runnable() {
@@ -175,7 +176,13 @@ public class Main extends JFrame {
         }
     }
     
-    
+    private class ChangeBufferAction extends AbstractAction {
+        public void actionPerformed(ActionEvent ev) {
+            String tmp = _edit.getText();
+            _edit.setText(_bufferText);
+            _bufferText = tmp;
+        }
+    }    
     
     // ============================= ACTIONS END ==============================
     
@@ -233,6 +240,9 @@ public class Main extends JFrame {
     
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, Event.CTRL_MASK), "Auto Completion");
         actionMap.put("Auto Completion", new AutoCompleteAction());
+        
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_B, Event.CTRL_MASK), "Change Buffer");
+        actionMap.put("Change Buffer", new ChangeBufferAction());
     }
     
     

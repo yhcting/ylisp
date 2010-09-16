@@ -155,6 +155,9 @@
 (assert (equal ttt '(x y (1 2))))
 (assert (equal yyy '(x (a b) (1 2))))
 
+(assert (eq 5 (min 5 9)))
+(assert (eq 5 (max 5 4)))
+
 (unset 'rrr)
 (unset 'yyy)
 (unset 'ttt)

@@ -14,7 +14,7 @@ class YLJEditArea extends JTextArea {
      * @param rpos
      * @return: -1 means "Cannot find matching one"
      */
-    private int findMatchingLeftParenth(int pos) {
+    private int _findMatchingLeftParenth(int pos) {
         int    cnt = 1; // one more right parenthesis
         int    i;
         String t = getText();
@@ -37,7 +37,7 @@ class YLJEditArea extends JTextArea {
         if(')' == e.getKeyChar()
                 && KeyEvent.KEY_TYPED == e.getID()) { 
             int    pos = getCaretPosition();
-            int    m = findMatchingLeftParenth(pos);
+            int    m = _findMatchingLeftParenth(pos);
             if(m >= 0) {
                 moveCaretPosition(m);
                 paintImmediately(getBounds(null));

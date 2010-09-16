@@ -31,7 +31,7 @@ C_LINK=$(CC) $(CFLAGS) $(LDFLAGS) -L.
 
 JSRCDIR=jsrc/
 JOUTDIR=$(JSRCDIR)bin/
-JSOURCES=$(JSRCDIR)YLJTextArea.java $(JSRCDIR)Main.java 
+JSOURCES=$(JSRCDIR)YLJEditArea.java $(JSRCDIR)Main.java 
 JTARGET=$(JOUTDIR)joutdummy
 JC=javac
 JFLAGS=-Xlint:unchecked -d $(JOUTDIR)

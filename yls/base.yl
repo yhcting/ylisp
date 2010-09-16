@@ -395,3 +395,17 @@
     -greater than or equal
 "
     (not (< x y)))
+
+(defun min (x y)
+"min <atom1> <atom2>
+    -get minimum.
+     this uses '<' function in it.
+"
+    (cond ( (< x y) x) ('t y)))
+
+(defun max (x y)
+"max <atom1> <atom2>
+    -get maximum
+     this uses '<' function in it.
+"
+    (cond ( (> x y) x) ('t y)))
