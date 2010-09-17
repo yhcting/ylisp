@@ -27,7 +27,10 @@
 #ifndef ___STACk_h___
 #define ___STACk_h___
 
+#include <memory.h>
 #include "yldev.h"
+
+
 
 typedef struct {
     void**          item;
@@ -37,13 +40,16 @@ typedef struct {
 } ylstk_t;
 
 static inline ylstk_t*
-ylstk_create(unsigned int limit, void(*freecb)(void* item)) {
+ylstk_create(unsigned int init_limit, void(*freecb)(void* item)) {
     /* In most case, we cannot keep executing interpreter if we fail to allocate stack */
     ylstk_t*   s = ylmalloc(sizeof(ylstk_t));
     if(!s) { ylassert(0); }
-    s->item = ylmalloc(sizeof(void*)*limit);
+    if(0 == init_limit) {
+        init_limit = 16; /* default initial stack limit size */
+    }
+    s->item = ylmalloc(sizeof(void*)*init_limit);
     if(!s->item) { ylassert(0); }
-    s->limit = limit;
+    s->limit = init_limit;
     s->sz = 0;
     s->fcb = freecb;
     return s;
@@ -77,8 +83,16 @@ ylstk_size(ylstk_t* s) {
 static inline void
 ylstk_push(ylstk_t* s, void* item) {
     if(s->sz >= s->limit) {
-        yllogE1("Internal Error in Stack. Limit: %d\n", s->limit);
-        ylinterpret_undefined(YLErr_internal);
+        /* doubling stack size */
+        void** tmp = (void**)ylmalloc(s->limit * sizeof(void*) * 2);
+        if(!tmp) {
+            yllogE1("Internal Error in Stack(OOM). Fail to doubling! : Limit: %d\n", s->limit);
+            ylinterpret_undefined(YLErr_internal);
+        }
+        memcpy(tmp, s->item, sizeof(void*) * s->sz);
+        ylfree(s->item);
+        s->item = tmp;
+        s->limit *= 2;
     }
     s->item[s->sz++] = item;
 }

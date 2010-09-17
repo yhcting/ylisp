@@ -55,10 +55,6 @@
 #include "ylsfunc.h"
 #include "ylut.h"
 
-
-#define MAX_EVAL_DEPTH               128 /* I think this is enough */
-
-
 extern void
 yleclean(yle_t* e);
 

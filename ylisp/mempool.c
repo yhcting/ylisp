@@ -84,7 +84,7 @@ ylmp_init() {
         _mark_as_free(&_epl.pool[i]);
         _epl.fbis[i] = &_epl.pool[i];
     }
-    _ststk = ylstk_create(MAX_EVAL_DEPTH, NULL);
+    _ststk = ylstk_create(0, NULL);
     if(!_ststk) { return YLErr_out_of_memory;  }
     _stat.hwm = 0;
     return YLOk;

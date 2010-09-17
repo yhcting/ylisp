@@ -36,10 +36,6 @@
 
 /* single element string should be less than */
 #define _MAX_SINGLE_ELEM_STR_LEN    4096
-#define _MAX_SYNTAX_DEPTH           64
-
-#define _MAX_THREAD_STACK_SIZE      16
-
 
 /* =====================================
  *
@@ -844,8 +840,8 @@ ylinterpret_internal(const char* stream, unsigned int streamsz) {
     fsa.s = stream;
     fsa.send = fsa.s + streamsz;
     fsa.line = 1;
-    fsa.ststk = ylstk_create(_MAX_SYNTAX_DEPTH, NULL);
-    fsa.pestk = ylstk_create(_MAX_SYNTAX_DEPTH, NULL);
+    fsa.ststk = ylstk_create(0, NULL);
+    fsa.pestk = ylstk_create(0, NULL);
 
     if( !(fsa.ststk && fsa.pestk) ) {
         ret = YLErr_out_of_memory;
@@ -957,7 +953,7 @@ ylinterp_init() {
        || 0 > _init_mutexes() ) { 
         return YLErr_internal;
     }
-    _thdstk = ylstk_create(_MAX_THREAD_STACK_SIZE, NULL);
-    _evalstk = ylstk_create(MAX_EVAL_DEPTH, NULL);
+    _thdstk = ylstk_create(0, NULL);
+    _evalstk = ylstk_create(0, NULL);
     return YLOk;
 }
