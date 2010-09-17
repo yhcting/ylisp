@@ -88,16 +88,13 @@ YLDEFNF(pcre_match, 3, 3) {
     ylpassign(hd, ylnil(), ylnil());
     if(rc >= 0) {
         unsigned int     i, len;
-        yle_t*           se; /* symbol expression */
         char*            substr;
         for(i=0; i<rc; i++) {
-            se = ylmp_get_block();
             len = ovect[2*i+1]-ovect[2*i];
             substr = ylmalloc(len + 1); /* +1 for trailing 0 */
             memcpy(substr, subject+ovect[2*i], len);
             substr[len] = 0;
-            ylaassign_sym(se, substr);
-            ylpsetcdr(tl, ylcons(se, ylnil()));
+            ylpsetcdr(tl, ylcons(ylacreate_sym(substr), ylnil()));
             tl = ylcdr(tl);
         }
     } else if(PCRE_ERROR_NOMATCH == rc) {
@@ -119,7 +116,6 @@ YLDEFNF(pcre_match, 3, 3) {
  * @4: option
  */
 YLDEFNF(pcre_replace, 4, 4) {
-    yle_t*        r;
     pcre*         re;
     int           err_offset, rc, opt;
     unsigned int  subjlen;
@@ -159,17 +155,15 @@ YLDEFNF(pcre_replace, 4, 4) {
         memcpy(p, subject+ovect[1], subjlen - ovect[1]);
         newstr[newsz] = 0; /* trailing NULL */
 
-        r = ylmp_get_block();
-        ylaassign_sym(r, newstr);
-        
+        return ylacreate_sym(newstr);
     } else if(PCRE_ERROR_NOMATCH == rc) {
-        ; /* nothing to do */
+        /* return original symbol as it is */
+        return ylcaddr(e);
     } else {
         /* error case */
         ylnflogE1("PCRE error in match [%d]\n", rc);
         ylinterpret_undefined(YLErr_func_fail);
+        return ylnil();
     }
-
-    return r;
     
 } YLENDNF(pcre-replace)
