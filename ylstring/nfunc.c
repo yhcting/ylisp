@@ -266,7 +266,7 @@ YLDEFNF(start_with, 2, 3) {
 
     /* check index range */
     if(0 > fromi || fromi >= strsz) {
-        ylnflogE1("invalid index value : %d\n", fromi); 
+        ylnflogW1("invalid index value : %d\n", fromi); 
         return ylnil();
     }
 

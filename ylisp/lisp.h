@@ -90,17 +90,6 @@ void
 ylinteval_unlock();
 
 /*
- * Actually, 'pid_t' should be used.
- * But we don't want to include "sys/types.h" here..
- * So, long is used instead of 'pid_t'
- */
-int
-ylchild_proc_set(long pid);
-
-void
-ylchild_proc_unset();
-
-/*
  * to avoid symbol name (function name) conflicts with plug-ins
  * ylisp uses special naming rules!
  */

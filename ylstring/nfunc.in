@@ -84,19 +84,21 @@ NFUNC(start_with,            "string.start-with",           YLANfunc,
     "    @from index [Double] :\n")
 
 NFUNC(index_of,              "string.index-of",             YLANfunc,
-    "string.index-of <string> <str> (<from index>): [Double]\n"
+    "string.index-of <string> <str> (<from index>): [Double/nil]\n"
     "    -Returns the index within <string> of the first occurrence of the <str>, starting the search forward at the <from index>\n"
     "    @return [Double]     : nil if fail to search. Otherwise index.\n"
     "    @from index [Double] :\n");
 
 NFUNC(last_index_of,          "string.last-index-of",       YLANfunc,
-    "string.last-index-of <string> <str> (<from index>): [Double]\n"
+    "string.last-index-of <string> <str> (<from index>): [Double/nil]\n"
     "    -Returns the index within <string> of the last occurrence of the <str>, starting the search backward from the <from index>\n"
-    "    @from index [Double] :\n")
+    "    @from index [Double] :\n"
+    "    @return: nil if fails\n")
 
 NFUNC(replace,                "string.replace",             YLANfunc,
     "string.replace <string> <old> <new>: [Symbol]\n"
-    "    -Returns a new string resulting from replacing all occurrences of <old> in <string> with <new>.\n")
+    "    -Returns a new string resulting from replacing all occurrences of <old> in <string> with <new>.\n"
+    "     If fails to match, original string is returned.\n")
 
 NFUNC(substring,              "string.substring",           YLANfunc,
     "string.substring <string> <begin index> (<end index>): [Symbol]\n"

@@ -59,12 +59,12 @@ NFUNC(apply,                  "apply",                   YLASfunc,
 
 NFUNC(f_mset,                 "f-mset",                  YLANfunc,
     "f-mset <symbol> <exp> (<desc>)\n"
-    "    -Special s-function. Macro version of 'set'.\n"
+    "    -Set macro. Syntax is same with 'set'. But this is for setting macro\n"
     "     Evaluating <symbol> is same with evaluating <exp>.\n"
     "    @symbol[Symbol]: symbol name.\n"
     "    @exp:            lisp expression.\n"
     "    @desc[Symbol]:   description of this symbol.\n"
-    "    @return:         This is macro.\n"
+    "    @return:         <exp>.\n"
     "    *ex\n"
     "        (f-mset 'a '+) ;(a 7 8) => (+ 7 8)\n"
     "        (f-mset 'zzz 'rrr)\n"

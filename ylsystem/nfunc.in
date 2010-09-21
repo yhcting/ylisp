@@ -22,18 +22,18 @@
 
 NFUNC(shell,         "system.shell",        YLANfunc,
     "system.shell <command> : [Symbol]\n"
-    "    -execute command in the shell. (executed as subshell)\n"
-    "    @return : values of standard output\n")
+    "    -execute command in the shell by '/bin/bash -c')\n"
+    "    @return : values of standard output and error\n")
 
 NFUNC(sleep,         "system.sleep",        YLANfunc,
-    "system.sleep <seconds>\n"
+    "system.sleep <seconds> : [t]\n"
     "    -sleep for <secconds>\n");
 
 NFUNC(usleep,        "system.usleep",       YLANfunc,
-    "system.usleep <micro seconds>\n")
+    "system.usleep <micro seconds> : [t]\n")
 
 NFUNC(getenv,        "system.getenv",       YLANfunc,
-    "system.getenv <variable> : [Symbol]\n"
+    "system.getenv <variable> : [Symbol/nil]\n"
     "    -get value of environment variable. If there is no matching variable, it returns nil\n"
     "    @variable [Symbol]:\n")
 
@@ -52,7 +52,7 @@ NFUNC(getcwd,        "system.getcwd",       YLANfunc,
     "    -get current working directory path.\n")
 
 NFUNC(fstat,         "system.fstat",        YLANfunc,
-    "system.fstat [file] : [pair]\n"
+    "system.fstat [file] : [pair/nil]\n"
     "    -get paired map of file stat.\n"
     "    @return : nil if fails.\n"
     "        key: type\n"
@@ -68,7 +68,7 @@ NFUNC(fstat,         "system.fstat",        YLANfunc,
     "            size of file.\n")
 
 NFUNC(fread,         "system.fread",        YLANfunc,
-    "system.fread <file path> : [Symbol] - not tested yet\n"
+    "system.fread <file path> : [Symbol/nil]\n"
     "    -read text file.\n"
     "    @file path[Symbol]:  file path\n"
     "    @return:             symbol atom if success. Otherwise nil is returned!\n"
@@ -76,7 +76,7 @@ NFUNC(fread,         "system.fread",        YLANfunc,
     "        (fread 'test.txt) => <content of file>\n")
 
 NFUNC(freadb,        "system.freadb",       YLANfunc,
-    "system.freadb <file path> : [Binary] - not tested yet\n"
+    "system.freadb <file path> : [Binary/nil] - not tested yet\n"
     "    -read binary file.\n"
     "    @file path[Symbol]:  file path\n"
     "    @return:             binary atom if success. Otherwise nil is returned!\n"
@@ -94,7 +94,7 @@ NFUNC(fwrite,        "system.fwrite",       YLANfunc,
     "        (fwrite 'test.bin data) => <content of file>\n")
 
 NFUNC(readdir,       "system.readdir",      YLANfunc,
-    "system.readdir <dir path> : [list]\n"
+    "system.readdir <dir path> : [list/nil]\n"
     "    -read directory.\n"
     "    @dir path [Symbol]: dir path\n"
     "    @return:            list of file names. nil if fails or there is no file in it.\n"

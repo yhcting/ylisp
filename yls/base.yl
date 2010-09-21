@@ -9,7 +9,7 @@
     @symbol[Symbol]: symbol name.
     @exp:            lisp expression.
     @desc[Symbol]:   description of this symbol.
-    @return:         This is macro.
+    @return:         <exp>.
     *ex
         (mset a +) ;(a 7 8) => (+ 7 8)
         (mset zzz rrr)
@@ -79,7 +79,7 @@
 "let <vars> <exp1> <exp2> ...
     -let* in CL.
     @vars: form such that ((<var1> <init value>) (<var2> <init value>) ...).
-           Each vars are locally defined.
+           Each vars are locally defined symbol.
     @expN: expression to execute.
     *ex
         (set 'x 'a)
@@ -303,7 +303,9 @@
 ; ==========================
 
 (defun not (e)
-"logical not\n"
+"not <exp> : [t/nil]
+    -logical not
+"
     (cond (e '()) ('t 't)))
 
 ; find fist-occurred-function-symbol.

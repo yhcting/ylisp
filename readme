@@ -31,7 +31,7 @@ How Do I Build It?
     In the YLISP directory, type 'sh build.sh'
         To apply user specific environment, modify Makefile in each directory.
         Current source requires followings to build.
-            : jre (yljfe), libpthread.so, libdl.so, libm.so (ylmath)
+            : jre (yljfe), libpthread.so, libdl.so, librt.so, libm.so (ylmath)
 
         
 How Do I Run Demo?
@@ -44,7 +44,7 @@ How Do I Run Demo?
         Press Ctrl-R to run edited ylisp code.
         yljfe uses standard output(console).
         So, output of execution can be seen at the console where yljfe is executed.
-        (Note! So, you SHOULD NOT execute yljfe with background mode!)
+        (Note! So, you SHOULD keep your console being visible to check ylisp's output!)
         Ctrl-F to symbol auto completion.
 
 
@@ -108,14 +108,14 @@ Creating CNF
     * Interface for create CNF plugins.
         Files :
             ylisp.h : headers to implement YLISP front-end.
-            yldev.h : essential header for developing CNF that includes data types and constants.
-            yldevut.h / ylsfunc.h : This has several interface macros/functions for CNF developers.
+            yldev.h : essential header for developing CNF that includes data types, constants, macros and functions.
+            ylsfunc.h : This has S-functions for helping CNF development.
        ylmp_get_block() :
            Memory for yle_t should be taken from memory pool by using this.
-       ylpcreate(), ylpassign(), ylpsetcar(), ylpsetcdr()
+       ylcons(), ylpassign(), ylpsetcar(), ylpsetcdr()
         - Setting car or cdr value of pair should be done by calling one of those
           (Those functions handle reference count automatically.)
-          If not, GC may not work correctly!
+          If not, reference-based-GC may not work correctly! (Actually, Garbage may be collected in Full-Scanning-GC)
     * There should be two functions in CNF plugin. 'ylcnf_onload/ylcnf_onunload'.
       At the moment of loading plugin library by evaluating 'load-cnf', 'ylcnf_onload' is called.
       And at the moment of unload plugin library by evaluating 'unload-cnf', 'ylcnf_onunload' is called.
@@ -206,6 +206,18 @@ GC(Garbage collection)
           Actually, there are two options. one is using FSGC as an main GC method. the other is current implemented way. In terms of efficient memory usage, the former is better. But, to implement this, we should be careful when use memory block and returned value. And this makes it more difficult to implement CNF plugin. So, at the cost of a little inefficient memory usage, we can get interpreter design for easy-to-extend-CNF.
           (In my opinion, reference-based-GC can cover most cases. So, we don't need to worry about memory inefficiency too much)
         - When there is no interpreting request for pre-defined duration, FSGC is triggered.
+
+
+Force close
+-----------
+    YLISP supports 'force stop(henceforth FS)' even if it based on thread-based interpreting. 
+    To use 'FS' interpreting(ylinterpret(..)) and FS(ylforce_stop(...)) should be run on different thread.
+    Point of FS is "Between evaluation".
+    So, if one evaluation takes very long time, it cannot be interrupted by FS.
+    That's why 'one evaluation would better to be short and simple'
+    And, For CNF that spawns child process and waits it, 
+     the CNF should set child process id by calling 'ylchild_proc_set()' to make FC be able to kill sub-process.
+    After FS, FSGC is executed to collect garbage.
 
 
 Error handling

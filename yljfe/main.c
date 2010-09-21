@@ -41,9 +41,7 @@
  */
 #include "ylut.h"
 
-#define _MAX_SYM_LEN          1024
 #define _INIT_OUTBUFSZ        4*1024 /* normal page size */
-
 
 /* See Main.java */
 enum {
