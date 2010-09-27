@@ -144,7 +144,13 @@ _set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
         if(bmac) { yltrie_insert(ylasym(s).sym, ylasymset_macro(ylasym(s).ty), val); }
         else { yltrie_insert(ylasym(s).sym, ylasymclear_macro(ylasym(s).ty), val); }
         if(desc) {
-            yltrie_set_description(ylasym(s).sym, desc);
+            if(desc[0]) { 
+                /* strlen(desc) > 0 */
+                yltrie_set_description(ylasym(s).sym, desc);
+            } else {
+                /* strlen(desc) == 0 */
+                yltrie_set_description(ylasym(s).sym, NULL);
+            }
         }
     }
     return val;

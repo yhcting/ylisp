@@ -260,6 +260,8 @@ yltrie_insert(const char* sym, int sty, yle_t* e) {
     if(!n->v) { return -1; /* error case */ }
     if(esv) {
         /* there is already inserted values */
+        n->v->desc = esv->desc;
+        esv->desc = NULL; /* prevent description from freeing */
         _free_trie_value(esv);
         return 1; /* overwritten */
     } else { 
@@ -370,12 +372,18 @@ int
 yltrie_set_description(const char* sym, const char* description) {
     _node_t* n = _get_node(sym, FALSE);
     if(n && n->v) {
-        unsigned int sz = strlen(description);
+        unsigned int sz;
         char*        desc;
-        desc = ylmalloc(sz+1);
-        if(!desc) { ylassert(0); }
-        memcpy(desc, description, sz);
-        desc[sz] = 0; /* trailing 0 */
+        if(description) {
+            sz = strlen(description);
+            desc = ylmalloc(sz+1);
+            if(!desc) { ylassert(0); }
+            memcpy(desc, description, sz);
+            desc[sz] = 0; /* trailing 0 */
+        } else {
+            /* NULL description */
+            desc = &_dummy_empty_desc;
+        }
 
         _free_description(n->v->desc);
         n->v->desc = desc;

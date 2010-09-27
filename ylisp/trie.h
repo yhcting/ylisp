@@ -62,6 +62,9 @@ yltrie_delete(const char* sym);
 extern yle_t*
 yltrie_get(int* outty, const char* sym);
 
+/**
+ * @description: can be NULL for empty descritpion.
+ */
 extern int
 yltrie_set_description(const char* sym, const char* description);
 
