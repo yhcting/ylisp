@@ -411,3 +411,15 @@
      this uses '<' function in it.
 "
     (cond ( (> x y) x) ('t y)))
+
+(defmacro ++ (n)
+"++ <var>
+    -+1 and store. <var>++ in C
+"
+    (set 'n (+ n 1)))
+
+(defmacro -- (n)
+"-- <var>
+    --1 and store. <var>-- in C
+"
+    (set 'n (- n 1)))

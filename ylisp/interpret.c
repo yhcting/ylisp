@@ -693,7 +693,7 @@ _gctt_unset_timer() {
 static inline void
 _gctt_handler(int sig, siginfo_t* si, void* uc) {
     _interp_lock();
-    ylmp_scan_gc(YLMP_GCSCAN_FULL);
+    ylmp_gc();
     _interp_unlock();
 }
 
@@ -901,7 +901,7 @@ ylinterpret(const char* stream, unsigned int streamsz) {
                  * (After GC, expression in the stack may be invalid one!)
                  */
                 _show_eval_stack();
-                ylmp_recovery_gc(); 
+                ylmp_gc(); 
             }
 
             _inteval_unlock();
@@ -956,4 +956,10 @@ ylinterp_init() {
     _thdstk = ylstk_create(0, NULL);
     _evalstk = ylstk_create(0, NULL);
     return YLOk;
+}
+
+void
+ylinterp_deinit() {
+    ylstk_destroy(_thdstk);
+    ylstk_destroy(_evalstk);
 }

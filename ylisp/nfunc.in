@@ -141,6 +141,8 @@ NFUNC(interpret_file,         "interpret-file",          YLANfunc,
 /**********************************************************
  * Functions for managing interpreter internals.
  **********************************************************/
+#ifdef __DBG_MEM
+
 NFUNC(gc,                     "gc",                      YLANfunc,
     "gc\n"
     "    -Trigger Full-Scanning-GC manually!\n"
@@ -150,6 +152,7 @@ NFUNC(gc,                     "gc",                      YLANfunc,
     "         This may corrupt current running interpreting.\n"
     "         So, if you don't know what you are doing, DON'T DO THIS!\n")
 
+#endif /* __DBG_MEM */
 
 NFUNC(memstat,                "memstat",                 YLANfunc,
     "memstat\n"

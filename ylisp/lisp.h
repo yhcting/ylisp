@@ -55,6 +55,13 @@
 #include "ylsfunc.h"
 #include "ylut.h"
 
+
+
+extern ylerr_t ylnfunc_init();
+extern ylerr_t ylsfunc_init();
+extern ylerr_t ylinterp_init();
+extern void    ylinterp_deinit();
+
 extern void
 yleclean(yle_t* e);
 

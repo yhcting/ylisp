@@ -85,7 +85,7 @@ YLDEFNF(set, 2, 3) {
         if(ylais_type(ylcaddr(e), YLASymbol))  {
             return ylset(ylcar(e), ylcadr(e), a,ylasym(ylcaddr(e)).sym);
         } else {
-            ylnflogE0("MSET : 3rd parameter should be description string\n");
+            ylnflogE0("SET : 3rd parameter should be description string\n");
             ylinterpret_undefined(YLErr_func_invalid_param);
         }
     } else {
@@ -270,16 +270,20 @@ YLDEFNF(interpret_file, 1, 1) {
 /**********************************************************
  * Functions for managing interpreter internals.
  **********************************************************/
+#ifdef __DBG_MEM
+
 YLDEFNF(gc, 0, 0) {
     ylprint(("\n=========== Before ============\n"));
     ylmp_print_stat();
 
-    ylmp_scan_gc(YLMP_GCSCAN_FULL); /* start full scan */
+    yldbg_mp_gc(); /* start full scan */
 
     ylprint(("\n=========== After ============\n"));
     ylmp_print_stat();
     return ylt();
 } YLENDNF(gc)
+
+#endif /* __DBG_MEM */
 
 YLDEFNF(memstat, 0, 0) {
     ylmp_print_stat();

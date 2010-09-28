@@ -37,7 +37,7 @@ ylutfile_read(unsigned int* outsz, const char* fpath, int btext) {
     fh = fopen(fpath, "r");
     if(!fh) { *outsz = YLErr_io;  goto bail; }
 
-    /* do ylnot check error.. very rare to fail!! */
+    /* do not check error.. very rare to fail!! */
     fseek(fh, 0, SEEK_END);
     sz = ftell(fh);
     fseek(fh, 0, SEEK_SET);

@@ -16,8 +16,8 @@ Introduction
     Main features that YLISP library provides are:
         * S-Expression syntax parser.
         * Lisp evaluation mechanism (fundamental S-Functions are built-in (ex. lambda, mlambda, set, mset) in the library)
-        * Garbage collection mechanism.
-        * Mechanism to update/lookup global symbols.
+        * Mechanism for GC(Garbage Collection) and Force-Stop.
+        * Mechanism to manage/lookup global symbols and to get candidates for auto-completion.
         * Interface to load/unload CNF plugins(libraries).
 
     At this project, some plugins are already implemented. Those can be good examples.
@@ -31,7 +31,7 @@ How Do I Build It?
     In the YLISP directory, type 'sh build.sh'
         To apply user specific environment, modify Makefile in each directory.
         Current source requires followings to build.
-            : jre (yljfe), libpthread.so, libdl.so, librt.so, libm.so (ylmath)
+            : libpthread.so, libdl.so, librt.so, jre (yljfe), libm.so (ylmath)
 
         
 How Do I Run Demo?
@@ -53,11 +53,12 @@ How Do I Use It?
     I don't know.
     I uses yljfe as a simple script language tool for making tool.
     The reason why I starts this project is, 
-        "I don't want to learn any other script language! Learning one-language(C) is enough!"
+        "I don't want to learn any other script language! Learning one-language(C/C++) is enough!"
     But, actually I am defeated. There are lots of scripts that I should understand.
     So, I had to learn those...(ex. python, perl, shell etc)
-    But, learning language to make something with it, requires totally different efforts comparing to learning language to understand code.
-    .... What I am talking about now?? :-) ....
+    But, learning language to make code requires totally different efforts comparing to learning language to understand code.
+    YLISP is tool for me to make customized script easily.
+    Why don't you try to make your own script language based on S-Expression!
 
 
 External dependency
@@ -104,10 +105,10 @@ Creating CNF
 ------------
     * At first, see existing CNF plugins.
     * Things to obey
-        - Assigning values to element data (yle_t) SHOULD NOT be done. Use interface functions/macros to do this!
+        - Assigning values to element data (yle_t) directly, SHOULD NOT be allowed. Use interface functions/macros to do this!
     * Interface for create CNF plugins.
         Files :
-            ylisp.h : headers to implement YLISP front-end.
+            ylisp.h : headers to implement YLISP front-end (Only to use interpreter).
             yldev.h : essential header for developing CNF that includes data types, constants, macros and functions.
             ylsfunc.h : This has S-functions for helping CNF development.
        ylmp_get_block() :
@@ -124,7 +125,7 @@ Creating CNF
 
 Adding new-type-atom(henceforth NTA)
 ------------------------------------
-    * Following symbols at "yldev.h, yldevut.h" are related with this.
+    * Following symbols at 'yldev.h' are related with this.
         - YLACustom       : base value for customized NTA
         - ylatomif_t      : interface for handling NTA
         - yle_t.u.a.u.cd  : data pointer for NTA
@@ -167,9 +168,9 @@ Parsing S-Expression
             xxx"yyy"xxx : 3 symbol. xxx, yyy, xxx
 
 
-Machine representation of S-Expression
+Notable internal implementation of S-Expression
 --------------------------------------
-    predefined variable is used to represents NIL.
+    Predefined variable is used to represents NIL.
     In case of comparison, NIL means false / others true.
     And NIL is also ATOM.
 
@@ -183,22 +184,23 @@ Symbol look-up
 
     Trie :
          Data Structure for symbol look up at 'master' branch is changed to Trie from Hash! (4bits are used).
-         One character(8bits) is presented with 2 node. And each node can have 2^4 sub node.
+         One character(8bits) is represented with 2 nodes. And each node can have 2^4 sub nodes.
          This may require more memories if there are lots of symbols in global space. 
          But We can get following advantages by using Trie.
              - Fast to search symbol (Searching time is independent on number of symbols).
              - Sorted result can be taken easily.
              - Good to implement automatic-symbol-completion effectively in terms of performance.
              - Memories can be used effectively.
-               (Usually, lots of unused spaces exit in case of Hash)
+               (Usually, lots of unused spaces exist in Hash, if number of symbol is small.)
 
 
 GC(Garbage collection)
 ----------------------
     Memory pool is used. 
         - fixed-size-memory-pool is used. We may use dynamically-growing-memory-pool.
-    Reference count is used.
+    Reference count and 'Scanning and Marking', are used.
         - every memory block has reference count.
+        - nodes which are reachable from global trie are marked.
     GC is triggered.
         - Newly allocated dangling memory blocks - blocks whose reference count is zero - are freed except for those referred by return value.
         - If memory pool usage exceeded predefined threshold and interpreting request is done, than Full-Scanning-GC(FSGC) is triggered to collect dangling cyclic-cross-referred-blocks. 
@@ -212,9 +214,9 @@ Force close
 -----------
     YLISP supports 'force stop(henceforth FS)' even if it based on thread-based interpreting. 
     To use 'FS' interpreting(ylinterpret(..)) and FS(ylforce_stop(...)) should be run on different thread.
-    Point of FS is "Between evaluation".
-    So, if one evaluation takes very long time, it cannot be interrupted by FS.
-    That's why 'one evaluation would better to be short and simple'
+    Moment of triggering FS is "Between evaluation".
+    So, one long-evaluation be interrupted by FS.
+    That's why "one evaluation would be better to be short and simple"
     And, For CNF that spawns child process and waits it, 
      the CNF should set child process id by calling 'ylchild_proc_set()' to make FC be able to kill sub-process.
     After FS, FSGC is executed to collect garbage.
@@ -267,6 +269,11 @@ Things to think of
 =================================
 * Others
 =================================
+TODO
+----
+    * Codes of memory pool (mempool.[ch]) is not satisfactory. Refactoring is required.
+      (Any other simpler/better way?)
+
 
 Known Bugs
 ----------

@@ -32,24 +32,25 @@
  * (100 - _FULL_SCAN_TRIGGER_POINT)% is spare-buffer to run command till out from interpreting stack.
  */
 #define _FULLSCAN_TRIGGER_POINT       80  /* percent */
-#define _PARTIALSCAN_TRIGGER_POINT    95  /* percent */
-
 
 /* memory pool */
 static struct {
     yle_t      pool[MPSIZE];    /**< pool */
-    yle_t*     fbis[MPSIZE];    /**< Free Block IndexS */
-    yle_t*     ubis[MPSIZE];    /**< Used Block IndexS */
-    /* for easy sanity check, below two should be grow in opposite direction */
+    yle_t*     fbp[MPSIZE];    /**< Free Block Pointers */
+    /* for easy sanity check, below two should be grow in opposite direction with _ab.i*/
     int        fbi;             /**< Free Block Index - grow to bottom */
-    int        ubi;             /**< Used Block Index - grow to top */
-} _epl; /**< s-Expression PooL */
+} _m; /**< s-Expression PooL */
 
 static struct {
     unsigned int    hwm;
 } _stat;
 
-static ylstk_t*   _ststk = NULL; /* STate STacK */
+/* To handle push/pop of allocated memory block */
+static struct {
+    yle_t*     p[MPSIZE];    /**< Block Pointers */
+    ylstk_t*   s;            /**< state Stack - store allocated block indexs */
+    int        i;            /**< used block Index - grow to top */
+} _ab; /* Allocated Block */
 
 static inline void
 _set_chain_reachable(yle_t* e) {
@@ -61,7 +62,7 @@ _set_chain_reachable(yle_t* e) {
 }
 
 static inline int
-_used_block_count() { return MPSIZE - _epl.fbi; }
+_used_block_count() { return MPSIZE - _m.fbi; }
 
 /*
  * Memory usage ratio! (percent.)
@@ -78,43 +79,43 @@ ylerr_t
 ylmp_init() {
     register int i;
     /* init memory pool */
-    _epl.fbi = MPSIZE; /* from start */
-    _epl.ubi = 0;
+    _m.fbi = MPSIZE; /* from start */
+    _ab.i = 0;
     for(i=0; i<MPSIZE; i++) {
-        _mark_as_free(&_epl.pool[i]);
-        _epl.fbis[i] = &_epl.pool[i];
+        _mark_as_free(&_m.pool[i]);
+        _m.fbp[i] = &_m.pool[i];
     }
-    _ststk = ylstk_create(0, NULL);
-    if(!_ststk) { return YLErr_out_of_memory;  }
+    _ab.s = ylstk_create(0, NULL);
+    if(!_ab.s) { return YLErr_out_of_memory;  }
     _stat.hwm = 0;
     return YLOk;
 }
 
 void
 ylmp_deinit() {
-    ylstk_destroy(_ststk);
+    ylstk_destroy(_ab.s);
 }
 
 yle_t*
 ylmp_get_block() {
-    if(_epl.fbi <= 0) {
+    if(_m.fbi <= 0) {
         yllogE1("Not enough Memory Pool.. Current size is %d\n", MPSIZE);
         ylassert(0);
     } else {
-        --_epl.fbi;
+        --_m.fbi;
         /* it's taken out from pool! */
-        ylercnt(_epl.fbis[_epl.fbi]) = 0;
-        dbg_mem(_epl.fbis[_epl.fbi]->evid = ylget_eval_id(););
+        ylercnt(_m.fbp[_m.fbi]) = 0;
+        dbg_mem(_m.fbp[_m.fbi]->evid = ylget_eval_id(););
 
-        _epl.ubis[_epl.ubi] = _epl.fbis[_epl.fbi];
-        _epl.ubi++;
-        if(_epl.ubi >= MPSIZE) {
+        _ab.p[_ab.i] = _m.fbp[_m.fbi];
+        _ab.i++;
+        if(_ab.i >= MPSIZE) {
             yllogE0("Not enough used block checker..\n");
             ylassert(0);
         }
 
         if(_used_block_count() > _stat.hwm) { _stat.hwm = _used_block_count(); }
-        return _epl.fbis[_epl.fbi];
+        return _m.fbp[_m.fbi];
     }
 }
 
@@ -131,8 +132,8 @@ __ylmp_release_block(yle_t* e) {
     yleclean(e);
     memset(e, 0, sizeof(yle_t));
     _mark_as_free(e); /* memset cleared mark. So, mark it again */
-    _epl.fbis[_epl.fbi] = e;
-    _epl.fbi++;
+    _m.fbp[_m.fbi] = e;
+    _m.fbi++;
 }
 
 /*
@@ -151,7 +152,7 @@ __ylmp_release_block(yle_t* e) {
  *        This scans all memory blocks and keeps only blocks reachable from Trie space.
  *        So, using this during interpret transaction, is very dangerous.
  *        Therefore, this case should be used at the topmost of interpreting stack or in case of interpreting error!!.
- *    Partial-scan (bpartial == TRUE)
+ *    Partial-scan (bpartial == TRUE) -- Obsolete(Not useful. But hard to understand)
  *        This is less-effective but can be used at more variable cases.
  *        Following blocks are preserved.
  *            - Blocks that are newly allocated at current interpret transaction.
@@ -163,7 +164,7 @@ __ylmp_release_block(yle_t* e) {
  *            (Actually, HIGHLY NOT RECOMMENDED, IF POSSIBLE!)
  */
 static void
-_scanning_gc(ylmp_gcscanty_t ty) {
+_scanning_gc() {
     register int     i;
     int              j; 
 
@@ -172,24 +173,17 @@ _scanning_gc(ylmp_gcscanty_t ty) {
 
     /* check all blocks as NOT-REACHABLE (initialize) */
     for(i=0; i<MPSIZE; i++) {
-        yleclear_reachable(&_epl.pool[i]);
+        yleclear_reachable(&_m.pool[i]);
     }
 
     /* mark memory blocks that can be reachable from the Trie.*/
     yltrie_mark_reachable();
 
-    /* mark Reachable to blocks that are newly allocated at this interpret transaction */
-    if(YLMP_GCSCAN_PARTIAL == ty) {
-        for(i=0; i<_epl.ubi; i++) {
-            yleset_reachable(_epl.ubis[i]);
-        }
-    }
-
     /* Collect memory blocks those are not reachable (dangling) from the Trie! */
     for(i=0; i<MPSIZE; i++) {
         /* We need to find blocks that is dangling but not in the pool. */
-        if( !yleis_reachable(&_epl.pool[i])
-            && !ylmp_is_free_block(&_epl.pool[i]) ) {
+        if( !yleis_reachable(&_m.pool[i])
+            && !ylmp_is_free_block(&_m.pool[i]) ) {
             /* 
              * This is dangling - may be cross referred...
              * We need to check it... why this happenned..
@@ -198,9 +192,9 @@ _scanning_gc(ylmp_gcscanty_t ty) {
                             "        block index : %d\n"
                             "        eval id     : %d\n"
                             , i
-                            , _epl.pool[i].evid););
+                            , _m.pool[i].evid););
 
-            __ylmp_release_block(&_epl.pool[i]);
+            __ylmp_release_block(&_m.pool[i]);
         }
     }
 
@@ -210,50 +204,50 @@ _scanning_gc(ylmp_gcscanty_t ty) {
             "    Usage ratio after : %d\%\n",
             sv, _usage_ratio());
     /* 
-     * We don't handle ubi/ubis here! 
+     * We don't handle _ab.i/_ab.p here! 
      * Those should be handled at somewhere else.
      */
 }
 
 unsigned int
 ylmp_stack_size() {
-    return ylstk_size(_ststk);
+    return ylstk_size(_ab.s);
 }
 
 void
 ylmp_push() {
-    ylstk_push(_ststk, (void*)_epl.ubi);
+    ylstk_push(_ab.s, (void*)_ab.i);
 }
 
 
 void
 ylmp_pop() {
-    register int   i, pubi; /* pubi : previous ubi */
+    register int   i, pabi; /* pabi : previous _ab.i */
 
-    pubi = (int)ylstk_pop(_ststk);
+    pabi = (int)ylstk_pop(_ab.s);
     /* uncheck reachable bit(initialize) all used block used between push&pop */
-    ylassert(pubi <= _epl.ubi);
+    ylassert(pabi <= _ab.i);
             
 
     /* filter trivial case - For performance! */
-    if(pubi == _epl.ubi) {
+    if(pabi == _ab.i) {
         /* nothing to do. There is no newly allocated memory block */
         return; 
     }
 
     /* Start Garbage Collection for newly allocated blocks */
-    for(i=pubi; i<_epl.ubi; i++) {
-        if( ylmp_is_free_block(_epl.ubis[i]) ) {
+    for(i=pabi; i<_ab.i; i++) {
+        if( ylmp_is_free_block(_ab.p[i]) ) {
             /* nothing to do */
             continue;
-        } else if ( !ylercnt(_epl.ubis[i]) ) {
-            __ylmp_release_block(_epl.ubis[i]);
+        } else if ( !ylercnt(_ab.p[i]) ) {
+            __ylmp_release_block(_ab.p[i]);
         } else {
             /* packing array */
-            _epl.ubis[pubi++] = _epl.ubis[i];
+            _ab.p[pabi++] = _ab.p[i];
         }
     }
-    _epl.ubi = pubi;
+    _ab.i = pabi;
 
     /* Sanity Check */
     if( ylercnt(ylnil()) > 0x7fffffff
@@ -267,42 +261,36 @@ ylmp_pop() {
 
 
     /* special operation, when out from interpreting stack! */
-    if(!ylstk_size(_ststk)) {
+    if(!ylstk_size(_ab.s)) {
         /* start from the first */
-        _epl.ubi = 0;
+        _ab.i = 0;
         if(_usage_ratio() > _FULLSCAN_TRIGGER_POINT) {
-            _scanning_gc(YLMP_GCSCAN_FULL);
+            _scanning_gc();
         }
-    } else if(_usage_ratio() > _PARTIALSCAN_TRIGGER_POINT) {
-        /*
-         * I think this doesn't have any side effect.
-         * But I'm not sure 100%.
-         * It's very complicated and sensitive...
-         * Let's keep eyes on it.
-         */
-        _scanning_gc(YLMP_GCSCAN_PARTIAL);
     }
 }
 
 
+#ifdef __DBG_MEM
 void
-ylmp_scan_gc(ylmp_gcscanty_t ty) {
-    _scanning_gc(ty);
+yldbg_mp_gc() {
+    _scanning_gc();
 }
+#endif /* __DBG_MEM */
 
 void
-ylmp_recovery_gc() {
-    if(ylstk_size(_ststk) > 0) {
-        ylstk_clean(_ststk);
-        _epl.ubi = 0;
+ylmp_gc() {
+    if(ylstk_size(_ab.s) > 0) {
+        ylstk_clean(_ab.s);
+        _ab.i = 0;
     }
     /* It's a trigger full scan gc */
-    _scanning_gc(YLMP_GCSCAN_FULL);
+    _scanning_gc();
 }
 
 unsigned int
 ylmp_usage() {
-    return _epl.ubi;
+    return _ab.i;
 }
 
 
@@ -312,12 +300,12 @@ ylmp_usage() {
         "        HWM     : %d (%d\%)\n"         \
         "        USED    : %d (%d\%)\n"         \
         "        FREE    : %d (%d\%)\n"         \
-        "        ubi     : %d (%d\%)\n"         \
+        "        abi     : %d (%d\%)\n"         \
         , MPSIZE                                \
         , _stat.hwm, _stat.hwm * 100 / MPSIZE   \
         , _used_block_count(), _usage_ratio()   \
-        , _epl.fbi, _epl.fbi * 100 / MPSIZE     \
-        , _epl.ubi, _epl.ubi * 100 / MPSIZE
+        , _m.fbi, _m.fbi * 100 / MPSIZE     \
+        , _ab.i, _ab.i * 100 / MPSIZE
 
 void
 ylmp_print_stat() {

@@ -529,10 +529,6 @@ ylget_more_possible_prefix(const char* prefix, char* buf, unsigned int bufsz) {
  * aif interfaces - END
  * =======================*/
 
-extern ylerr_t ylnfunc_init();
-extern ylerr_t ylsfunc_init();
-extern ylerr_t ylinterp_init();
-
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
 #include "nfunc.in"
 #undef NFUNC
@@ -597,5 +593,6 @@ void
 yldeinit() {
     yltrie_deinit();
     ylmp_deinit();
+    ylinterp_deinit();
     ylutdynb_clean(&_prdynb);
 }

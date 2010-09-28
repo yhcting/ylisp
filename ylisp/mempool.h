@@ -30,12 +30,6 @@
  */
 #define YLEINVALID_REFCNT  (0xffffffff)
 
-
-typedef enum {
-    YLMP_GCSCAN_PARTIAL,
-    YLMP_GCSCAN_FULL,
-} ylmp_gcscanty_t;
-
 extern ylerr_t
 ylmp_init();
 
@@ -51,11 +45,12 @@ ylmp_deinit();
 
 /* GC when interpreting error occurs */
 extern void
-ylmp_recovery_gc();
+ylmp_gc();
 
+#ifdef __DBG_MEM
 extern void
-ylmp_scan_gc(ylmp_gcscanty_t ty);
-
+yldbg_mp_gc();
+#endif /* __DBG_MEM */
 /*
  * @return: current usage
  */

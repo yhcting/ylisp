@@ -165,6 +165,21 @@
 (assert (eq 1234 f))
 
 
+(let ( (f 0) )
+    (++ f)
+    (assert (eq 1 f))
+    (++ f)
+    (assert (eq 2 f)))
+
+(let ( (f 4) )
+    (-- f)
+    (assert (eq 3 f))
+    (-- f)
+    (assert (eq 2 f)))
+
+
+
+
 (unset 'rrr)
 (unset 'yyy)
 (unset 'ttt)
