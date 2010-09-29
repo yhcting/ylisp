@@ -310,8 +310,14 @@ _eval_exp(yle_t* e) {
 
 static void
 _fsas_init_enter(const _fsas_t* fsas, _fsa_t* fsa) {
-    memset(&fsa->sentinel, 0, sizeof(fsa->sentinel));
-    ylpassign(&fsa->sentinel, ylnil(), ylnil());
+    /*
+     * Initialise sentinel.
+     * At first, set invalid(NULL) car/cdr
+     * If not, ylpassign try to unref car/cdr which is invalid address.
+     */
+    yleset_type(&fsa->sentinel, YLEPair); /* type of sentinel is 'pair' */
+    fsa->sentinel.u.p.car = fsa->sentinel.u.p.cdr = NULL;
+
     fsa->pe = &fsa->sentinel;
     ylmp_push();
     dbg_mem(yllogD0("\n+++ START - Interpret +++\n"); 
@@ -320,17 +326,18 @@ _fsas_init_enter(const _fsas_t* fsas, _fsa_t* fsa) {
 
 static void
 _fsas_init_come_back(const _fsas_t* fsas, _fsa_t* fsa) {
+    /* check that there is expression to evaluate*/
     if(&fsa->sentinel != fsa->pe) {
         dbg_gen(yllogD1("\n\n\n------ Line : %d -------\n", fsa->line););
         _eval_exp(ylcadr(&fsa->sentinel));
-        /* unrefer to free dangling block */
-        ylpsetcdr(&fsa->sentinel, ylnil());
-        dbg_mem(yllogD0("\n+++ END - Interpret +++\n");
-                ylmp_log_stat(YLLogD););
-
     }
+    /* unrefer to free dangling block */
+    ylpassign(&fsa->sentinel, NULL, NULL);
     ylmp_pop();
-    _fsas_init_enter(fsas, fsa);
+
+    /* prepare for new interpretation */
+    fsa->pe = &fsa->sentinel;
+    ylmp_push();
 }
 
 static int
@@ -364,8 +371,7 @@ _fsas_init_exit(const _fsas_t* fsas, _fsa_t* fsa) {
      * we need to unref memory blocks that is indicated by sentinel
      * (Usually, both are nil.
      */
-    yleunref(ylcar(&fsa->sentinel));
-    yleunref(ylcdr(&fsa->sentinel));
+    ylpassign(&fsa->sentinel, NULL, NULL);
 }
 
 /* ------------------------------------------ */
@@ -829,8 +835,6 @@ ylinterpret_internal(const char* stream, unsigned int streamsz) {
     pthread_t            thd;
 
     if(!stream || 0==streamsz) { return YLOk; } /* nothing to do */
-
-    memset(&fsa.sentinel, 0, sizeof(fsa.sentinel));
 
     /* 
      * NOTE! : We SHOULD NOT initialize sentinel here!

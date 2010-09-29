@@ -54,7 +54,7 @@
  * If possible DO NOT access struct directly!.
  */
 typedef struct ylutlist_link {
-    struct ylutlist_link *_next, *_prev;
+    struct ylutlist_link *next, *prev;
 } ylutlist_link_t;
 
 /**
@@ -62,28 +62,28 @@ typedef struct ylutlist_link {
  */
 static inline void
 ylutlist_init_link(ylutlist_link_t* link) {
-    link->_next = link->_prev = link;
+    link->next = link->prev = link;
 }
 
 static inline int
 ylutlist_is_empty(const ylutlist_link_t* head) {
-    return head->_next == head;
+    return head->next == head;
 }
 
 static inline void
 ylutlist_add(ylutlist_link_t* prev, ylutlist_link_t* next, ylutlist_link_t* anew) {
-    next->_prev = prev->_next = anew;
-    anew->_next = next; anew->_prev = prev;
+    next->prev = prev->next = anew;
+    anew->next = next; anew->prev = prev;
 }
 
 static inline void
 ylutlist_add_next(ylutlist_link_t* link, ylutlist_link_t* anew) {
-    ylutlist_add(link, link->_next, anew);
+    ylutlist_add(link, link->next, anew);
 }
 
 static inline void
 ylutlist_add_prev(ylutlist_link_t* link, ylutlist_link_t* anew) {
-    ylutlist_add(link->_prev, link, anew);
+    ylutlist_add(link->prev, link, anew);
 }
 
 static inline void
@@ -98,77 +98,77 @@ ylutlist_add_last(ylutlist_link_t* head, ylutlist_link_t* anew) {
 
 static inline void
 __ylutlist_del(ylutlist_link_t* prev, ylutlist_link_t* next) {
-    prev->_next = next;
-    next->_prev = prev;
+    prev->next = next;
+    next->prev = prev;
 }
 
 static inline void
 ylutlist_del(ylutlist_link_t* link) {
-    __ylutlist_del(link->_prev, link->_next);
+    __ylutlist_del(link->prev, link->next);
 }
 
 static inline void
 ylutlist_replace(ylutlist_link_t* old, ylutlist_link_t* anew) {
-    anew->_next = old->_next;
-    anew->_next->_prev = anew;
-    anew->_prev = old->_prev;
-    anew->_prev->_next = anew;
+    anew->next = old->next;
+    anew->next->prev = anew;
+    anew->prev = old->prev;
+    anew->prev->next = anew;
 }
 
 /**
- * @pos     : the &ylutlist_link_t to use as a loop cursor
- * @head    : head of list (&ylutlist_link_t)
+ * @pos     : the ylutlist_link_t* to use as a loop cursor
+ * @head    : head of list (ylutlist_link_t*)
  */
-#define ylutlist_foreach(pos, head) \
-        for((pos) = (head)->_next; (pos) != (head); (pos) = (pos)->_next)
+#define ylutlist_foreach(pos, head)                                     \
+    for((pos) = (head)->next; (pos) != (head); (pos) = (pos)->next)
 
-#define ylutlist_foreach_backward(pos, head) \
-        for((pos) = (head)->_prev; (pos) != (head); (pos) = (pos)->_prev)
+#define ylutlist_foreach_backward(pos, head)                            \
+    for((pos) = (head)->prev; (pos) != (head); (pos) = (pos)->prev)
 
 /**
- * @pos     : the &ylutlist_link_t to use as a loop cursor
- * @n       : another &ylutlist_link_t to use as temporary storage
- * @head    : head of list (&ylutlist_link_t)
+ * @pos     : the ylutlist_link_t* to use as a loop cursor
+ * @n       : another ylutlist_link_t* to use as temporary storage
+ * @head    : head of list (ylutlist_link_t*)
  */
-#define ylutlist_foreach_removal_safe(pos, n, head) \
-        for((pos) = (head), (n) = (pos)->_next; (pos) != (head); (pos) = (n), (n) = (pos)->_next)
+#define ylutlist_foreach_removal_safe(pos, n, head)                     \
+    for((pos) = (head), (n) = (pos)->next; (pos) != (head); (pos) = (n), (n) = (pos)->next)
 
-#define ylutlist_foreach_removal_safe_backward(pos, n, head) \
-        for((pos) = (head), (n) = (pos)->_prev; (pos) != (head); (pos) = (n), (n) = (pos)->_prev)
+#define ylutlist_foreach_removal_safe_backward(pos, n, head)            \
+    for((pos) = (head), (n) = (pos)->prev; (pos) != (head); (pos) = (n), (n) = (pos)->prev)
 /**
  * @pos     : the @type* to use as a loop cursor.
- * @head    : the head for list (&ylutlist_link_t)
+ * @head    : the head for list (ylutlist_link_t*)
  * @type    : the type of the struct of *@pos
  * @member  : the name of the ylutlist_link within the struct.
  */
-#define ylutlist_foreach_item(pos, head, type, member)            \
-        for((pos) = container_of((head)->_next, type, member);    \
-            &(pos)->member != (head);                             \
-            (pos) = container_of((pos)->member._next, type, member))
+#define ylutlist_foreach_item(pos, head, type, member)                  \
+    for((pos) = container_of((head)->next, type, member);               \
+        &(pos)->member != (head);                                       \
+        (pos) = container_of((pos)->member.next, type, member))
 
-#define ylutlist_foreach_item_backward(pos, head, type, member)   \
-        for((pos) = container_of((head)->_prev, type, member);    \
-            &(pos)->member != (head);                             \
-            (pos) = container_of((pos)->member._prev, type, member))
+#define ylutlist_foreach_item_backward(pos, head, type, member)         \
+    for((pos) = container_of((head)->prev, type, member);               \
+        &(pos)->member != (head);                                       \
+        (pos) = container_of((pos)->member.prev, type, member))
 
 /**
  * @type    : the type of the struct of *@pos
  * @pos     : the @type* to use as a loop cursor.
  * @n       : another @type* to use as temporary storage.
- * @head    : the head for list (&ylutlist_link_t)
+ * @head    : the head for list (ylutlist_link_t*)
  * @member  : the name of the ylutlist_link within the struct.
  */
-#define ylutlist_foreach_item_removal_safe(pos, n, head, type, member)    \
-        for((pos) = container_of((head)->_next, type, member),            \
-                (n) = container_of((pos)->member._next, type, member);    \
-            &(pos)->member != (head);                                     \
-            (pos) = (n), (n) = container_of((pos)->member._next, type, member))
+#define ylutlist_foreach_item_removal_safe(pos, n, head, type, member)  \
+    for((pos) = container_of((head)->next, type, member),               \
+            (n) = container_of((pos)->member.next, type, member);       \
+        &(pos)->member != (head);                                       \
+        (pos) = (n), (n) = container_of((pos)->member.next, type, member))
 
-#define ylutlist_foreach_item_removal_safe_backward(pos, n, head, type, member)   \
-        for((pos) = container_of((head)->_prev, type, member),                    \
-                (n) = container_of((pos)->member._prev, type, member);            \
-            &(pos)->member != (head);                                             \
-            (pos) = (n), (n) = container_of((pos)->member._prev, type, member))
+#define ylutlist_foreach_item_removal_safe_backward(pos, n, head, type, member) \
+    for((pos) = container_of((head)->prev, type, member),               \
+            (n) = container_of((pos)->member.prev, type, member);       \
+        &(pos)->member != (head);                                       \
+        (pos) = (n), (n) = container_of((pos)->member.prev, type, member))
 
 static inline unsigned int
 ylutlist_size(const ylutlist_link_t* head) {

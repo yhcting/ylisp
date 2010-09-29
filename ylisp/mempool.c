@@ -20,24 +20,25 @@
 
 
 
-#include <memory.h>
 #include "mempool.h"
 #include "stack.h"
 
 /*
  * Full scan is trigerred when memory usage is over than _FULLSCAN_TRIGGER_POINT
  *   and current interpreting stack in empty (topmost interpreting stack).
- * But if fullscan fail to gather garbages more than (_MIN_FULLSCAN_EFFECT)% memory,
- *   program notifies 'memory shortage'!
  * (100 - _FULL_SCAN_TRIGGER_POINT)% is spare-buffer to run command till out from interpreting stack.
  */
 #define _FULLSCAN_TRIGGER_POINT       80  /* percent */
 
+typedef struct {
+    unsigned int i;   /**< index of free block pointer */
+    yle_t        e;
+} _blk_t;
+
 /* memory pool */
 static struct {
-    yle_t      pool[MPSIZE];    /**< pool */
-    yle_t*     fbp[MPSIZE];    /**< Free Block Pointers */
-    /* for easy sanity check, below two should be grow in opposite direction with _ab.i*/
+    _blk_t     pool[MPSIZE];    /**< pool */
+    yle_t*     fbp[MPSIZE];     /**< Free Block Pointers */
     int        fbi;             /**< Free Block Index - grow to bottom */
 } _m; /**< s-Expression PooL */
 
@@ -51,6 +52,11 @@ static struct {
     ylstk_t*   s;            /**< state Stack - store allocated block indexs */
     int        i;            /**< used block Index - grow to top */
 } _ab; /* Allocated Block */
+
+static inline unsigned int
+_fbpi(yle_t* e) {
+    return container_of(e, _blk_t, e)->i;
+}
 
 static inline void
 _set_chain_reachable(yle_t* e) {
@@ -82,8 +88,9 @@ ylmp_init() {
     _m.fbi = MPSIZE; /* from start */
     _ab.i = 0;
     for(i=0; i<MPSIZE; i++) {
-        _mark_as_free(&_m.pool[i]);
-        _m.fbp[i] = &_m.pool[i];
+        _mark_as_free(&_m.pool[i].e);
+        _m.fbp[i] = &_m.pool[i].e;
+        _m.pool[i].i = i;
     }
     _ab.s = ylstk_create(0, NULL);
     if(!_ab.s) { return YLErr_out_of_memory;  }
@@ -121,8 +128,9 @@ ylmp_get_block() {
 
 void
 __ylmp_release_block(yle_t* e) {
-    /* ylassert(!ylercnt(e)); - sometimes force-release is required! */
-    ylassert(e != ylnil() && e != ylt() && e != ylq());
+    ylassert(e != ylnil() && e != ylt() && e != ylq()
+             && _m.fbp[_fbpi(e)] == e ); /* sanity check */
+
     /*
      * Before call yleclean, we should mark that this block is free block.
      * If not, following unexpected case may happen!
@@ -130,9 +138,20 @@ __ylmp_release_block(yle_t* e) {
      */
     _mark_as_free(e);
     yleclean(e);
-    memset(e, 0, sizeof(yle_t));
-    _mark_as_free(e); /* memset cleared mark. So, mark it again */
-    _m.fbp[_m.fbi] = e;
+
+    /* swap free block pointer */
+    { /* Just scope */
+        _blk_t* b1 = container_of(e, _blk_t, e);
+        _blk_t* b2 = container_of(_m.fbp[_m.fbi], _blk_t, e);
+        unsigned int ti; /* Temp I */
+
+        /* swap fbp index */
+        ti = b1->i; b1->i = b2->i; b2->i = ti;
+
+        /* set fbp accordingly */
+        _m.fbp[b1->i] = &b1->e;
+        _m.fbp[b2->i] = &b2->e;
+    }
     _m.fbi++;
 }
 
@@ -171,19 +190,21 @@ _scanning_gc() {
     /* for logging */
     int              sv = _usage_ratio();
 
-    /* check all blocks as NOT-REACHABLE (initialize) */
-    for(i=0; i<MPSIZE; i++) {
-        yleclear_reachable(&_m.pool[i]);
+    /* check for used blocks are enough */
+
+    /* check all used blocks as NOT-REACHABLE */
+    for(i=_m.fbi; i<MPSIZE; i++) {
+        yleclear_reachable(_m.fbp[i]);
     }
 
     /* mark memory blocks that can be reachable from the Trie.*/
     yltrie_mark_reachable();
 
     /* Collect memory blocks those are not reachable (dangling) from the Trie! */
-    for(i=0; i<MPSIZE; i++) {
+    for(i=_m.fbi; i<MPSIZE; i++) {
         /* We need to find blocks that is dangling but not in the pool. */
-        if( !yleis_reachable(&_m.pool[i])
-            && !ylmp_is_free_block(&_m.pool[i]) ) {
+        if( !ylmp_is_free_block(_m.fbp[i])
+            && !yleis_reachable(_m.fbp[i]) ) {
             /* 
              * This is dangling - may be cross referred...
              * We need to check it... why this happenned..
@@ -192,9 +213,9 @@ _scanning_gc() {
                             "        block index : %d\n"
                             "        eval id     : %d\n"
                             , i
-                            , _m.pool[i].evid););
+                            , _m.pool[i].e.evid););
 
-            __ylmp_release_block(&_m.pool[i]);
+            __ylmp_release_block(_m.fbp[i]);
         }
     }
 

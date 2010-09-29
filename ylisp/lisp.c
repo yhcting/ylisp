@@ -276,14 +276,35 @@ yleclean(yle_t* e) {
         if(ylaif(e)->clean) { (*ylaif(e)->clean)(e); }
         else { yllogW0("There is an atom that doesn't support/allow CLEAN!\n"); }
     } else {
+        ylassert( ylercnt(ylpcar(e)) && ylercnt(ylpcdr(e)) );
+
         /*
          * cdr and car may be already collected by GC.
          * So, we need to check it!
+         *
+         * In normal case, car/cdr block cannot be 'free block'
+         * But, there is one special execptional case - Scanning GC.
+         * Scanning GC collect blocks without caring about reference count.
+         * Therefore, during Scanning GC, having free-car/cdr-block is possible.
+         * So, we need to check it firstly.
          */
-        ylassert( ylercnt(ylpcar(e)) && ylercnt(ylpcdr(e)) );
         if( !ylmp_is_free_block(ylpcar(e)) ) { yleunref(ylpcar(e)); }
         if( !ylmp_is_free_block(ylpcdr(e)) ) { yleunref(ylpcdr(e)); }
     }
+    /*
+     * And after cleaning, we need to force car/cdr be set as NULL,
+     *  EVEN IF it's type may NOT be PAIR!.
+     * This cleaned block may be used as a pair. That is a point!.
+     * When the block is used as pair later,
+     *  if car/cdr value is not initialised as NULL,
+     *  'ylpassign()' may try to unref car/cdr which has invalid initial value.
+     * (See, ylpassign->ylpsetcar/ylpsetcdr)
+     *
+     * => To set into NULL, we SHOULD NOT use ylpsetcar()/ylpsetcdr().
+     *    Set directly.
+     */
+    ylpcar(e) = NULL;
+    ylpcdr(e) = NULL;
 }
 
 

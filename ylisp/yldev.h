@@ -704,7 +704,7 @@ static inline void
 ylpsetcar(yle_t* e, yle_t* exp) {
     yle_t*  sv = e->u.p.car;
     e->u.p.car = exp;
-    yleref(exp);
+    if(exp) { yleref(exp); }
     if(sv) { yleunref(sv); }
 }
 
@@ -712,7 +712,7 @@ static inline void
 ylpsetcdr(yle_t* e, yle_t* exp) {
     yle_t*  sv = e->u.p.cdr;
     e->u.p.cdr = exp;
-    yleref(exp);
+    if(exp) { yleref(exp); }
     if(sv) { yleunref(sv); }
 }
 
