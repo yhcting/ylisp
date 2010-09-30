@@ -68,7 +68,7 @@ ylmp_print_stat();
  * is this block is free?
  * if true, this block is already in the free block list.
  */
-static int
+static inline int
 ylmp_is_free_block(const yle_t* e) {
     return YLEINVALID_REFCNT == ylercnt(e);
 }

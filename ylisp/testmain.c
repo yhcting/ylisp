@@ -94,6 +94,7 @@ main(int argc, char* argv[]) {
     sys.assert = _assert;
     sys.malloc = _malloc;
     sys.free = _free;
+    sys.mpsz = 64*1024;
 
     ylinit(&sys);
 

@@ -34,10 +34,6 @@
  * Interpreter Internal Configuration
  * ---------------------------------*/
 
-/* size of memory pool. the more the better! */
-#define MPSIZE  (128*1024)
-
-
 /* ---------------------------------
  * Switches for debugging
  * ---------------------------------*/

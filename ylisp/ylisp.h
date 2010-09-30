@@ -115,6 +115,9 @@ typedef struct {
 
     /* memory free */
     void       (*free)(void*);
+
+    /* interpreter memory pool size*/
+    unsigned int  mpsz;
 } ylsys_t; /* system parameter  */
 
 /* 

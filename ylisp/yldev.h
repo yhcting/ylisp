@@ -251,19 +251,19 @@ typedef struct yle {
 #define ylfree(x)       ylsysv()->free(x)
 
 #ifdef __ENABLE_ASSERT
-#   define ylassert(x)  ylsysv()->assert((int)(x))
+#   define ylassert(x)  do { ylsysv()->assert((int)(x)); } while(0)
 #else /* __ENABLE_ASSERT */
 #   define ylassert(x)  ((void*)0)
 #endif /* __ENABLE_ASSERT */
 
 #ifdef __ENABLE_LOG
-#   define yllog(x)     ylsysv()->log x
+#   define yllog(x)     do { ylsysv()->log x; } while(0)
 #else /* __ENABLE_LOG */
 #   define yllog(x)     ((void*)0)
 #endif /* __ENABLE_LOG */
 
-#define ylprint(x)      ylsysv()->print x
-
+#define ylprint(x)      do { ylsysv()->print x; } while(0)
+#define ylmpsz(x)       (ylsysv()->mpsz)
 /* 
  * ! Predefined atoms !
  * To improve performance, we may use global variable instead of function.

@@ -246,6 +246,7 @@ main(int argc, char* argv[]) {
     sys.assert = _assert;
     sys.malloc = malloc;
     sys.free = free;
+    sys.mpsz = 128*1024;
     if(YLOk != ylinit(&sys)) {
         printf("Fail to initailize ylisp!\n");
         return 0;

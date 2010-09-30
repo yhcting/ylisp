@@ -120,7 +120,7 @@ ylcdr(yle_t* e) {
 
 
 
-static yle_t*
+static inline yle_t*
 ylcons(yle_t* car, yle_t* cdr) {
     return ylpcreate(car, cdr);
 }
@@ -157,7 +157,8 @@ ylnot(const yle_t* e1) {
 /*=================================
  * Recursive S-functions - START
  *=================================*/
-static inline yle_t* yllist(yle_t* e1, yle_t* e2)  { 
+static inline yle_t*
+yllist(yle_t* e1, yle_t* e2)  {
     return ylcons(e1, ylcons(e2, ylnil())); 
 }
 
