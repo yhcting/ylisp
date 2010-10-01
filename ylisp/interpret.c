@@ -159,14 +159,20 @@ Notation :
 ===========================================================================================
 state      "         other       '         \         (         )         ;         \s
 -------------------------------------------------------------------------------------------
-init       dquo      <symb>      squo      esca      list      X         comm      -
-list       dquo      <symb>      squo      esca      list      E         comm      -      
-squote     dquo      <symb>      squo      esca      list      <E>       <E>       <E>
+init       dquo      <symb>      squo      *esca     list      X         comm      -
+list       dquo      <symb>      squo      *esca     list      E         comm      -
+squote     dquo      <symb>      squo      *esca     list      <E>       <E>       <E>
 symbol     <E>       -           <E>       esca      <E>       <E>       <E>       <E>
 dquote     E         -           -         esca      -         -         -         -
 comment    -         -           -         -         -         -         -         E(\n)
 escape     E         E           X         E         X         X         X         X
 ===========================================================================================
+
+Exceptional case
+    *esca : enter symbol state and then enter to escape state. (2 steps)
+           (escape state is only for symbol.
+            And, exiting from escape state should return valid symbol or part of symbol)
+
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 
@@ -629,6 +635,21 @@ _interp_automata(void* arg) {
             st = ylstk_peek(fsa->ststk);
             (*st->come_back)(st, fsa);
             /* yllogV1(" => [%s]", st->name); */
+        } else if(&_fsas_escape == nst) {
+            /* special case */
+            if( !(&_fsas_dquote == ylstk_peek(fsa->ststk)
+                  || &_fsas_symbol == ylstk_peek(fsa->ststk)) ) {
+                /*
+                 * enter symbol state firstly.
+                 * - 'dquote' state is PRACTICALLY same with 'symbol' state.
+                 *   So, we don't need to handle specially not only 'symbol' but also 'dquote' state.
+                 */
+                ylstk_push(fsa->ststk, (void*)&_fsas_symbol);
+                (_fsas_symbol.enter)(&_fsas_symbol, fsa);
+            }
+            ylstk_push(fsa->ststk, (void*)nst);
+            (*nst->enter)(nst, fsa);
+             st = nst;
         } else {
             ylstk_push(fsa->ststk, (void*)nst);
             (*nst->enter)(nst, fsa);

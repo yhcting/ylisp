@@ -1,6 +1,13 @@
 ; Assumption : ylbase.so is loaded!
 ; test
 
+; Test syntax parsor
+(set 'x '\")
+(assert (eq x '\"))
+(set 'x (quote \"))
+(assert (eq x '\"))
+
+
 (set 'rrr 'ttt)
 (assert 
     (eq rrr 'ttt))
