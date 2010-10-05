@@ -191,17 +191,22 @@ typedef struct {
 } ylutdynb_t;
 
 static inline unsigned int
-ylutdynb_freesz(ylutdynb_t* b) {
+ylutdynb_limit(const ylutdynb_t* b) {
+    return b->limit;
+}
+
+static inline unsigned int
+ylutdynb_freesz(const ylutdynb_t* b) {
     return b->limit - b->sz;
 }
 
 static inline unsigned int
-ylutdynb_sz(ylutdynb_t* b) {
+ylutdynb_sz(const ylutdynb_t* b) {
     return b->sz;
 }
 
 static inline unsigned char*
-ylutdynb_ptr(ylutdynb_t* b) {
+ylutdynb_ptr(const ylutdynb_t* b) {
     return b->b + b->sz;
 }
 
@@ -264,17 +269,17 @@ ylutdynb_append(ylutdynb_t* b, const unsigned char* d, unsigned int dsz);
  * @return: <0 means, "this is not string buffer!"
  */
 static inline unsigned int
-ylutstr_len(ylutdynb_t* b) {
+ylutstr_len(const ylutdynb_t* b) {
     return b->sz - 1; /* '-1' to exclude trailing 0 */
 }
 
 static inline unsigned char*
-ylutstr_ptr(ylutdynb_t* b) {
+ylutstr_ptr(const ylutdynb_t* b) {
     return b->b + ylutstr_len(b); 
 }
 
 static inline unsigned char*
-ylutstr_string(ylutdynb_t* b) {
+ylutstr_string(const ylutdynb_t* b) {
     return b->b;
 }
 

@@ -166,6 +166,12 @@ ylmset(yle_t* s, yle_t* val, yle_t* a, const char* desc) {
     return _set(s, val, a, desc, TRUE);
 }
 
+int
+ylis_set(const char* sym) {
+    if(yltrie_get(NULL, sym)) { return 1; }
+    else { return 0; }
+}
+
 /*
  * assumption : 
  *    form of 'a' is ((u1 v1) (u2 v2) ...)

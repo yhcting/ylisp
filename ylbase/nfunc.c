@@ -29,7 +29,7 @@
 #define __ENABLE_LOG
 
 #include "ylsfunc.h"
-
+#include "ylut.h"
 
 static inline yle_t*
 _evcon(yle_t* c, yle_t* a) {
@@ -236,6 +236,83 @@ YLDEFNF(print, 1, 9999) {
     return ylt();
 } YLENDNF(print)
 
+
+YLDEFNF(printf, 1, 10) {
+
+#define __cleanup()                             \
+    do {                                        \
+        for(i=0; i<(pcsz-1); i++) {             \
+            if(s[i]) { ylfree(s[i]); }          \
+        }                                       \
+        if(s) { ylfree(s); }                    \
+        ylutdynb_clean(&b);                     \
+    }while(0)
+
+    int          i;
+    ylutdynb_t   b;
+    const char*  fmt;
+    char**       s = NULL;
+    if(yleis_atom(e)) { ylinterpret_undefined(YLErr_func_invalid_param); }
+    /*
+     * allocate memory to save print string
+     * First string is 'format string'. So we don't need to alloc memory for this.
+     */
+    s = (char**)ylmalloc(sizeof(char*) * (pcsz-1));
+    if(!s) { goto bail; }
+    memset(s, 0, sizeof(char*) * (pcsz-1));
+    fmt = ylasym(ylcar(e)).sym;
+    for(i=0, e=ylcdr(e); !yleis_nil(e); i++, e=ylcdr(e)) {
+        const char* es = yleprint(ylcar(e));
+        s[i] = ylmalloc(strlen(es) + 1);
+        if(!s[i]) { goto bail; }
+        strcpy(s[i], es);
+    }
+
+    { /* Just scope */
+        int        ret;
+        if(0 > ylutdynb_init(&b, 4096)) { goto bail; }  /* initial buffer size is 4096 */
+        ylutdynb_reset(&b);
+        while(1) {
+            switch(pcsz) {
+                /*
+                 * Using variable string as an printf format string, can be dangerous potentially.
+                 * But, using exsiting 'snprintf' is much easier.
+                 * So, ... allow this warning "warning: format not a string literal and no format arguments"
+                 */
+                case 1: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt); break;
+                case 2: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0]); break;
+                case 3: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1]); break;
+                case 4: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2]); break;
+                case 5: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3]); break;
+                case 6: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4]); break;
+                case 7: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5]); break;
+                case 8: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6]); break;
+                case 9: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]); break;
+                case 10:ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8]); break;
+                default: ylassert(0);
+            }
+            if(ret >= ylutdynb_limit(&b)) {
+                ylutdynb_reset(&b);
+                if(0 > ylutdynb_expand(&b)) { goto bail; }
+            } else {
+                break;
+            }
+        }
+    }
+    ylprint(("%s", ylutdynb_ptr(&b)));
+    __cleanup();
+    return ylt();
+
+ bail:
+    __cleanup();
+    ylnflogW0("Not enough memory!\n");
+    ylinterpret_undefined(YLErr_func_fail);
+
+#undef __cleanup
+
+} YLENDNF(printf)
+
+
 YLDEFNF(log, 2, 9999) {
     const char*  lvstr;
     int          loglv;
@@ -280,6 +357,58 @@ YLDEFNF(to_string, 1, 1) {
 /*===========================
  * Simple calculations
  *===========================*/
+
+YLDEFNF(bit_and, 2, 9999) {
+    long   r = -1; /* to make r be 'ffff...fff' type value. - 2's complement */
+    ylnfcheck_atype_chain1(e, YLADouble);
+    while( !yleis_nil(e) ) {
+        if( ((long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
+            r &= ((long)yladbl(ylcar(e)));
+            e = ylcdr(e);
+        } else { goto bail; }
+    }
+    if(r != ((double)r)) { goto bail; }
+    return ylacreate_dbl((double)r);
+
+ bail:
+    ylnflogE0("Parameter or return value cannot be cross-changable between long and double!\n");
+    ylinterpret_undefined(YLErr_func_invalid_param);
+} YLENDNF(bit_and)
+
+YLDEFNF(bit_or, 2, 9999) {
+    long   r = 0;
+    ylnfcheck_atype_chain1(e, YLADouble);
+    while( !yleis_nil(e) ) {
+        if( ((long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
+            r |= ((long)yladbl(ylcar(e)));
+            e = ylcdr(e);
+        } else { goto bail; }
+    }
+    if(r != ((double)r)) { goto bail; }
+    return ylacreate_dbl((double)r);
+
+ bail:
+    ylnflogE0("Parameter or return value cannot be cross-changable between long and double!\n");
+    ylinterpret_undefined(YLErr_func_invalid_param);
+} YLENDNF(bit_or)
+
+YLDEFNF(bit_xor, 2, 9999) {
+    long   r = 0;
+    ylnfcheck_atype_chain1(e, YLADouble);
+    while( !yleis_nil(e) ) {
+        if( ((long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
+            r ^= ((long)yladbl(ylcar(e)));
+            e = ylcdr(e);
+        } else { goto bail; }
+    }
+    if(r != ((double)r)) { goto bail; }
+    return ylacreate_dbl((double)r);
+
+ bail:
+    ylnflogE0("Parameter or return value cannot be cross-changable between long and double!\n");
+    ylinterpret_undefined(YLErr_func_invalid_param);
+} YLENDNF(bit_xor)
+
 
 YLDEFNF(mod, 2, 2) {
     long   r = 0;

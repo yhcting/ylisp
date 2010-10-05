@@ -106,6 +106,17 @@ NFUNC(print,          "print",           YLANfunc,
     "print <exp1> <exp2> ...\n"
     "    -print expression detail values.\n")
 
+NFUNC(printf,         "printf",          YLANfunc,
+    "printf <format string>  <exp1> <exp2> ...\n"
+    "    -print expression detail values with format.\n"
+    "     format is same with the one of 'printf' in C.\n"
+    "     But, only string(%s) format is allowed.\n"
+    "     (because all expression is changed to string format and then printed).\n"
+    "     Operation is not defined for others - ex %d, %p etc...\n"
+    "     < NOTE! : up to only 9 parameters are allowed excluding format string.>\n"
+    "    *ex\n"
+    "        (printf \"%20s  %s --> %s\" e0 e1 e2)\n")
+
 NFUNC(log,            "log",             YLANfunc,
     "log <level> <exp1> <exp2> ...\n"
     "    -send to logger. This logs exactly same string with 'print'.\n"
@@ -115,7 +126,26 @@ NFUNC(to_string,      "to-string",       YLANfunc,
     "to-string <exp> : [Symbol]\n"
     "    -get printable string of <exp> - same with the one of 'print <exp>'.\n")
 
+NFUNC(bit_and,        "&",               YLANfunc,
+    "& <value1> <value2> ... : [Double]\n"
+    "    -bitwise-and all values and returns result.\n"
+    "    @valueN [Double]: values\n"
+    "    *ex\n"
+    "        (& 0x1 0x3 0x7); => 1\n")
 
+NFUNC(bit_or,         "|",               YLANfunc,
+    "| <value1> <value2> ... : [Double]\n"
+    "    -bitwise-or all values and returns result.\n"
+    "    @valueN [Double]: values\n"
+    "    *ex\n"
+    "        (| 0x1 0x2 0x4); => 7\n")
+
+NFUNC(bit_xor,        "^",               YLANfunc,
+    "^ <value1> <value2> ... : [Double]\n"
+    "    -bitwise-or all values and returns result.\n"
+    "    @valueN [Double]: values\n"
+    "    *ex\n"
+    "        (^ 0x1 0x2 0x2); => 1\n")
 
 /* Functions for simple calculation*/
 NFUNC(add,            "+",               YLANfunc,

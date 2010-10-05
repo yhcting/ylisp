@@ -114,18 +114,24 @@ main(int argc, char* argv[]) {
 #else /* __YLDBG__ */
 
 #include <dlfcn.h>
-#include "yldev.h"
+#include <string.h>
+
+#define __ENABLE_LOG
+
+#include "ylsfunc.h"
 
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
 #   include "nfunc.in"
 #   include "nfunc_re.in"
 #undef NFUNC
 
-
+#define PCRELIB_PATH_SYM "string,pcrelib-path"
 static void* _pcrelib = NULL;
 
 void
 ylcnf_onload() {
+    yle_t*     libpath;
+    char*      sym;
 
     /* return if fail to register */
 #define NFUNC(n, s, type, desc)  \
@@ -133,14 +139,34 @@ ylcnf_onload() {
 #   include "nfunc.in"
 #undef NFUNC
 
-    /* if there is pcre, let's use it! */
-    _pcrelib = dlopen("/usr/local/lib/libpcre.so", RTLD_NOW | RTLD_GLOBAL);
-    if(_pcrelib) {
+    /* make lib path symbol to get pcre-lib path */
+    sym = ylmalloc(sizeof(PCRELIB_PATH_SYM));
+    strcpy(sym, PCRELIB_PATH_SYM);
+    libpath = ylacreate_sym(sym);
+
+    if(ylis_set(sym)) {
+        libpath = yleval(libpath, ylnil());
+        if(!yleis_nil(libpath) && ylais_type(libpath, YLASymbol) ) {
+            /* if there is pcre, let's use it! */
+            _pcrelib = dlopen(ylasym(libpath).sym, RTLD_NOW | RTLD_GLOBAL);
+            if(_pcrelib) {
 #define NFUNC(n, s, type, desc)                                         \
-        if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylstring <<\n" desc)) { return; }
+                if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylstring <<\n" desc)) { return; }
 #   include "nfunc_re.in"
 #undef NFUNC
-    }
+            } else { goto pcre_bail; }
+        } else { goto pcre_bail; }
+    } else { goto pcre_bail; }
+
+    /* success */
+    return;
+
+ pcre_bail:
+    yllogW0("WARNING!\n"
+            "    Fail to load pcre library!.\n"
+            "    Set library path to 'string,pcrelib-path' before load-cnf.\n"
+            "    ex. (set 'string,pcrelib-path '/usr/local/lib/libpcre.so).\n"
+            "    (pcre-relative-cnfs are not loaded!)");
 }
 
 void

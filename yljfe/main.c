@@ -333,16 +333,21 @@ main(int argc, char* argv[]) {
     if(argc > 1) {
         unsigned char*   strm;
         unsigned int     strmsz;
-        strm = ylutfile_read(&strmsz, "../yls/yljfe_initrc.yl", 0);
-        if(!strm) {
-            printf("Fail to read initrc file..\n");
-            return 0;
+        int      i;
+        for(i=1; i<argc; i++) {
+            strm = ylutfile_read(&strmsz, argv[i], 0);
+            if(!strm) {
+                printf("Fail to read given script..\n"
+                       "    -> %s\n", argv[i]);
+                return 0;
+            }
+            if(YLOk != ylinterpret(strm, strmsz)) {
+                printf("Fail to interpret given script..\n"
+                       "    -> %s\n", argv[i]);
+                return 0;
+            }
+            free(strm);
         }
-        if(YLOk != ylinterpret(strm, strmsz)) {
-            printf("Fail to interpret initrc script.\n");
-            return 0;
-        }
-        free(strm);
     }
 
     /* start java */
