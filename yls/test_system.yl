@@ -1,14 +1,14 @@
 (print '"====== Start Testing 'system' =======\n")
-(system.shell 'ls)
+(sys.sh 'ls)
 (assert (eq '"abcd
-" (system.shell '"echo abcd")))
-(assert (system.setenv 'EnvTest 'hahaha))
-(assert (eq 'hahaha (system.getenv 'EnvTest)))
+" (sys.sh '"echo abcd")))
+(assert (sys.setenv 'EnvTest 'hahaha))
+(assert (eq 'hahaha (sys.getenv 'EnvTest)))
 (assert (eq '"01234567890123456789012345678901234567890123456789
-"            (system.shell '"echo 01234567890123456789012345678901234567890123456789")))
+"            (sys.sh '"echo 01234567890123456789012345678901234567890123456789")))
 (assert (eq '"abcde
-"            (system.shell '"echo abcde")))
+"            (sys.sh '"echo abcde")))
 (let ( (i 3) )
      (while (< 0 i)
-         (print (system.shell '"echo hahahaha") '"\n")
+         (print (sys.sh '"echo hahahaha") '"\n")
          (set 'i (- i 1))))

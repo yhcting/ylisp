@@ -27,30 +27,30 @@
 /*
  * For debugging
  */
-#ifdef __DBG_EVAL
+#ifdef CONFIG_DBG_EVAL
 #   define dbg_eval(x)     do{ x } while(0)
 #else /* _YLDBG_EVAL */
 #   define dbg_eval(x)
 #endif /* _YLDBG_EVAL */
 
-#ifdef __DBG_MEM
+#ifdef CONFIG_DBG_MEM
 #   define dbg_mem(x)      do{ x } while(0)
-#else /* __DBG_MEM */
+#else /* CONFIG_DBG_MEM */
 #   define dbg_mem(x)
-#endif /* __DBG_MEM */
+#endif /* CONFIG_DBG_MEM */
 
-#ifdef __DBG_GEN
+#ifdef CONFIG_DBG_GEN
 #   define dbg_gen(x)      do{ x } while(0)
-#else /* __DBG_MEM */
+#else /* CONFIG_DBG_MEM */
 #   define dbg_gen(x)
-#endif /* __DBG_MEM */
+#endif /* CONFIG_DBG_MEM */
 
 
-#ifdef __DBG_INTEVAL
+#ifdef CONFIG_DBG_INTEVAL
 #   define dbg_inteval(x)  do{ x } while(0)
-#else /* __DBG_INTEVAL */
+#else /* CONFIG_DBG_INTEVAL */
 #   define dbg_inteval(x)
-#endif /* __DBG_INTEVAL */
+#endif /* CONFIG_DBG_INTEVAL */
 
 #include "ylsfunc.h"
 #include "ylut.h"

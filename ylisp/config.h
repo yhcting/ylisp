@@ -37,13 +37,13 @@
 /* ---------------------------------
  * Switches for debugging
  * ---------------------------------*/
-#define __ENABLE_LOG
-#define __ENABLE_ASSERT
+#define CONFIG_LOG
+#define CONFIG_ASSERT
 
-/* #define __DBG_GEN     */  /* general debugging - usually required */
-/* #define __DBG_EVAL    */  /* to debug evaluation */
-/* #define __DBG_MEM     */  /* to debug memory pool and GC */
-/* #define __DBG_INTEVAL */  /* to debug interrupting evaluation */
+/* #define CONFIG_DBG_GEN     */  /* general debugging - usually required */
+/* #define CONFIG_DBG_EVAL    */  /* to debug evaluation */
+/* #define CONFIG_DBG_MEM     */  /* to debug memory pool and GC */
+/* #define CONFIG_DBG_INTEVAL */  /* to debug interrupting evaluation */
 
 
 

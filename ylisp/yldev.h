@@ -171,10 +171,10 @@ typedef struct yle {
      * members for debugging SHOULD BE put at the END of STRUCTURE!.
      * If not, whever debug configuration is changed, we should re-compile all other plug-in modules!!!
      */
-#ifdef __DBG_MEM
+#ifdef CONFIG_DBG_MEM
     /**< evaluation id that take this block from the pool. */
     unsigned int      evid; 
-#endif /* __DBG_MEM */
+#endif /* CONFIG_DBG_MEM */
 } yle_t;
 
 
@@ -250,17 +250,17 @@ typedef struct yle {
 #define ylmalloc(x)     ylsysv()->malloc(x)
 #define ylfree(x)       ylsysv()->free(x)
 
-#ifdef __ENABLE_ASSERT
+#ifdef CONFIG_ASSERT
 #   define ylassert(x)  do { ylsysv()->assert((int)(x)); } while(0)
-#else /* __ENABLE_ASSERT */
+#else /* CONFIG_ASSERT */
 #   define ylassert(x)  ((void*)0)
-#endif /* __ENABLE_ASSERT */
+#endif /* CONFIG_ASSERT */
 
-#ifdef __ENABLE_LOG
+#ifdef CONFIG_LOG
 #   define yllog(x)     do { ylsysv()->log x; } while(0)
-#else /* __ENABLE_LOG */
+#else /* CONFIG_LOG */
 #   define yllog(x)     ((void*)0)
-#endif /* __ENABLE_LOG */
+#endif /* CONFIG_LOG */
 
 #define ylprint(x)      do { ylsysv()->print x; } while(0)
 #define ylmpsz(x)       (ylsysv()->mpsz)

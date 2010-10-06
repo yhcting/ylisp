@@ -341,12 +341,12 @@ ylmp_pop() {
 }
 
 
-#ifdef __DBG_MEM
+#ifdef CONFIG_DBG_MEM
 void
 yldbg_mp_gc() {
     _scanning_gc();
 }
-#endif /* __DBG_MEM */
+#endif /* CONFIG_DBG_MEM */
 
 void
 ylmp_gc() {

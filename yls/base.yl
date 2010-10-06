@@ -372,6 +372,62 @@
           ((and (not (atom x)) (not (atom y))) 
             (cons (list (car x) (car y)) (pair (cdr x) (cdr y))))))
 
+
+; -------------------------------
+; list handling functions (refer from common lisp)
+; -------------------------------
+(defun first (L)
+"first <list>
+"
+    (cond ((null L) '())
+          ('t (car L))))
+
+(defun rest (L)
+"rest <list>
+"
+    (cond ((null L) '())
+          ('t (cdr L))))
+
+(defun list-length (L)
+"list-length <list>
+"
+    (cond ((null L) 0)
+          ('t (+ 1 (list-length (cdr L))))))
+
+(defun nth (n L)
+"nth <index > <list>
+    -elements are numbered from zero onwards
+"
+    (cond ((< n 0) '())
+          ((null L) '())
+          ((eq 0 n) (first L))
+          ('t (nth (- n 1) (rest L)))))
+
+(defun last (L)
+"last <list>
+    -return last cons structure.
+"
+    (cond ((null L) '())
+          ((null (cdr L)) (cons (car L) '()))
+          ('t (last (cdr L)))))
+
+(defun reverse (L)
+"reverse <list>
+    -return reversed list
+"
+    (let ( (list-reverse-aux '()) )
+        (defun list-reverse-aux (L A) ""
+            (cond ((null L) A) ('t (list-reverse-aux (rest L) (cons (first L) A)))))
+        (list-reverse-aux L '())))
+
+(defun member (e L)
+"member <element> <list>
+    -Test if <element> is a member of <list>.
+"
+    (cond ((null L)            '())
+          ((equal e (first L)) 't)
+          ('t                  (member e (rest L)))))
+
 ; alias...
 (defun = (x y)
 "= <exp1> <exp2>

@@ -27,8 +27,8 @@
 #include "pcre.h"
 
 /* enable logging & debugging */
-#define __ENABLE_ASSERT
-#define __ENABLE_LOG
+#define CONFIG_ASSERT
+#define CONFIG_LOG
 
 #include "ylsfunc.h"
 
@@ -36,20 +36,37 @@
 #define _OVECCNT 60
 
 
+enum {
+    _OPT_GLOBAL   = 0x01,
+};
+
 static int
-_change_to_pcre_option(const char* optstr) {
-    const char* p = optstr;
+_get_pcre_option(const char* optstr) {
     int         opt = 0;
-    while(*p) {
-        switch(*p) {
+    while(*optstr) {
+        switch(*optstr) {
             case 'i': opt |= PCRE_CASELESS;     break;
             case 'm': opt |= PCRE_MULTILINE;    break;
             case 's': opt |= PCRE_DOTALL;       break;
+            case 'g': break; /* do nothing.. this is custom option */
             default:
-                yllogE1("<!pcre_xxx!> Unsupported option! [%c]\n", *p);
+                yllogE1("<!pcre_xxx!> Unsupported option! [%c]\n", *optstr);
                 ylinterpret_undefined(YLErr_func_fail);
         }
-        p++;
+        optstr++;
+    }
+    return opt;
+}
+
+static int
+_get_custom_option(const char* optstr) {
+    int         opt = 0;
+    while(*optstr) {
+        switch(*optstr) {
+            case 'g': opt |= _OPT_GLOBAL;     break;
+            /* skip error check intentionally - option string is already verified at '_get_pcre_option' */
+        }
+        optstr++;
     }
     return opt;
 }
@@ -59,7 +76,7 @@ _change_to_pcre_option(const char* optstr) {
  * @2 : subject
  * @3 : option
  */
-YLDEFNF(pcre_match, 3, 3) {
+YLDEFNF(re_match, 3, 3) {
     yle_t        *hd, *tl; /* head & tail */
     pcre*         re;
     int           err_offset, rc, opt;
@@ -71,7 +88,7 @@ YLDEFNF(pcre_match, 3, 3) {
 
     pattern = ylasym(ylcar(e)).sym;
     subject = ylasym(ylcadr(e)).sym;
-    opt = _change_to_pcre_option(ylasym(ylcaddr(e)).sym);
+    opt = _get_pcre_option(ylasym(ylcaddr(e)).sym);
 
     re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
     if(!re) {
@@ -105,7 +122,7 @@ YLDEFNF(pcre_match, 3, 3) {
         ylinterpret_undefined(YLErr_func_fail);
     }
     return ylcdr(hd);
-} YLENDNF(pcre-match)
+} YLENDNF(re_match)
 
 
 
@@ -115,55 +132,93 @@ YLDEFNF(pcre_match, 3, 3) {
  * @3: subject
  * @4: option
  */
-YLDEFNF(pcre_replace, 4, 4) {
+YLDEFNF(re_replace, 4, 4) {
+    ylerr_t       interp_err = YLErr_func_fail;
     pcre*         re;
-    int           err_offset, rc, opt;
-    unsigned int  subjlen;
-    int           ovect[_OVECCNT];  /* out vector */
-    const char   *pattern, *subst, *subject, *errmsg;
+    char*         subject = NULL;
 
     ylnfcheck_atype_chain1(e, YLASymbol);
 
-    pattern = ylasym(ylcar(e)).sym;
-    subst = ylasym(ylcadr(e)).sym;
-    subject = ylasym(ylcaddr(e)).sym;
-    opt = _change_to_pcre_option(ylasym(ylcar(ylcdddr(e))).sym);
+    { /* Just scope */
+        const char   *pattern, *errmsg;
+        int           err_offset, opt;
+        pattern = ylasym(ylcar(e)).sym;
+        /* get pcre option */
+        opt = _get_pcre_option(ylasym(ylcar(ylcdddr(e))).sym);
 
-    re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
-    if(!re) {
-        ylnflogE2("PCRE compilation failed.\n"
-                  "    offset %d: %s\n", err_offset, errmsg);
-        /* This is a kind of function parameter error!! */
-        ylinterpret_undefined(YLErr_func_fail);
+        re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
+        if(!re) {
+            ylnflogE2("PCRE compilation failed.\n"
+                      "    offset %d: %s\n", err_offset, errmsg);
+            /* This is a kind of function parameter error!! */
+            goto bail;
+        }
     }
 
-    subjlen = strlen(subject);
-    rc = pcre_exec(re, NULL, subject, subjlen, 0, 0, ovect, _OVECCNT);
-    if(rc >= 0) {
-        unsigned int substlen, newsz;
-        char*        newstr = NULL;
-        char*        p;    
+    { /* Just scope */
+        int           rc, opt;
+        unsigned int  subjlen, substlen;
+        unsigned int  offset; /* starting offset */
+        int           ovect[_OVECCNT];  /* out vector */
+        const char*   subst;
+
+        subst = ylasym(ylcadr(e)).sym;
+        /* get custom option */
+        opt = _get_custom_option(ylasym(ylcar(ylcdddr(e))).sym);
+
+        /* use copied one */
+        subject = ylmalloc(strlen(ylasym(ylcaddr(e)).sym)+1);
+        if(!subject) {
+            ylnflogE0("Out of memory\n");
+            interp_err = YLErr_out_of_memory;
+            goto bail;
+        }
+        strcpy(subject, ylasym(ylcaddr(e)).sym);
+        subjlen = strlen(subject);
+        offset = 0;
 
         substlen = strlen(subst);
-        newsz = subjlen - (ovect[1] - ovect[0]) + substlen;
-        p = newstr = ylmalloc(newsz +1); /* +1 for trailing NULL */
+        /* start replacing */
+        do {
+            rc = pcre_exec(re, NULL, subject+offset, subjlen-offset, 0, 0, ovect, _OVECCNT);
+            if(rc >= 0) {
+                unsigned int newsz;
+                char*        newstr = NULL;
+                char*        p;
 
-        memcpy(p, subject, ovect[0]);
-        p += ovect[0];
-        memcpy(p, subst, substlen);
-        p += substlen;
-        memcpy(p, subject+ovect[1], subjlen - ovect[1]);
-        newstr[newsz] = 0; /* trailing NULL */
+                newsz = subjlen - (ovect[1] - ovect[0]) + substlen;
+                p = newstr = ylmalloc(newsz +1); /* +1 for trailing NULL */
+                if(!p) {
+                    ylnflogE0("Out of memory\n");
+                    interp_err = YLErr_out_of_memory;
+                    goto bail;
+                }
+                memcpy(p, subject, ovect[0]+offset);
+                p += ovect[0]+offset;
+                memcpy(p, subst, substlen);
+                p += substlen;
+                memcpy(p, subject+ovect[1]+offset, subjlen-ovect[1]-offset);
+                newstr[newsz] = 0; /* trailing NULL */
 
-        return ylacreate_sym(newstr);
-    } else if(PCRE_ERROR_NOMATCH == rc) {
-        /* return original symbol as it is */
-        return ylcaddr(e);
-    } else {
-        /* error case */
-        ylnflogE1("PCRE error in match [%d]\n", rc);
-        ylinterpret_undefined(YLErr_func_fail);
-        return ylnil();
+                ylfree(subject);
+                subject = newstr;
+                subjlen = strlen(subject);
+                offset = ovect[0]+offset+substlen;
+            } else if(PCRE_ERROR_NOMATCH == rc) {
+                /* nothing to do anymore */
+                break;
+            } else {
+                /* error case */
+                ylnflogE1("PCRE error in match [%d]\n", rc);
+                goto bail;
+            }
+        } while (opt & _OPT_GLOBAL);
     }
+
+    return ylacreate_sym(subject);
+
+ bail:
+    if(subject) { ylfree(subject); }
+    ylinterpret_undefined(interp_err);
     
-} YLENDNF(pcre-replace)
+} YLENDNF(re_replace)

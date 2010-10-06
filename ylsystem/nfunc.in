@@ -20,39 +20,39 @@
 
 
 
-NFUNC(shell,         "system.shell",        YLANfunc,
-    "system.shell <command> : [Symbol]\n"
+NFUNC(sh,            "sys.sh",           YLANfunc,
+    "sys.sh <command> : [Symbol]\n"
     "    -execute command in the shell by '/bin/bash -c')\n"
     "    @return : values of standard output and error\n")
 
-NFUNC(sleep,         "system.sleep",        YLANfunc,
-    "system.sleep <seconds> : [t]\n"
+NFUNC(sleep,         "sys.sleep",        YLANfunc,
+    "sys.sleep <seconds> : [t]\n"
     "    -sleep for <secconds>\n");
 
-NFUNC(usleep,        "system.usleep",       YLANfunc,
-    "system.usleep <micro seconds> : [t]\n")
+NFUNC(usleep,        "sys.usleep",       YLANfunc,
+    "sys.usleep <micro seconds> : [t]\n")
 
-NFUNC(getenv,        "system.getenv",       YLANfunc,
-    "system.getenv <variable> : [Symbol/nil]\n"
+NFUNC(getenv,        "sys.getenv",       YLANfunc,
+    "sys.getenv <variable> : [Symbol/nil]\n"
     "    -get value of environment variable. If there is no matching variable, it returns nil\n"
     "    @variable [Symbol]:\n")
 
-NFUNC(setenv,        "system.setenv",       YLANfunc,
-    "system.getenv <variable> <value> : [t/nil]\n"
+NFUNC(setenv,        "sys.setenv",       YLANfunc,
+    "sys.getenv <variable> <value> : [t/nil]\n"
     "    -set environment variable. If there is no matching variable, it returns nil\n"
     "    @variable, value [Symbol]:\n")
 
-NFUNC(chdir,         "system.chdir",        YLANfunc,
-    "system.chdir <path> : [t/nil]\n"
+NFUNC(chdir,         "sys.chdir",        YLANfunc,
+    "sys.chdir <path> : [t/nil]\n"
     "    -change current working directory.\n"
     "    @return: nil if fails. Otherwise not nil\n")
 
-NFUNC(getcwd,        "system.getcwd",       YLANfunc,
-    "system.getcwd : [Symbol]\n"
+NFUNC(getcwd,        "sys.getcwd",       YLANfunc,
+    "sys.getcwd : [Symbol]\n"
     "    -get current working directory path.\n")
 
-NFUNC(fstat,         "system.fstat",        YLANfunc,
-    "system.fstat [file] : [pair/nil]\n"
+NFUNC(fstat,         "sys.fstat",        YLANfunc,
+    "sys.fstat [file] : [pair/nil]\n"
     "    -get paired map of file stat.\n"
     "    @return : nil if fails.\n"
     "        key: type\n"
@@ -67,16 +67,16 @@ NFUNC(fstat,         "system.fstat",        YLANfunc,
     "        key: size\n"
     "            size of file.\n")
 
-NFUNC(fread,         "system.fread",        YLANfunc,
-    "system.fread <file path> : [Symbol/nil]\n"
+NFUNC(fread,         "sys.fread",        YLANfunc,
+    "sys.fread <file path> : [Symbol/nil]\n"
     "    -read text file.\n"
     "    @file path[Symbol]:  file path\n"
     "    @return:             symbol atom if success. Otherwise nil is returned!\n"
     "    *ex\n"
     "        (fread 'test.txt) => <content of file>\n")
 
-NFUNC(freadb,        "system.freadb",       YLANfunc,
-    "system.freadb <file path> : [Binary/nil] - not tested yet\n"
+NFUNC(freadb,        "sys.freadb",       YLANfunc,
+    "sys.freadb <file path> : [Binary/nil] - not tested yet\n"
     "    -read binary file.\n"
     "    @file path[Symbol]:  file path\n"
     "    @return:             binary atom if success. Otherwise nil is returned!\n"
@@ -84,8 +84,8 @@ NFUNC(freadb,        "system.freadb",       YLANfunc,
     "        (freadb 'test.bin) => <content of file>\n")
 
 
-NFUNC(fwrite,        "system.fwrite",       YLANfunc,
-    "system.fwrite <file path> <exp> : [t/nil] - not tested yet\n"
+NFUNC(fwrite,        "sys.fwrite",       YLANfunc,
+    "sys.fwrite <file path> <exp> : [t/nil] - not tested yet\n"
     "    -write data(symbol or binary) to file.\n"
     "    @file path [Symbol]:      file path\n"
     "    @exp[Symbol | Binary]:   data to write \n"
@@ -93,8 +93,8 @@ NFUNC(fwrite,        "system.fwrite",       YLANfunc,
     "    *ex\n"
     "        (fwrite 'test.bin data) => <content of file>\n")
 
-NFUNC(readdir,       "system.readdir",      YLANfunc,
-    "system.readdir <dir path> : [list/nil]\n"
+NFUNC(readdir,       "sys.readdir",      YLANfunc,
+    "sys.readdir <dir path> : [list/nil]\n"
     "    -read directory.\n"
     "    @dir path [Symbol]: dir path\n"
     "    @return:            list of file names. nil if fails or there is no file in it.\n"

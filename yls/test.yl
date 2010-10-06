@@ -8,7 +8,7 @@
 (interpret-file '../yls/test_system.yl)
 
 ;set pcre library path variable
-(set 'string,pcrelib-path '/usr/local/lib/libpcre.so)
+(set 's,pcrelib-path '/usr/local/lib/libpcre.so)
 (load-cnf '../lib/libylstring.so)
 (interpret-file '../yls/test_string.yl)
 (interpret-file '../yls/util.yl)

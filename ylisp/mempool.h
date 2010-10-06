@@ -47,10 +47,10 @@ ylmp_deinit();
 extern void
 ylmp_gc();
 
-#ifdef __DBG_MEM
+#ifdef CONFIG_DBG_MEM
 extern void
 yldbg_mp_gc();
-#endif /* __DBG_MEM */
+#endif /* CONFIG_DBG_MEM */
 /*
  * @return: current usage
  */

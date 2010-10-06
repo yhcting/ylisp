@@ -25,8 +25,8 @@
 #include <string.h>
 
 /* enable logging & debugging */
-#define __ENABLE_ASSERT
-#define __ENABLE_LOG
+#define CONFIG_ASSERT
+#define CONFIG_LOG
 
 #include "ylsfunc.h"
 #include "ylut.h"

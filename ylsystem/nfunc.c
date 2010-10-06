@@ -32,8 +32,8 @@
 #include <memory.h>
 
 /* enable logging & debugging */
-#define __ENABLE_ASSERT
-#define __ENABLE_LOG
+#define CONFIG_ASSERT
+#define CONFIG_LOG
 
 #include "ylsfunc.h"
 #include "ylut.h"
@@ -96,7 +96,7 @@ _readf(unsigned int* outsz, const char* func, const char* fpath, int btext) {
  *     I'm not good at linux system programming.
  *     So, until I found solution, using file explicitly to redirect.
  */
-YLDEFNF(shell, 1, 1) {
+YLDEFNF(sh, 1, 1) {
 #define __outf_name ".#_______yljfe___outf______#"
 #define __restore_redirection()                         \
     /* restore stdout/stderr */                         \
@@ -236,7 +236,7 @@ YLDEFNF(shell, 1, 1) {
 #undef __cleanup_process
 #undef __outf_name
 
-} YLENDNF(shell)
+} YLENDNF(sh)
 
 YLDEFNF(sleep, 1, 1) {
     /* check input parameter */

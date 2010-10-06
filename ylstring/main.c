@@ -116,7 +116,7 @@ main(int argc, char* argv[]) {
 #include <dlfcn.h>
 #include <string.h>
 
-#define __ENABLE_LOG
+#define CONFIG_LOG
 
 #include "ylsfunc.h"
 
@@ -125,7 +125,7 @@ main(int argc, char* argv[]) {
 #   include "nfunc_re.in"
 #undef NFUNC
 
-#define PCRELIB_PATH_SYM "string,pcrelib-path"
+#define PCRELIB_PATH_SYM "s,pcrelib-path"
 static void* _pcrelib = NULL;
 
 void

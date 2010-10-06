@@ -270,7 +270,7 @@ YLDEFNF(interpret_file, 1, 1) {
 /**********************************************************
  * Functions for managing interpreter internals.
  **********************************************************/
-#ifdef __DBG_MEM
+#ifdef CONFIG_DBG_MEM
 
 YLDEFNF(gc, 0, 0) {
     ylprint(("\n=========== Before ============\n"));
@@ -283,7 +283,7 @@ YLDEFNF(gc, 0, 0) {
     return ylt();
 } YLENDNF(gc)
 
-#endif /* __DBG_MEM */
+#endif /* CONFIG_DBG_MEM */
 
 YLDEFNF(memstat, 0, 0) {
     ylmp_print_stat();

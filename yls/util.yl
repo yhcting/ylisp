@@ -1,8 +1,8 @@
 ; ==============================
 ; = Define Utility Functions
 ; ==============================
-(defun util.bsort (cmp le)
-"util.bsort <cmp func> <list exp>
+(defun ut.bsort (cmp L)
+"ut.bsort <cmp func> <list exp>
     -sort by using bubble sort alorithm (descending order)
      NOTE!: Passed list itself is changed! - sorted.
     @cmp func [Symbol]:   function used to compare.
@@ -10,95 +10,64 @@
                           This should return 'not nil' if 1st parameter is greater than 2nd parameter, otherwise nil.
     @list exp [list]:     list expression.
 "
-    (let ( (etmp '()) (ei le) (ej '()) )
-        (while (not (null (cdr ei)))
-            (set 'ej le)
-            (while (not (null (cdr ej)))
+    (let ( (etmp '()) (I L) (J '()) )
+        (while (not (null (cdr I)))
+            (set 'J L)
+            (while (not (null (cdr J)))
                 (cond 
-                    ( (eq '() (cmp (car ej) (cadr ej)))
+                    ( (eq '() (cmp (car J) (cadr J)))
                         (progn
-                            (set 'etmp (car ej))
-                            (setcar ej (cadr ej))
-                            (setcar (cdr ej) etmp))))
-                (set 'ej (cdr ej)))
-            (set 'ei (cdr ei)))
-        le))
+                            (set 'etmp (car J))
+                            (setcar J (cadr J))
+                            (setcar (cdr J) etmp))))
+                (set 'J (cdr J)))
+            (set 'I (cdr I)))
+        L))
 
-(defun util.list.size (list)
-"util.list.size <list>
-    -get number of element of list
-    @return: nil if fails
-"
-    (let ((e '()) (sz 0))
-        (set 'e list)
-        (while (not (null e))
-            (set 'sz (+ sz 1))
-            (set 'e (cdr e)))
-        sz))
-
-(defun util.list.at (list index)
-"util.list.at <list> <index>
-    -get expression located at <index> (starts from 0)
-    @return: nil if fails
-"
-    (let ((e '()) (i 0))
-        (set 'e list)
-        (while (and (< i index) (not (null e)))
-            (set 'i (+ i 1))
-            (set 'e (cdr e)))
-        (cond 
-            ((eq i index) (car e))
-            ('t '()))))
-
-(defun util.pair.add (pair key value)
-"util.pair.add <pair> <key> <value>
+(defun ut.pair.add (PAIR key value)
+"ut.pair.add <pair> <key> <value>
     -add pair data to the pair list at the first position.
      This returns original value if fail, otherwise newly updated pair.
-    @pair: Pair
+    @pair: Pair --> ((x X)(y Y)...)
 "
-    (cond ((eq pair '())
+    (cond ((eq PAIR '())
               (cons (list key value) '()))
           ('t
-              (append (cons (list key value) '()) pair))))
+              (append (cons (list key value) '()) PAIR))))
 
-(defun util.pair.is-in (pair key)
-"util.pair.is-in <pair> <key>
+(defun ut.pair.is-in (PAIR key)
+"ut.pair.is-in <pair> <key>
     -check whether <key> is in the pair or not.
      nil is returns if cannot be found. Otherwise <value> nil is returned.
 "
-    (cond ((null pair) '())
-          ((equal key (caar pair)) 't)
-          ('t (util.pair.is-in (cdr pair) key))))
+    (cond ((null PAIR) '())
+          ((equal key (caar PAIR)) 't)
+          ('t (ut.pair.is-in (cdr PAIR) key))))
 
-(defun util.pair.del (pair key)
-"util.pair.del <pair-list> <key>
+(defun ut.pair.del (PAIR key)
+"ut.pair.del <pair> <key>
     -delete pair data whose key is <key>.
      If there is more than one, all are deleted.
     @return : updated pair.
 "
-    (cond ((null pair) '())
-          ((equal key (caar pair))
-              (util.pair.del (cdr pair) key))
+    (cond ((null PAIR) '())
+          ((equal key (caar PAIR))
+              (ut.pair.del (cdr PAIR) key))
           ('t 
-              (cons (car pair) (util.pair.del (cdr pair) key)))))
+              (cons (car PAIR) (ut.pair.del (cdr PAIR) key)))))
 
-(defun util.pair.get (pair key)
-"util.pair.get <pair> <key>
+(defun ut.pair.get (PAIR key)
+"ut.pair.get <pair> <key>
     -find and get matching value.
      @return: nil if fails.
 "
-    (cond ((null pair) '())
-          ((equal key (caar pair)) (cadar pair))
-          ('t (util.pair.get (cdr pair) key))))
+    (cond ((null PAIR) '())
+          ((equal key (caar PAIR)) (cadar PAIR))
+          ('t (ut.pair.get (cdr PAIR) key))))
 
 
-(defun util.pair.size (pair)
-"util.pair.size <pair>
+(defun ut.pair.size (PAIR)
+"ut.pair.size <pair>
     -return number of pairs
 "
-    (let ((n 0) (pr pair))
-        (while (not (null pr))
-            (set 'n (+ n 1))
-            (set 'pr (cdr pr)))
-        n))
-        
+    (list-length PAIR))

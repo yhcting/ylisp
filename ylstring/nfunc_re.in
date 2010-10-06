@@ -20,26 +20,26 @@
 
 
 
-NFUNC(pcre_match,           "string.pcre-match",             YLANfunc,
-    "string.pcre-match <pattern> <subject> <option> : <list exp>\n"
+NFUNC(re_match,           "s.re-match",             YLANfunc,
+    "s.re-match <pattern> <subject> <option> : <list exp>\n"
     "    -match with 'pcre - Perl Compatible REgular expression'. And returns matched string.\n"
     "    @pattern [Symbol]: Pattern format\n"
     "    @subject [Symbol]: Subject string\n"
     "    @option [Symbol]:  Match options. 'i', 'm', 's' are supported\n"
     "    @return : list of matched string. nil for unmatch\n"
     "    *ex\n"
-    "        (set 'r (string.pcre-match '\"\\\\s+(\\\\w+)\\\\s+\" '\"yyy haha  hehe\" '\"\"))\n"
+    "        (set 'r (s.re-match '\"\\\\s+(\\\\w+)\\\\s+\" '\"yyy haha  hehe\" '\"\"))\n"
     "        (print (car r)); ' haha  ' is printed.\n"
     "        (print (cadr r));'haha' is printed.\n")
 
 
-NFUNC(pcre_replace,         "string.pcre-replace",           YLANfunc,
-    "string.pcre-replace <pattern> <new string> <subject> <option> : [Symbol]\n"
+NFUNC(re_replace,         "s.re-replace",           YLANfunc,
+    "s.re-replace <pattern> <new string> <subject> <option> : [Symbol]\n"
     "    -replace matched part with <new string>\n"
     "    @new string [Symbol]:\n"
-    "    @pattern, subject, option: see 'string.pcre-match'\n"
+    "    @pattern, subject, option: see 's.re-match'\n"
     "    @return : newly generated string.\n"
     "    *ex\n"
-    "        (print (string.pcre-replace '[0-9]+ 'num '\"value is 467\" '\"\"));\n"
+    "        (print (s.re-replace '[0-9]+ 'num '\"value is 467\" '\"\"));\n"
     "            ;'value is num' is printed.\n")
 
