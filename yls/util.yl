@@ -64,10 +64,3 @@
     (cond ((null PAIR) '())
           ((equal key (caar PAIR)) (cadar PAIR))
           ('t (ut.pair.get (cdr PAIR) key))))
-
-
-(defun ut.pair.size (PAIR)
-"ut.pair.size <pair>
-    -return number of pairs
-"
-    (list-length PAIR))

@@ -197,8 +197,8 @@
 (assert (eq 'a (first lst)))
 (assert (equal '(b cd ef (1 2)) (rest lst)))
 
-(assert (eq 5 (list-length lst)))
-(assert (eq 0 (list-length '())))
+(assert (eq 5 (length lst)))
+(assert (eq 0 (length '())))
 
 (assert (eq 'a (nth 0 lst)))
 (assert (eq 'cd (nth 2 lst)))
@@ -211,6 +211,12 @@
 (assert (equal '(4 3 2 1 0) (reverse lst)))
 (assert (member '4 lst))
 (assert (not (member '100 lst)))
+
+(assert (eq 3 (1+ 2)))
+(assert (not (eq 3 (1+ 1))))
+(assert (eq 2 (1- 3)))
+(assert (equal (list 2 3 4 5) (mapcar '1+ '(1 2 3 4))))
+(assert (equal (list 't '() 't '()) (mapcar 'not '( '() 't '() 't))))
 
 (unset 'rrr)
 (unset 'yyy)

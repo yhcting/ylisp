@@ -388,11 +388,11 @@
     (cond ((null L) '())
           ('t (cdr L))))
 
-(defun list-length (L)
-"list-length <list>
+(defun length (L)
+"length <list>
 "
     (cond ((null L) 0)
-          ('t (+ 1 (list-length (cdr L))))))
+          ('t (+ 1 (length (cdr L))))))
 
 (defun nth (n L)
 "nth <index > <list>
@@ -427,6 +427,15 @@
     (cond ((null L)            '())
           ((equal e (first L)) 't)
           ('t                  (member e (rest L)))))
+
+(defun mapcar (f L)
+"mapcar <func> <list>
+    -see mapcar of Common Lisp.
+"
+    (cond
+        ((not (null L))
+            (cons (eval (list f (car L))) (mapcar f (cdr L))))
+        ('t '())))
 
 ; alias...
 (defun = (x y)
@@ -467,6 +476,18 @@
      this uses '<' function in it.
 "
     (cond ( (> x y) x) ('t y)))
+
+(defun 1+ (x)
+"1+ <num>
+    -return <num> + 1
+"
+    (+ x 1))
+
+(defun 1- (x)
+"1+ <num>
+    -return <num> - 1
+"
+    (- x 1))
 
 (defmacro ++ (n)
 "++ <var>
