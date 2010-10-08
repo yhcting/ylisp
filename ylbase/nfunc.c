@@ -29,7 +29,7 @@
 #define CONFIG_LOG
 
 #include "ylsfunc.h"
-#include "ylut.h"
+#include "yldynb.h"
 
 static inline yle_t*
 _evcon(yle_t* c, yle_t* a) {
@@ -245,11 +245,11 @@ YLDEFNF(printf, 1, 10) {
             if(s[i]) { ylfree(s[i]); }          \
         }                                       \
         if(s) { ylfree(s); }                    \
-        ylutdynb_clean(&b);                     \
+        yldynb_clean(&b);                     \
     }while(0)
 
     int          i;
-    ylutdynb_t   b;
+    yldynb_t     b;
     const char*  fmt;
     char**       s = NULL;
     if(yleis_atom(e)) { ylinterpret_undefined(YLErr_func_invalid_param); }
@@ -270,8 +270,8 @@ YLDEFNF(printf, 1, 10) {
 
     { /* Just scope */
         int        ret;
-        if(0 > ylutdynb_init(&b, 4096)) { goto bail; }  /* initial buffer size is 4096 */
-        ylutdynb_reset(&b);
+        if(0 > yldynb_init(&b, 4096)) { goto bail; }  /* initial buffer size is 4096 */
+        yldynb_reset(&b);
         while(1) {
             switch(pcsz) {
                 /*
@@ -279,27 +279,27 @@ YLDEFNF(printf, 1, 10) {
                  * But, using exsiting 'snprintf' is much easier.
                  * So, ... allow this warning "warning: format not a string literal and no format arguments"
                  */
-                case 1: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt); break;
-                case 2: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0]); break;
-                case 3: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1]); break;
-                case 4: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2]); break;
-                case 5: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3]); break;
-                case 6: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4]); break;
-                case 7: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5]); break;
-                case 8: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6]); break;
-                case 9: ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]); break;
-                case 10:ret = snprintf(ylutdynb_ptr(&b), ylutdynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8]); break;
+                case 1: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt); break;
+                case 2: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0]); break;
+                case 3: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1]); break;
+                case 4: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2]); break;
+                case 5: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3]); break;
+                case 6: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4]); break;
+                case 7: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5]); break;
+                case 8: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6]); break;
+                case 9: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]); break;
+                case 10:ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8]); break;
                 default: ylassert(0);
             }
-            if(ret >= ylutdynb_limit(&b)) {
-                ylutdynb_reset(&b);
-                if(0 > ylutdynb_expand(&b)) { goto bail; }
+            if(ret >= yldynb_limit(&b)) {
+                yldynb_reset(&b);
+                if(0 > yldynb_expand(&b)) { goto bail; }
             } else {
                 break;
             }
         }
     }
-    ylprint(("%s", ylutdynb_ptr(&b)));
+    ylprint(("%s", yldynb_ptr(&b)));
     __cleanup();
     return ylt();
 

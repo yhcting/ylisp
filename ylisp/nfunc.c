@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "trie.h"
+#include "gsym.h"
 #include "lisp.h"
 #include "mempool.h"
 
@@ -95,7 +95,7 @@ YLDEFNF(set, 2, 3) {
 
 YLDEFNF(unset, 1, 1) {
     ylnfcheck_atype_chain1(e, YLASymbol);
-    if(0 <= yltrie_delete(ylasym(ylcar(e)).sym)) { return ylt(); }
+    if(0 <= ylgsym_delete(ylasym(ylcar(e)).sym)) { return ylt(); }
     else { return ylnil(); }
 } YLENDNF(unset)
 
@@ -113,10 +113,10 @@ YLDEFNF(help, 1, 9999) {
     const char*  desc;
     ylnfcheck_atype_chain1(e, YLASymbol);
     while(!yleis_nil(e)) {
-        if(desc = yltrie_get_description(ylasym(ylcar(e)).sym)) {
+        if(desc = ylgsym_get_description(ylasym(ylcar(e)).sym)) {
             int    outty;
             yle_t* v;
-            v = yltrie_get(&outty, ylasym(ylcar(e)).sym);
+            v = ylgsym_get(&outty, ylasym(ylcar(e)).sym);
             ylprint(("\n======== %s Desc =========\n"
                      "%s\n"
                      "-- Value --\n"

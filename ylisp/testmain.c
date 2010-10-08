@@ -25,10 +25,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <malloc.h>
-#include <assert.h>
 #include <string.h>
+#include <assert.h>
+#include "ylut.h"
 
-#include "trie.h"
 
 #define _LOGLV  YLLogW
 

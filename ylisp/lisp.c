@@ -23,7 +23,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "trie.h"
+#include "gsym.h"
 #include "mempool.h"
 #include "lisp.h"
 
@@ -37,7 +37,7 @@ static ylerr_t  _err  = YLOk;
  * print buffer. This is used in yleprint 
  * (DO NOT USE THIS ELSEWHERE)
  */
-static ylutdynb_t _prdynb = {0, 0, NULL};
+static yldynb_t _prdynb = {0, 0, NULL};
 
 static yle_t   _predefined_true;
 static yle_t   _predefined_nil;
@@ -381,8 +381,8 @@ ylregister_nfunc(unsigned int version,
     }
 
     /* default symbol type is 0 */
-    yltrie_insert(sym, 0, e);
-    yltrie_set_description(sym, desc);
+    ylgsym_insert(sym, 0, e);
+    ylgsym_set_description(sym, desc);
 
     return YLOk;
 }
@@ -428,7 +428,7 @@ ylchain_size(const yle_t* e) {
 #define _fcall(fEXP) do { if( 0 > fEXP ) { goto bail; } } while(0)
 
 static int
-_aprint(ylutdynb_t* b, yle_t* e) {
+_aprint(yldynb_t* b, yle_t* e) {
     int  cw; /* character written */
     if(ylaif(e)->to_string) {
         _fcall(ylutstr_append(b, "%s", (*ylaif(e)->to_string)(e)));
@@ -444,7 +444,7 @@ _aprint(ylutdynb_t* b, yle_t* e) {
 }
 
 static int
-_eprint(ylutdynb_t* b, yle_t* e) {
+_eprint(yldynb_t* b, yle_t* e) {
     if(yleis_atom(e)) {
         _fcall(_aprint(b, e));
     } else {
@@ -497,7 +497,7 @@ yleprint(const yle_t* e) {
      * newly allocates or shrinks
      */
     if(!_prdynb.b || ylutstr_len(&_prdynb) > __DEFAULT_BSZ) {
-        ylutdynb_clean(&_prdynb);
+        yldynb_clean(&_prdynb);
         _fcall(ylutstr_init(&_prdynb, __DEFAULT_BSZ));
     } else {
         ylutstr_reset(&_prdynb);
@@ -524,24 +524,24 @@ yleprint(const yle_t* e) {
 
 
 int
-ylget_candidates_num(const char* prefix, unsigned int* max_symlen) {
-    return yltrie_get_candidates_num(prefix, max_symlen);
+ylsym_nr_candidates(const char* start_with, unsigned int* max_symlen) {
+    return ylgsym_nr_candidates(start_with, max_symlen);
 }
 
 /**
  * @return: <0: error. Otherwise number of candidates found.
  */
 int
-ylget_candidates(const char* prefix, 
+ylsym_candidates(const char* start_with, 
                  char** ppbuf,       /* in/out */
                  unsigned int ppbsz, /* size of ppbuf - regarding 'ppbuf[i]' */
                  unsigned int pbsz) {/* size of pbuf - regarding 'ppbuf[0][x]' */
-    return yltrie_get_candidates(prefix, ppbuf, ppbsz, pbsz);
+    return ylgsym_candidates(start_with, ppbuf, ppbsz, pbsz);
 }
 
 int
-ylget_more_possible_prefix(const char* prefix, char* buf, unsigned int bufsz) {
-    return yltrie_get_more_possible_prefix(prefix, buf, bufsz);
+ylsym_auto_complete(const char* start_with, char* buf, unsigned int bufsz) {
+    return ylgsym_auto_complete(start_with, buf, bufsz);
 }
 
 
@@ -571,7 +571,7 @@ ylinit(ylsys_t* sysv) {
     _sysv = sysv;
 
     if( YLOk != ylsfunc_init()
-        || YLOk != yltrie_init()
+        || YLOk != ylgsym_init()
         || YLOk != ylnfunc_init()
         || YLOk != ylmp_init() 
         || YLOk != ylinterp_init()) {
@@ -612,8 +612,8 @@ ylinit(ylsys_t* sysv) {
 
 void
 yldeinit() {
-    yltrie_deinit();
+    ylgsym_deinit();
     ylmp_deinit();
     ylinterp_deinit();
-    ylutdynb_clean(&_prdynb);
+    yldynb_clean(&_prdynb);
 }

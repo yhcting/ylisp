@@ -247,7 +247,7 @@ _scanning_gc() {
     }
 
     /* mark memory blocks that can be reachable from the Trie.*/
-    yltrie_mark_reachable();
+    ylgsym_mark_reachable();
 
     /* Collect memory blocks those are not reachable (dangling) from the Trie! */
     for(i=_m.fbi; i<ylmpsz(); i++) {

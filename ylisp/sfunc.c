@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include "trie.h"
+#include "gsym.h"
 #include "lisp.h"
 
 /* global error number */
@@ -124,6 +124,11 @@ _set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
         ylinterpret_undefined(YLErr_eval_undefined); 
     }
 
+    if(0 == *ylasym(s).sym) { 
+        yllogE0("empty symbol cannot be set!\n");
+        ylinterpret_undefined(YLErr_eval_undefined); 
+    }
+
     ylassert(ylasym(s).sym);
     r = _list_find(s, a);
     if(r) {
@@ -141,15 +146,15 @@ _set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
         }
     } else {
         /* not found - set to global space */
-        if(bmac) { yltrie_insert(ylasym(s).sym, ylasymset_macro(ylasym(s).ty), val); }
-        else { yltrie_insert(ylasym(s).sym, ylasymclear_macro(ylasym(s).ty), val); }
+        if(bmac) { ylgsym_insert(ylasym(s).sym, ylasymset_macro(ylasym(s).ty), val); }
+        else { ylgsym_insert(ylasym(s).sym, ylasymclear_macro(ylasym(s).ty), val); }
         if(desc) {
             if(desc[0]) { 
                 /* strlen(desc) > 0 */
-                yltrie_set_description(ylasym(s).sym, desc);
+                ylgsym_set_description(ylasym(s).sym, desc);
             } else {
                 /* strlen(desc) == 0 */
-                yltrie_set_description(ylasym(s).sym, NULL);
+                ylgsym_set_description(ylasym(s).sym, NULL);
             }
         }
     }
@@ -168,7 +173,7 @@ ylmset(yle_t* s, yle_t* val, yle_t* a, const char* desc) {
 
 int
 ylis_set(const char* sym) {
-    if(yltrie_get(NULL, sym)) { return 1; }
+    if(ylgsym_get(NULL, sym)) { return 1; }
     else { return 0; }
 }
 
@@ -261,7 +266,7 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
         *ovty = ylasym(ylcar(r)).ty;
         return ylasymis_macro(*ovty)? yleclone_chain(ylcadr(r)): ylcadr(r);
     } else {
-        r = (yle_t*)yltrie_get(ovty, ylasym(x).sym);
+        r = (yle_t*)ylgsym_get(ovty, ylasym(x).sym);
         if(r) { 
             return ylasymis_macro(*ovty)? yleclone_chain(r): r;
         } else {

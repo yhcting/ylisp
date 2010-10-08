@@ -71,46 +71,9 @@ ylutfile_read(unsigned int* outsz, const char* fpath, int btext) {
     return NULL;
 }
 
-int
-ylutdynb_expand(ylutdynb_t* b) {
-    unsigned char* tmp = (unsigned char*)ylmalloc(b->limit*2);
-    if(tmp) {
-        memcpy(tmp, b->b, b->sz);
-        ylfree(b->b);
-        b->b = tmp;
-        b->limit *= 2;
-        return 0;
-    } else {
-        return -1;
-    }
-}
 
 int
-ylutdynb_shrink(ylutdynb_t* b, unsigned int sz_to) {
-    if( b->limit > sz_to  && b->sz < sz_to ) {
-        unsigned char* tmp = (unsigned char*)ylmalloc(sz_to);
-        if(tmp) {
-            ylassert(b->b);
-            memcpy(tmp, b->b, b->sz);
-            ylfree(b->b);
-            b->b = tmp;
-            b->limit = sz_to;
-            return 0;
-        }
-    }
-    return -1;
-}
-
-int
-ylutdynb_append(ylutdynb_t* b, const unsigned char* d, unsigned int dsz) {
-    if( 0 > ylutdynb_secure(b, dsz) ) { return -1; }
-    memcpy(ylutdynb_ptr(b), d, dsz);
-    b->sz += dsz;
-    return 0;
-}
-
-int
-ylutstr_append(ylutdynb_t* b, const char* format, ...) {
+ylutstr_append(yldynb_t* b, const char* format, ...) {
     va_list       args;
     char*         tmp;
     int           cw = 0, cwsv; /* charactera written */
@@ -118,10 +81,10 @@ ylutstr_append(ylutdynb_t* b, const char* format, ...) {
     va_start (args, format);
     do {
         cwsv = cw;
-        cw = vsnprintf (ylutstr_ptr(b), ylutdynb_freesz(b), format, args);
+        cw = vsnprintf (ylutstr_ptr(b), yldynb_freesz(b), format, args);
         ylassert(cw >= 0);
-        if( cw >= ylutdynb_freesz(b) ) {
-            if( 0 > ylutdynb_expand(b) ) {
+        if( cw >= yldynb_freesz(b) ) {
+            if( 0 > yldynb_expand(b) ) {
                 cw = cwsv;
                 break;
             }

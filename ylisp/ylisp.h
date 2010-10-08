@@ -158,20 +158,20 @@ ylforce_stop();
  *    <0 : error (ex. not enough buffer size)
  */
 extern int
-ylget_more_possible_prefix(const char* prefix, char* buf, unsigned int bufsz);
+ylsym_auto_complete(const char* start_with, char* buf, unsigned int bufsz);
 
 /**
  * @max_symlen: [out] max symbol length of candidates(based on 'sizeof(char)' - excluding prefix.
  * @return: <0 : internal error.
  */
 extern int
-ylget_candidates_num(const char* prefix, unsigned int* max_symlen);
+ylsym_nr_candidates(const char* start_with, unsigned int* max_symlen);
 
 /**
  * @return: <0: error. Otherwise number of candidates found.
  */
 extern int
-ylget_candidates(const char* prefix, 
+ylsym_candidates(const char* start_with, 
                  char** ppbuf,       /* in/out */
                  unsigned int ppbsz, /* size of ppbuf - regarding 'ppbuf[i]' */
                  unsigned int pbsz); /* size of pbuf - regarding 'ppbuf[0][x]' */

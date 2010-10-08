@@ -6,7 +6,7 @@ top="$(CURDIR)"/
 TARGET=$(OUTDIR)ylisp
 LIBA=lib$(TARGET).a
 LIBSO=lib$(TARGET).so
-PUB_HEADER=ylisp.h yldef.h ylut.h yldev.h ylsfunc.h
+PUB_HEADER=ylisp.h yldef.h ylut.h yllist.h yltrie.h yldynb.h yldev.h ylsfunc.h
 
 INCLUDES=-I../include
 
@@ -21,7 +21,7 @@ SYSLIB=$(addprefix $(SYSLIB_DIR),$(addsuffix .a,$(addprefix lib,$(SYSLIB_NAME)))
 
 UNALIB=$(EXTLIB) $(SYSLIB)
 
-SOURCES= lisp.c sfunc.c mempool.c interpret.c nfunc.c trie.c ut.c \
+SOURCES= lisp.c sfunc.c mempool.c interpret.c nfunc.c gsym.c trie.c ut.c \
 	 testmain.c
 
 

@@ -81,7 +81,7 @@ static void
 _assert(int a) { assert(a); }
 
 
-ylutdynb_t dynb = {0, 0, NULL};
+yldynb_t dynb = {0, 0, NULL};
 
 /* ===========================================
  * JNI Functions - START
@@ -141,7 +141,7 @@ _jni_Main_nativeGetLastNativeMessage
 
     /* shrink */
     if(ylutstr_len(&dynb) > _INIT_OUTBUFSZ) {
-        ylutdynb_clean(&dynb);
+        yldynb_clean(&dynb);
         if( 0 > ylutstr_init(&dynb, _INIT_OUTBUFSZ) ) {
             /* fail to alloc page... may be due to external fragmentation?? */
             assert(0);
@@ -178,7 +178,7 @@ _jni_Main_nativeAutoComplete
     prefix = (*jenv)->GetStringUTFChars(jenv, jprefix, NULL);
 
     ylutstr_reset(&dynb);
-    ret = yltrie_get_more_possible_prefix(prefix, ylutstr_ptr(&dynb), ylutdynb_freesz(&dynb));
+    ret = ylsym_auto_complete(prefix, ylutstr_ptr(&dynb), yldynb_freesz(&dynb));
     /* we need to assess directly..here... due to limitation of API */
     dynb.sz += strlen(ylutstr_string(&dynb));
 
@@ -191,7 +191,7 @@ _jni_Main_nativeAutoComplete
                 int            num, i;
                 unsigned int   maxlen;
                 char**         pp;
-                num = ylget_candidates_num(prefix, &maxlen);
+                num = ylsym_nr_candidates(prefix, &maxlen);
                 assert(num > 1);
                 pp = malloc(sizeof(char*)*num);
                 if(!pp) { 
@@ -205,7 +205,7 @@ _jni_Main_nativeAutoComplete
                         assert(0);
                     }
                 }
-                i = ylget_candidates(prefix, pp, num, maxlen+1);
+                i = ylsym_candidates(prefix, pp, num, maxlen+1);
                 assert(i==num);
                 for(i=0; i<num; i++) {
                     _print("%s%s\n", prefix, pp[i]);
