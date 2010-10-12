@@ -59,7 +59,8 @@
 #define YLADouble          0x03 /**< Double type */
 #define YLABinary          0x04 /**< Binary data */
 #define YLACustom          0x10 /**< Custom data - this is not defined at ylisp-core */
-/* Number [0x10, 0xff] is reserved for custom use */
+/* Number [0x10, 0xfe] is reserved for custom use */
+#define YLAUnknown         0xff /**< Unknown type. ex. nil */
 
 #define YLAtype_mask       0x000000ff
 
@@ -121,6 +122,14 @@ typedef struct {
      * @return : static buffer. NULL if fails (ex. OOM)
      */
     const char*   (*to_string)(const struct yle*);
+    /*
+     * To visit referenced element of given atom.
+     * (This may used to implement special atom type - ex. array, struture, class etc. if required)
+     * return value is reserved.
+     */
+    int           (*visit)(struct yle*, void* user, 
+                           int(*)(void*/*user*/, 
+                                  struct yle*/*referred element*/));
     void          (*clean)(struct yle*);
 } ylatomif_t; /* atom inteface
 
@@ -185,6 +194,7 @@ typedef struct yle {
  * Macros
  *
  *===================================*/
+#define not_used(e) do { (e)=(e); } while(0)
 
 #define ylunroll16( expr, count, cond)              \
     switch( (count) & 0xf ) {                       \
@@ -499,7 +509,7 @@ extern void ylinterpret_undefined(int reason);
     do {                                                                \
         yle_t* _E = (eXP);                                              \
         while( !yleis_nil(_E) ) {                                       \
-            if(yleis_nil(ylcar(_E)) || !ylais_type(ylcar(_E), tY)) {    \
+            if(!ylais_type(ylcar(_E), tY)) {                            \
                 ylnflogE0("invalid parameter type\n");                  \
                 ylinterpret_undefined(YLErr_func_invalid_param);        \
             }                                                           \
@@ -522,7 +532,7 @@ extern void ylinterpret_undefined(int reason);
             else {                                                      \
                 _E = ylcdr(_E);                                         \
                 while( !yleis_nil(_E) ) {                               \
-                    if(yleis_nil(ylcar(_E)) || !ylais_type(ylcar(_E), _aty) ) { \
+                    if(!ylais_type(ylcar(_E), _aty) ) {                 \
                         bok = FALSE; break;                             \
                     }                                                   \
                     _E = ylcdr(_E);                                     \
@@ -539,7 +549,7 @@ extern void ylinterpret_undefined(int reason);
 #define ylnfcheck_atype1(eXP, tY)                               \
     do {                                                        \
         yle_t* _E = (eXP);                                      \
-        if(yleis_nil(_E) || !ylais_type(_E, tY)) {              \
+        if(!ylais_type(_E, tY)) {                               \
             ylnflogE0("invalid parameter type\n");              \
             ylinterpret_undefined(YLErr_func_invalid_param);    \
         }                                                       \
@@ -548,8 +558,7 @@ extern void ylinterpret_undefined(int reason);
 #define ylnfcheck_atype2(eXP, tY1, tY2)                         \
     do {                                                        \
         yle_t* _E = (eXP);                                      \
-        if( yleis_nil(_E)                                       \
-            || !(ylais_type(_E, tY1)                            \
+        if!(ylais_type(_E, tY1)                                 \
                  || ylais_type(_E, tY2)) ) {                    \
             ylnflogE0("invalid parameter type\n");              \
             ylinterpret_undefined(YLErr_func_invalid_param);    \
@@ -701,19 +710,27 @@ yleref(yle_t* e) {
 }
 
 static inline void
-ylpsetcar(yle_t* e, yle_t* exp) {
-    yle_t*  sv = e->u.p.car;
-    e->u.p.car = exp;
-    if(exp) { yleref(exp); }
+ylsetref(yle_t**p, yle_t* e) {
+    yle_t*  sv = *p;
+    *p = e;
+    /* 
+     * ORDER is very important!
+     * 'unref' after 'ref'!
+     * If order is changed, block that should be 'ref' is freed at 'unref'
+     *  before doing 'ref'
+     */
+    if(e) { yleref(e); }
     if(sv) { yleunref(sv); }
 }
 
 static inline void
+ylpsetcar(yle_t* e, yle_t* exp) {
+    ylsetref(&e->u.p.car, exp);
+}
+
+static inline void
 ylpsetcdr(yle_t* e, yle_t* exp) {
-    yle_t*  sv = e->u.p.cdr;
-    e->u.p.cdr = exp;
-    if(exp) { yleref(exp); }
-    if(sv) { yleunref(sv); }
+    ylsetref(&e->u.p.cdr, exp);
 }
 
 

@@ -335,10 +335,6 @@ yleval(yle_t* e, yle_t* a) {
      * Push(Save) that current memory pool status before evaluation.
      */
     ylmp_push();
-    if( yleis_nil(e) ) {
-        yllogE0("ERROR : nil cannot be evaluated!\n");
-        ylinterpret_undefined(YLErr_eval_undefined);
-    }
 
     if( yleis_atom(e) ) { 
         if(YLASymbol == ylatype(e)) {
@@ -354,6 +350,7 @@ yleval(yle_t* e, yle_t* a) {
     } else if( yleis_atom(ylcar(e)) ) {
         yle_t*   car_e = ylcar(e);
         yle_t*   p;
+
         if(YLASymbol == ylatype(car_e) ) {
             r = (yle_t*)_assoc(&vty, car_e, a);
             if(ylasymis_macro(vty)) {

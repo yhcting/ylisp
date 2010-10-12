@@ -120,9 +120,10 @@ YLDEFNF(help, 1, 9999) {
             ylprint(("\n======== %s Desc =========\n"
                      "%s\n"
                      "-- Value --\n"
-                     "%s\n"
+                     "%s : %s\n"
                      , ylasym(ylcar(e)).sym
                      , desc
+                     , (ylasymis_macro(outty))? "M": ""
                      , yleprint(v)));
         } else {
             ylprint(("======== %s =========\n"

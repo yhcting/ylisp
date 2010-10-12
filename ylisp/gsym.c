@@ -145,23 +145,23 @@ ylgsym_get(int* outty, const char* sym) {
     }
 }
 
-static void
-_mark_chain_reachable(yle_t* e) {
-    if(yleis_reachable(e)) {
-        /* we don't need to preceed anymore. */
-        return;
-    }
-
-    yleset_reachable(e);
-    if(!yleis_atom(e)) {
-        _mark_chain_reachable(ylcar(e));
-        _mark_chain_reachable(ylcdr(e));
+static int
+_mark_chain_reachable(void* user, yle_t* e) {
+    if(!yleis_reachable(e)) {
+        yleset_reachable(e);
+        if(yleis_atom(e)) {
+            if(ylaif(e)->visit) { ylaif(e)->visit(e, user, &_mark_chain_reachable); }
+        } else {
+            /* pair case */
+            _mark_chain_reachable(user, ylcar(e));
+            _mark_chain_reachable(user, ylcdr(e));
+        }
     }
 }
 
 static int
 _cb_mark_reachable(void* user, const char* sym, _value_t* v) {
-    if(v->e) { _mark_chain_reachable(v->e); }
+    if(v->e) { _mark_chain_reachable(NULL, v->e); }
     return 1;
 }
 

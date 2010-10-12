@@ -185,8 +185,6 @@ _DEFAIF_CLEAN_START(dbl, YLADouble) {
     /* nothing to do */
 } _DEFAIF_CLEAN_END
 
-
-
 /* --- aif binary --- */
 _DEFAIF_EQ_START(bin, YLABinary) {
     if(ylabin(e0).sz == ylabin(e1).sz
@@ -234,6 +232,7 @@ _DEFAIF_CLEAN_START(bin, YLABinary) {
         &_aif_##sUFFIX##_eq,                    \
         &_aif_##sUFFIX##_clone,                 \
         &_aif_##sUFFIX##_to_string,             \
+        NULL,                                   \
         &_aif_##sUFFIX##_clean                  \
 }
 
@@ -263,7 +262,6 @@ ylget_aif_dbl() { return &_aif_dbl; }
 
 const ylatomif_t*
 ylget_aif_bin() { return &_aif_bin; }
-
 
 
 /**
@@ -581,7 +579,7 @@ ylinit(ylsys_t* sysv) {
 
     /* init predefined expression */
     yleset_type(&_predefined_true, YLEAtom | YLASymbol | YLEReachable);
-    yleset_type(&_predefined_nil, YLEAtom | YLASymbol | YLEReachable);
+    yleset_type(&_predefined_nil, YLEAtom | YLAUnknown | YLEReachable);
     yleset_type(&_predefined_quote, YLEAtom | YLASymbol | YLEReachable);
 
     /* 

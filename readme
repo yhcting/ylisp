@@ -26,6 +26,19 @@ Introduction
         * Linux(Ubuntu)
 
 
+Design Policy
+-------------
+    Try to preserve S-Expression syntax as much as possible.
+        - Syntax of S-Expression is incredibly simple, easy-to-understand and clear! But, many lisp dialects break this for more powerful syntax.
+          The only exception at YLISP is ['] that repesents 'QUOTE'. Without the exception, YLISP obeys pure S-Expression-based-syntax!.
+          (#, : and so on don't have any special meanings.)
+    Make it as easy as possible that developers add new CNF plugins.
+        - To achieve this, reference-count-based-GC becomes main, and scan-and-mark-based-GC becomes sub.
+          So, developers don't need to take care of handling memory blocks that they are using, in their own CNF.
+          That is, they don't need to consider about GC - protecting memory blocks from GC and release them at the right moment - when they uses memory blocks.
+          This can reduce burdens of developers about mis-using memory blocks - ex. leak, unexpected GC.
+
+
 How Do I Build It?
 ------------------
     In the YLISP directory, type 'sh build.sh'
@@ -210,8 +223,8 @@ GC(Garbage collection)
         - When there is no interpreting request for pre-defined duration, FSGC is triggered.
 
 
-Force close
------------
+Force stop
+----------
     YLISP supports 'force stop(henceforth FS)' even if it based on thread-based interpreting. 
     To use 'FS' interpreting(ylinterpret(..)) and FS(ylforce_stop(...)) should be run on different thread.
     Moment of triggering FS is "Between evaluation".

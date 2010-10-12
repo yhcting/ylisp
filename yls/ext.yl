@@ -1,0 +1,77 @@
+; extention... This should be interpreted after loading string library.
+
+(defun pr? (PAIR key)
+"pr? <pair> <key>
+    -check whether <key> is in the pair or not.
+     nil is returns if cannot be found. Otherwise <value> nil is returned.
+"
+    (cond ((null PAIR) '())
+          ((equal key (caar PAIR)) 't)
+          ('t (pr? (cdr PAIR) key))))
+
+(defun pr- (PAIR key)
+"pr- <pair> <key>
+    -delete pair data whose key is <key>.
+     If there is more than one, all are deleted.
+    @return : updated pair.
+"
+    (cond ((null PAIR) '())
+          ((equal key (caar PAIR))
+              (pr- (cdr PAIR) key))
+          ('t 
+              (cons (car PAIR) (pr- (cdr PAIR) key)))))
+
+(defun pr+ (PAIR key value)
+"pr+ <pair> <key> <value>
+    -add pair data to the pair list at the first position.
+     This returns original value if fail, otherwise newly updated pair.
+    @pair: Pair --> ((x X)(y Y)...)
+"
+    (cond (   (eq PAIR '())
+              (cons (list key value) '()))
+          (   't
+              (progn
+                  (cond 
+                      (   (pr? PAIR key) 
+                          (append (cons (list key value) '()) (pr- PAIR key)))
+                      (   't
+                          (append (cons (list key value) '()) PAIR)))))))
+
+(defun pr* (PAIR key)
+"pr* <pair> <key>
+    -find and get matching value.
+     @return: nil if fails.
+"
+    (cond ((null PAIR) '())
+          ((equal key (caar PAIR)) (cadar PAIR))
+          ('t (pr* (cdr PAIR) key))))
+
+
+(defun pr-from-list (P L)
+"pr-from-list <pair> <key-list>
+    -make and append initialized pair from key-list (reverse order)
+"
+    (cond 
+        (   (not (null L))
+            (pr-from-list (pr+ P (car L) '()) (cdr L)))
+        ('t P)))
+        
+
+(mset defstruct 
+    (mlambda (name SLOTS)
+        (let ( (rf '()) )
+            (defun rf (st S) ""
+                (cond ((not (null S))
+                    (progn
+                        (f-mset (s.concat st '- (car S) '-get)
+                            (list 'mlambda '(inst) (list 'pr* 'inst (list 'car (list 'quote S)))))
+                        (f-mset (s.concat st '- (car S) '-set)
+                            (list 'mlambda '(inst val) (list 'set ''inst (list 'pr+ 'inst (list 'car (list 'quote S)) 'val))))
+                        (rf st (cdr S))))))
+            (f-mset (s.concat 'make- 'name)
+                '(lambda () (pr-from-list '() 'SLOTS)))
+            (rf 'name 'SLOTS)))
+"defstruct <name> <slots> ")
+
+
+

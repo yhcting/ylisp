@@ -13,3 +13,6 @@
 (interpret-file '../yls/test_string.yl)
 (interpret-file '../yls/util.yl)
 (interpret-file '../yls/test_util.yl)
+
+(interpret-file '../yls/ext.yl)
+(interpret-file '../yls/test_ext.yl)

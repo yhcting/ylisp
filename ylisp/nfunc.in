@@ -111,6 +111,7 @@ NFUNC(eval,                   "eval",                    YLANfunc,
 NFUNC(help,                   "help",                    YLANfunc,
     "help <sym1> <sym2> ...\n"
     "    -see description and it's contents of this symbol\n"
+    "     'M :' means \"This value is macro.\"\n"
     "    *ex\n"
     "        (help 'help); to see this description\n")
 
