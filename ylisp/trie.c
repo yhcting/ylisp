@@ -225,6 +225,41 @@ _get_node(_trie_t* t, const unsigned char* sym, int bcreate) {
     return n;
 }
 
+static int
+_equal_internal(const _node_t* n0, const _node_t* n1, 
+                  int(*cmp)(const void*, const void*)) {
+    register int i;
+    int          r;
+    if(n0->v && n1->v) {
+        if(0 == cmp(n0->v, n1->v)) { return 0; /* NOT same */ }
+    } else if(n0->v || n1->v) {
+        return 0; /* NOT same */
+    }
+
+    /* compare child nodes! */
+    for(i=0; i<16; i++) {
+        if(n0->n[i] && n1->n[i]) {
+            if(0 == _equal_internal(n0->n[i], n1->n[i], cmp)) { return 0; /* NOT same */ }
+        } else if(n0->n[i] || n1->n[i]) {
+            return 0; /* NOT same */
+        }
+    }
+    return 1; /* n0 and n1 is same */
+}
+
+static _node_t*
+_node_clone(const _node_t* n, void*(*clonev)(const void*)) {
+    register int i;
+    _node_t* r = _alloc_node();
+    if(n->v) { r->v = clonev(n->v); }
+    for(i=0; i<16; i++) {
+        if(n->n[i]) {
+            r->n[i] = _node_clone(n->n[i], clonev);
+        }
+    }
+    return r;
+}
+
 /*
  * @return: see '_walk_node'
  */
@@ -239,7 +274,7 @@ _walk_internal(void* user, _node_t* n,
         /* round-up base on 8. And add trailing 0 */
         if(buf) { buf[bitoffset>>3] = 0 ; }
         /* keep going? */
-        if(!cb(user, (char*)buf, n->v)) { return 1; }
+        if(!cb(user, (char*)buf, n->v)) { return 0; }
     }
 
     for(i=0; i<16; i++) {
@@ -257,39 +292,38 @@ _walk_internal(void* user, _node_t* n,
                 else { *p &= 0xf0; *p |= i; } /* multiple of 4 - getting index for back node */
             }
             r = _walk_internal(user, n->n[i], cb, buf, bsz, bitoffset+4); /* go to next depth */
-            if(r) { return r; }
+            if(r<=0) { return r; }
         }
     }
-    return 0;
+    return 1;
 }
 
-void*
-yltrie_get(_trie_t* t, const char* sym) {
+void**
+yltrie_getref(yltrie_t* t, const char* sym) {
     _node_t* n;
     ylassert(sym);
     if(0 == *sym) { return NULL; } /* 0 length string */
     n = _get_node(t, sym, FALSE);
-    return n? n->v: NULL;
+    return n? &n->v: NULL;
 }
 
-/*
- * @return:
- *    0 : success
- *    1 : stop by user callback
- *   -1 : fail
- */
+void*
+yltrie_get(_trie_t* t, const char* sym) {
+    void** pv = yltrie_getref(t, sym);
+    return pv? *pv: NULL;
+}
+
 int
 yltrie_walk(_trie_t* t, void* user, const char* from,
-            /* 
-             * return 1 for keep going, 0 for stop and don't do anymore
-             */
+            /* return 1 for keep going, 0 for stop and don't do anymore */
             int(cb)(void* user, const char* sym, void* v)) {
     char        buf[_MAX_SYM_LEN + 1];
     _node_t*    n = _get_node(t, from, FALSE);
 
     ylassert(t && from);
-    if(n) { _walk_internal(user, n, cb, (unsigned char*)buf, _MAX_SYM_LEN, 0); }
-    else { return -1; }
+    if(n) {
+        return _walk_internal(user, n, cb, (unsigned char*)buf, _MAX_SYM_LEN, 0); 
+    } else { return -1; }
 }
 
 int
@@ -321,12 +355,20 @@ yltrie_create(void(*fcb)(void*)) {
     return t;
 }
 
-extern void
-yltrie_destroy(yltrie_t* t) {
+static void
+_trie_clean(_trie_t* t) {
     register int i;
     for(i=0; i<16; i++) {
-        if(t->rt.n[i]) { _delete_node(t->rt.n[i], t->fcb); }
+        if(t->rt.n[i]) {
+            _delete_node(t->rt.n[i], t->fcb);
+            t->rt.n[i] = NULL;
+        }
     }
+}
+
+extern void
+yltrie_destroy(yltrie_t* t) {
+    _trie_clean(t);
     ylfree(t);
 }
 
@@ -339,6 +381,36 @@ yltrie_delete(_trie_t* t, const char* sym) {
         case 0:    return 0;
         default:   return -1;
     }
+}
+
+void(*yltrie_fcb(const yltrie_t* t))(void*) {
+    return t->fcb;
+}
+
+int
+yltrie_equal(const yltrie_t* t0, const yltrie_t* t1,
+             int(*cmp)(const void*, const void*)) {
+    return _equal_internal(&t0->rt, &t1->rt, cmp);
+}
+
+int
+yltrie_copy(yltrie_t* dst, const yltrie_t* src,
+            void*(*clonev)(const void*)) {
+    register int i;
+    _trie_clean(dst);
+    dst->fcb = src->fcb;
+    for(i=0; i<16; i++) {
+        if(src->rt.n[i]) { dst->rt.n[i] = _node_clone(src->rt.n[i], clonev); }
+    }
+
+}
+
+yltrie_t*
+yltrie_clone(const yltrie_t* t, void*(*clonev)(const void*)) {
+    register int i;
+    yltrie_t*    r = yltrie_create(t->fcb);
+    yltrie_copy(r, t, clonev);
+    return r;
 }
 
 int

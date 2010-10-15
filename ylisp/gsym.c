@@ -145,30 +145,19 @@ ylgsym_get(int* outty, const char* sym) {
     }
 }
 
-static int
-_mark_chain_reachable(void* user, yle_t* e) {
-    if(!yleis_reachable(e)) {
-        yleset_reachable(e);
-        if(yleis_atom(e)) {
-            if(ylaif(e)->visit) { ylaif(e)->visit(e, user, &_mark_chain_reachable); }
-        } else {
-            /* pair case */
-            _mark_chain_reachable(user, ylcar(e));
-            _mark_chain_reachable(user, ylcdr(e));
-        }
-    }
-}
+_DEF_VISIT_FUNC(static, _gcmark, ,!yleis_gcmark(e), yleset_gcmark(e), 1, )
 
 static int
-_cb_mark_reachable(void* user, const char* sym, _value_t* v) {
-    if(v->e) { _mark_chain_reachable(NULL, v->e); }
+_cb_gcmark(void* user, const char* sym, _value_t* v) {
+    if(v->e) { _gcmark(NULL, v->e); }
     return 1;
 }
 
 void
-ylgsym_mark_reachable() {
+ylgsym_gcmark() {
+    /* This is called by 'Scanning GC' */
     yltrie_walk(_trie, NULL, "", 
-                (int(*)(void*, const char*, void*))&_cb_mark_reachable);
+                (int(*)(void*, const char*, void*))&_cb_gcmark);
 }
 
 int

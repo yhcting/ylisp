@@ -23,91 +23,91 @@
 /*
  * Function which has only one argument.
  */
-NFUNC(cos,         "m.cos",        YLANfunc,
+NFUNC(cos,         "m.cos",        ylaif_nfunc(),
     "m.cos <value> : [Double]\n"
     "    -calculates consine.\n"
     "    @value [Double]: angle expressed in radians\n")
 
-NFUNC(sin,         "m.sin",        YLANfunc,
+NFUNC(sin,         "m.sin",        ylaif_nfunc(),
     "m.sin <value> : [Double]\n"
     "    -calculates sine.\n"
     "    @value [Double]: angle expressed in radians\n")
 
-NFUNC(tan,         "m.tan",        YLANfunc,
+NFUNC(tan,         "m.tan",        ylaif_nfunc(),
     "m.tan <value> : [Double]\n"
     "    -calculates tangent.\n"
     "    @value [Double]: angle expressed in radians\n")
 
-NFUNC(acos,        "m.acos",       YLANfunc,
+NFUNC(acos,        "m.acos",       ylaif_nfunc(),
     "m.acos <value> : [Double]\n"
     "    -calculates arc cosine.\n"
     "    @value [Double]: value in the interval [-1, +1].\n"
     "    @return:         expressed in radians.\n")
 
 
-NFUNC(asin,        "m.asin",       YLANfunc,
+NFUNC(asin,        "m.asin",       ylaif_nfunc(),
     "m.asin <value> : [Double]\n"
     "    -calculates arc sine.\n"
     "    @value [Double]: value in the interval [-1, +1].\n"
     "    @return:         expressed in radians.\n")
 
-NFUNC(atan,        "m.atan",       YLANfunc,
+NFUNC(atan,        "m.atan",       ylaif_nfunc(),
     "m.atan <value> : [Double]\n"
     "    -calculates arc tangent.\n"
     "    @value [Double]:\n"
     "    @return:         expressed in radians.\n")
 
-NFUNC(cosh,        "m.cosh",       YLANfunc,
+NFUNC(cosh,        "m.cosh",       ylaif_nfunc(),
     "m.cosh <value> : [Double]\n"
     "    -calculates hyperbolic cosine of x.\n")
 
-NFUNC(sinh,        "m.sinh",       YLANfunc,
+NFUNC(sinh,        "m.sinh",       ylaif_nfunc(),
     "m.sinh <value> : [Double]\n"
     "    -calculates hyperbolic sine of x.\n")
 
-NFUNC(tanh,        "m.tanh",       YLANfunc,
+NFUNC(tanh,        "m.tanh",       ylaif_nfunc(),
     "m.tanh <value> : [Double]\n"
     "    -calculates hyperbolic tangent of x.\n")
 
-NFUNC(exp,         "m.exp",        YLANfunc,
+NFUNC(exp,         "m.exp",        ylaif_nfunc(),
     "m.exp <value> : [Double]\n"
     "    -calculates base-e exponential of x.\n")
 
-NFUNC(log,         "m.log",        YLANfunc,
+NFUNC(log,         "m.log",        ylaif_nfunc(),
     "m.log <value> : [Double]\n"
     "    -calculates base-e logarithm of x.\n")
 
-NFUNC(log10,       "m.log10",      YLANfunc,
+NFUNC(log10,       "m.log10",      ylaif_nfunc(),
     "m.log10 <value> : [Double]\n"
     "    -calculates base-10 logarithm of x.\n")
 
-NFUNC(sqrt,        "m.sqrt",       YLANfunc,
+NFUNC(sqrt,        "m.sqrt",       ylaif_nfunc(),
     "m.log <value> : [Double]\n"
     "    -calculates sqare root of x.\n")
 
-NFUNC(ceil,        "m.ceil",       YLANfunc,
+NFUNC(ceil,        "m.ceil",       ylaif_nfunc(),
     "m.ceil <value> : [Double]\n"
     "    -calculates the smallest integral value that is not less than x.\n")
 
-NFUNC(floor,       "m.floor",      YLANfunc,
+NFUNC(floor,       "m.floor",      ylaif_nfunc(),
     "m.floor <value> : [Double]\n"
     "    -calculates the largest integral value that is not greater than x.\n")
 
-NFUNC(fabs,        "m.fabs",       YLANfunc,
+NFUNC(fabs,        "m.fabs",       ylaif_nfunc(),
     "m.fabs <value> : [Double]\n"
     "    -calculates absolute value of x.\n")
 
-NFUNC(integer,     "m.integer",    YLANfunc,
+NFUNC(integer,     "m.integer",    ylaif_nfunc(),
     "m.ingeger <value> : [Double]\n"
     "    -get value of integer part of x.\n")
 
-NFUNC(fraction,    "m.fraction",   YLANfunc,
+NFUNC(fraction,    "m.fraction",   ylaif_nfunc(),
     "m.fraction <value> : [Double]\n"
     "    -get value of fraction part of x.\n")
 
 /*
  * Function which has two arguments
  */
-NFUNC(pow,         "m.pow",        YLANfunc,
+NFUNC(pow,         "m.pow",        ylaif_nfunc(),
     "m.pow <base> <exponent> : [Double]\n"
     "    -return <base> raised to the power <exponent>\n")

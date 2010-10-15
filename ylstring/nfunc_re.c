@@ -84,7 +84,7 @@ YLDEFNF(re_match, 3, 3) {
     const char   *pattern, *subject, *errmsg;
 
 
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
 
     pattern = ylasym(ylcar(e)).sym;
     subject = ylasym(ylcadr(e)).sym;
@@ -101,7 +101,7 @@ YLDEFNF(re_match, 3, 3) {
     rc = pcre_exec(re, NULL, subject, strlen(subject), 0, 0, ovect, _OVECCNT);
     
     /* set head as sentinel */
-    hd = tl = ylmp_get_block();
+    hd = tl = ylmp_block();
     ylpassign(hd, ylnil(), ylnil());
     if(rc >= 0) {
         unsigned int     i, len;
@@ -137,7 +137,7 @@ YLDEFNF(re_replace, 4, 4) {
     pcre*         re;
     char*         subject = NULL;
 
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
 
     { /* Just scope */
         const char   *pattern, *errmsg;

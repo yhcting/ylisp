@@ -51,23 +51,10 @@
 /* --------------------------
  * YLE types
  * --------------------------*/
-
-/* A: means Atom */
-#define YLASymbol          0x00
-#define YLANfunc           0x01 /**< normal native C function */
-#define YLASfunc           0x02 /**< parameter is passed before evaluation */
-#define YLADouble          0x03 /**< Double type */
-#define YLABinary          0x04 /**< Binary data */
-#define YLACustom          0x10 /**< Custom data - this is not defined at ylisp-core */
-/* Number [0x10, 0xfe] is reserved for custom use */
-#define YLAUnknown         0xff /**< Unknown type. ex. nil */
-
-#define YLAtype_mask       0x000000ff
-
 #define YLEPair            0           
 #define YLEAtom            0x80000000  /**< 0 means ylpair */ 
-#define YLEReachable       0x40000000  /**< used for GC of memory pool */
-
+#define YLEGCMark          0x40000000  /**< Mark used only for GC */
+#define YLEMark            0x20000000  /**< Bit for Mark. This is used for several purpose! */
 
 /* --------------------------
  * YLASymbol attributes
@@ -115,9 +102,13 @@ typedef struct {
      */
     int           (*eq)(const struct yle*, const struct yle*);
     /*
-     * @return : NULL if error!
+     * Deep copier
+     * Values  will be shallow-copied before calling this function.
+     * So, 'copy' SHOULD DO DEEP COPY if needed.
+     * This can be NULL.(Nothing to deep-copy.
+     * @return : <0 if error.
      */
-    struct yle*   (*clone)(const struct yle*);
+    int           (*copy)(struct yle*, const struct yle*);
     /*
      * @return : static buffer. NULL if fails (ex. OOM)
      */
@@ -125,9 +116,10 @@ typedef struct {
     /*
      * To visit referenced element of given atom.
      * (This may used to implement special atom type - ex. array, struture, class etc. if required)
-     * return value is reserved.
+     * return : 0: stop by user, 1: complete visiting.
      */
     int           (*visit)(struct yle*, void* user, 
+                           /* 1: keep visiting / 0:stop visiting */
                            int(*)(void*/*user*/, 
                                   struct yle*/*referred element*/));
     void          (*clean)(struct yle*);
@@ -143,6 +135,8 @@ typedef struct yle {
         struct {
             /*
              * Interfaces to handle atom.
+             * This value also can be "ID" of each atom type.
+             * (Interface SHOULD BE DIFFERENT if atom TYPE is DIFFERENT.)
              */
             const ylatomif_t*    aif;
 
@@ -222,7 +216,6 @@ typedef struct yle {
 #define yletype(e)              ((e)->t)
 #define ylercnt(e)              ((e)->r)  /* reference count */
 #define yleis_atom(e)           ((e)->t & YLEAtom)
-#define ylatype(e)              ((e)->t & YLAtype_mask)
 
 /* macros for easy accessing */
 #define yleatom(e)              ((e)->u.a)
@@ -243,9 +236,13 @@ typedef struct yle {
 /* -- common -- */
 #define yleis_nil(e)            (ylnil() == (e))
 
-#define yleset_reachable(e)     ((e)->t |= YLEReachable)
-#define yleclear_reachable(e)   ((e)->t &= ~YLEReachable)
-#define yleis_reachable(e)      ((e)->t & YLEReachable)
+#define yleset_mark(e)     ((e)->t |= YLEMark)
+#define yleclear_mark(e)   ((e)->t &= ~YLEMark)
+#define yleis_mark(e)      ((e)->t & YLEMark)
+
+#define yleset_gcmark(e)     ((e)->t |= YLEGCMark)
+#define yleclear_gcmark(e)   ((e)->t &= ~YLEGCMark)
+#define yleis_gcmark(e)      ((e)->t & YLEGCMark)
 
 /* -- symbol -- */
 #define ylasymis_macro(ty)      ((ty) & YLASymbol_macro)
@@ -285,6 +282,24 @@ extern const yle_t* const ylg_predefined_quote;
 #define ylt()    ((yle_t*)ylg_predefined_true)
 #define ylnil()  ((yle_t*)ylg_predefined_nil)
 #define ylq()    ((yle_t*)ylg_predefined_quote)
+
+#define yleis_predefined(e) ((e)==ylt() || (e)==ylnil() || (e)==ylq())
+
+/* -------------------------------
+ * Interface to get predefined aif(Atom InterFace)
+ * -------------------------------*/
+extern const ylatomif_t* const ylg_predefined_aif_sym;
+extern const ylatomif_t* const ylg_predefined_aif_sfunc;
+extern const ylatomif_t* const ylg_predefined_aif_nfunc;
+extern const ylatomif_t* const ylg_predefined_aif_dbl;
+extern const ylatomif_t* const ylg_predefined_aif_bin;
+extern const ylatomif_t* const ylg_predefined_aif_nil;
+#define ylaif_sym()     ylg_predefined_aif_sym
+#define ylaif_sfunc()   ylg_predefined_aif_sfunc
+#define ylaif_nfunc()   ylg_predefined_aif_nfunc
+#define ylaif_dbl()     ylg_predefined_aif_dbl
+#define ylaif_bin()     ylg_predefined_aif_bin
+#define ylaif_nil()     ylg_predefined_aif_nil
 
 /**
  * DO NOT USE "yltrue() == xxxx" if you don't know what you are doing!
@@ -493,7 +508,7 @@ extern void ylinterpret_undefined(int reason);
     int             pcsz; /* Parameter Chain SiZe */                    \
     const char*     __nFNAME = #n;                                      \
     { /* jusg scope */                                                  \
-        pcsz = ylchain_size(e);                                         \
+        pcsz = ylelist_size(e);                                         \
         if((minp) > pcsz || pcsz > (maxp)) {                            \
             ylnflogE0("invalid number of parameter\n");                 \
             ylinterpret_undefined(YLErr_func_invalid_param);            \
@@ -505,11 +520,11 @@ extern void ylinterpret_undefined(int reason);
 #define YLENDNF(n) while(0); }
 
 
-#define ylnfcheck_atype_chain1(eXP, tY)                                 \
+#define ylnfcheck_atype_chain1(eXP, aIF)                                \
     do {                                                                \
         yle_t* _E = (eXP);                                              \
         while( !yleis_nil(_E) ) {                                       \
-            if(!ylais_type(ylcar(_E), tY)) {                            \
+            if(!ylais_type(ylcar(_E), aIF)) {                           \
                 ylnflogE0("invalid parameter type\n");                  \
                 ylinterpret_undefined(YLErr_func_invalid_param);        \
             }                                                           \
@@ -521,18 +536,18 @@ extern void ylinterpret_undefined(int reason);
 /*
  * Type of all parameters should be same. And it should be ty0 or ty1.
  */
-#define ylnfcheck_atype_chain2(eXP, tY0, tY1)                           \
+#define ylnfcheck_atype_chain2(eXP, aIF0, aIF1)                         \
     do {                                                                \
-        yle_t* _E = (eXP);                                              \
-        int _aty;                                                       \
+        yle_t*              _E = (eXP);                                 \
+        const ylatomif_t*   _aif;                                       \
         if(!yleis_nil(_E)) {                                            \
             int bok = TRUE;                                             \
-            _aty = ylatype(ylcar(_E));                                  \
-            if( tY0 != _aty && tY1 != _aty ) { bok = FALSE; }           \
+            _aif = ylaif(ylcar(_E));                                    \
+            if( aIF0 != _aif && aIF1 != _aif ) { bok = FALSE; }         \
             else {                                                      \
                 _E = ylcdr(_E);                                         \
                 while( !yleis_nil(_E) ) {                               \
-                    if(!ylais_type(ylcar(_E), _aty) ) {                 \
+                    if(!ylais_type(ylcar(_E), _aif) ) {                 \
                         bok = FALSE; break;                             \
                     }                                                   \
                     _E = ylcdr(_E);                                     \
@@ -546,20 +561,20 @@ extern void ylinterpret_undefined(int reason);
     } while(0)
 
 
-#define ylnfcheck_atype1(eXP, tY)                               \
+#define ylnfcheck_atype1(eXP, aIF)                              \
     do {                                                        \
         yle_t* _E = (eXP);                                      \
-        if(!ylais_type(_E, tY)) {                               \
+        if(!ylais_type(_E, aIF)) {                              \
             ylnflogE0("invalid parameter type\n");              \
             ylinterpret_undefined(YLErr_func_invalid_param);    \
         }                                                       \
     } while(0)
 
-#define ylnfcheck_atype2(eXP, tY1, tY2)                         \
+#define ylnfcheck_atype2(eXP, aIF1, aIF2)                       \
     do {                                                        \
         yle_t* _E = (eXP);                                      \
-        if!(ylais_type(_E, tY1)                                 \
-                 || ylais_type(_E, tY2)) ) {                    \
+        if( !(ylais_type(_E, aIF1)                              \
+             || ylais_type(_E, aIF2)) ) {                       \
             ylnflogE0("invalid parameter type\n");              \
             ylinterpret_undefined(YLErr_func_invalid_param);    \
         }                                                       \
@@ -581,30 +596,10 @@ ylsysv();
 extern ylerr_t
 ylregister_nfunc(unsigned int version,
                  const char* sym, ylnfunc_t nfunc, 
-                 int ftype, const char* desc);
+                 const ylatomif_t* aif, const char* desc);
 
 extern void
 ylunregister_nfunc(const char* sym);
-
-/* -------------------------------
- * Interface to get aif(Atom InterFace)
- * -------------------------------*/
-extern const ylatomif_t*
-ylget_aif_sym();
-
-extern const ylatomif_t*
-ylget_aif_nfunc();
-
-extern const ylatomif_t*
-ylget_aif_sfunc();
-
-extern const ylatomif_t*
-ylget_aif_dbl();
-
-extern const ylatomif_t*
-ylget_aif_bin();
-
-
 
 /* -------------------------------
  * Interface to memory pool
@@ -615,7 +610,7 @@ ylget_aif_bin();
  * get yle_t block 
  */
 extern yle_t*
-ylmp_get_block();
+ylmp_block();
 
 /**
  * EXTREANLY SENSITIVE FUNCTION
@@ -662,15 +657,22 @@ ylchild_proc_unset();
 
 /* -------------------------------
  * Interface to handle ylisp element.
+ *
+ * !!CONVENTION!!
+ * ylechain_xxx :
+ *    function accesses element and those that it refers recursively.
+ * ylexxx
+ *    function accesses only given element.
  * -------------------------------*/
-extern yle_t*
-yleclone(const yle_t* e);
 
+/*
+ * clone given 'yle_t*' element and it's chain too.
+ */
 extern yle_t*
-yleclone_chain(const yle_t* e);
+ylechain_clone(const yle_t* e);
 
 extern int
-ylchain_size(const yle_t* e);
+ylelist_size(const yle_t* e);
 
 /* 
  * get print string.
@@ -679,14 +681,59 @@ ylchain_size(const yle_t* e);
  * -> Wrong usage : printf("%s / %s", yleprint(e1), yleprint(e2));
  */
 extern const char*
-yleprint(const yle_t* e);
-
+ylechain_print(const yle_t* e);
 
 /*===================================
  *
  * static Functions/Symbols
  *
  *===================================*/
+/*
+ *@bFULL : 1 if FULL check -- see code.
+ * 1:OK, 0:There is cycle
+ */
+#define _DEF_VISIT_FUNC(fTYPE, nAME, pREeXP, cOND, eXP, bFULL, pOSTcAR) \
+    fTYPE int                                                           \
+    nAME(void* user, yle_t* e) {                                        \
+        pREeXP;                                                         \
+        if(cOND) {                                                      \
+            eXP;                                                        \
+            if(yleis_atom(e)) {                                         \
+                if(ylaif(e)->visit) { return ylaif(e)->visit(e, user, &nAME); } \
+                else { return 1; }                                      \
+            } else {                                                    \
+                ylassert( (ylpcar(e) && ylpcdr(e)) || (!ylpcar(e) && !ylpcdr(e))); \
+                if(ylpcar(e)) {                                         \
+                    if(bFULL) {                                         \
+                        int r;                                          \
+                        r = nAME(user, ylpcar(e));                      \
+                        r = nAME(user, ylpcdr(e)) && r;                 \
+                        return r;                                       \
+                    } else {                                            \
+                        if(0 == nAME(user, ylpcar(e))) { return 0; }    \
+                        pOSTcAR;                                        \
+                        return nAME(user, ylpcdr(e));                   \
+                    }                                                   \
+                }                                                       \
+            }                                                           \
+        } else {                                                        \
+            return 0;                                                   \
+        }                                                               \
+    }
+
+_DEF_VISIT_FUNC(static, ylechain_clear_mark,
+                if(yleis_predefined(e)) { return 1; },
+                yleis_mark(e),  yleclear_mark(e), 1, )
+
+/*
+ * We should clear mark again at 'pOSTcAR'.
+ * If not, marking from CDR may meet already-marked-by-CAR element.
+ * And this is unexpected result!
+ */
+_DEF_VISIT_FUNC(static, ylechain_set_mark,
+                if(yleis_predefined(e)) { return 1; },
+                !yleis_mark(e), yleset_mark(e), 0,
+                ylechain_clear_mark(user, ylpcar(e)))
 
 
 /* --------------------------------
@@ -743,7 +790,7 @@ ylpassign(yle_t* e, yle_t* car, yle_t* cdr) {
 
 static inline yle_t*
 ylpcreate(yle_t* car, yle_t* cdr) {
-    yle_t* e = ylmp_get_block();
+    yle_t* e = ylmp_block();
     ylpassign(e, car, cdr);
     return e;
 }
@@ -756,8 +803,8 @@ ylpcreate(yle_t* car, yle_t* cdr) {
  * This is used very often!
  */
 static inline int
-ylais_type(const yle_t* e, char ty) {
-    return (yleis_atom(e) && ylatype(e) == ty );
+ylais_type(const yle_t* e, const ylatomif_t* aif) {
+    return (yleis_atom(e) && ylaif(e) == aif );
 }
 
 /* --------------------------------
@@ -768,15 +815,15 @@ ylais_type(const yle_t* e, char ty) {
  */
 static inline void
 ylaassign_sym(yle_t* e, char* sym) {
-    yleset_type(e, YLEAtom | YLASymbol);
-    ylaif(e) = ylget_aif_sym();
+    yleset_type(e, YLEAtom);
+    ylaif(e) = ylaif_sym();
     ylasym(e).sym = sym;
     ylasym(e).ty = 0; /* 0 is default */
 }
 
 static inline yle_t*
 ylacreate_sym(char* sym) {
-    yle_t* e = ylmp_get_block();
+    yle_t* e = ylmp_block();
     ylaassign_sym(e, sym);
     return e;
 }
@@ -784,36 +831,32 @@ ylacreate_sym(char* sym) {
 /* --------------------------------
  * Element - Atom - NFunc/SFunc
  * --------------------------------*/
-/* for internal use */
 static inline void
-__ylaassign_func(yle_t* e, int ty, ylnfunc_t f, const char* name) {
-    yleset_type(e, YLEAtom | ty);
-    if(YLANfunc == ty) { ylaif(e) = ylget_aif_nfunc(); }
-    else { ylaif(e) = ylget_aif_sfunc(); }
+ylaassign_nfunc(yle_t* e, ylnfunc_t f, const char* name) {
+    yleset_type(e, YLEAtom);
+    ylaif(e) = ylaif_nfunc();
     ylanfunc(e).f = f;
     ylanfunc(e).name = name;
 }
 
 static inline void
-ylaassign_nfunc(yle_t* e, ylnfunc_t f, const char* name) {
-    __ylaassign_func(e, YLANfunc, f, name);
-}
-
-static inline void
 ylaassign_sfunc(yle_t* e, ylnfunc_t f, const char* name) {
-    __ylaassign_func(e, YLASfunc, f, name);
+    yleset_type(e, YLEAtom);
+    ylaif(e) = ylaif_sfunc();
+    ylanfunc(e).f = f;
+    ylanfunc(e).name = name;
 }
 
 static inline yle_t*
 ylacreate_nfunc(ylnfunc_t f, const char* name) {
-    yle_t* e = ylmp_get_block();
+    yle_t* e = ylmp_block();
     ylaassign_nfunc(e, f, name);
     return e;
 }
 
 static inline yle_t*
 ylacreate_sfunc(ylnfunc_t f, const char* name) {
-    yle_t* e = ylmp_get_block();
+    yle_t* e = ylmp_block();
     ylaassign_sfunc(e, f, name);
     return e;
 }
@@ -824,14 +867,14 @@ ylacreate_sfunc(ylnfunc_t f, const char* name) {
  * --------------------------------*/
 static inline void
 ylaassign_dbl(yle_t* e, double d) {
-    yleset_type(e, YLEAtom | YLADouble);
-    ylaif(e) = ylget_aif_dbl();
+    yleset_type(e, YLEAtom);
+    ylaif(e) = ylaif_dbl();
     yladbl(e) = d;
 }
 
 static inline yle_t*
 ylacreate_dbl(double d) {
-    yle_t* e = ylmp_get_block();
+    yle_t* e = ylmp_block();
     ylaassign_dbl(e, d);
     return e;
 }
@@ -841,17 +884,33 @@ ylacreate_dbl(double d) {
  * --------------------------------*/
 static inline void
 ylaassign_bin(yle_t* e, char* data, unsigned int len) {
-    yleset_type(e, YLEAtom | YLABinary);
-    ylaif(e) = ylget_aif_bin();
+    yleset_type(e, YLEAtom);
+    ylaif(e) = ylaif_bin();
     ylabin(e).d = data;
     ylabin(e).sz = len;
 }
 
 static inline yle_t*
 ylacreate_bin(char* data, unsigned int len) {
-    yle_t* e = ylmp_get_block();
+    yle_t* e = ylmp_block();
     ylaassign_bin(e, data, len);
     return e;
 }
 
+/* --------------------------------
+ * Element - Atom - Custom
+ * --------------------------------*/
+static inline void
+ylaassign_cust(yle_t* e, const ylatomif_t* aif, void* data) {
+    yleset_type(e, YLEAtom);
+    ylaif(e) = aif;
+    ylacd(e) = data;
+}
+
+static inline yle_t*
+ylacreate_cust(const ylatomif_t* aif, void* data) {
+    yle_t* e = ylmp_block();
+    ylaassign_cust(e, aif, data);
+    return e;
+}
 #endif /* ___YLDEv_h___ */

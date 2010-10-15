@@ -299,11 +299,11 @@ _eval_exp(yle_t* e) {
     yle_t*  ev;
 
     dbg_gen(yllogD1(">>>>> Eval exp:\n"
-                    "    %s\n", yleprint(e)););
+                    "    %s\n", ylechain_print(e)););
     ylmp_push();
     ev = yleval(e, ylnil());
     if( __TOPMOST_EVAL_MPSTACK_SIZE == ylmp_stack_size() ) {
-        ylprint(("\n%s\n", yleprint(ev)));
+        ylprint(("\n%s\n", ylechain_print(ev)));
     }
     ylmp_pop();
 #undef __TOPMOST_EVAL_MPSTACK_SIZE
@@ -782,7 +782,7 @@ _child_proc_kill() {
 static inline void
 _show_eval_stack() {
     while(ylstk_size(_evalstk)) {
-        ylprint(("    %s\n", yleprint((yle_t*)ylstk_pop(_evalstk))));
+        ylprint(("    %s\n", ylechain_print((yle_t*)ylstk_pop(_evalstk))));
     }
 }
 /* =====================================
@@ -926,6 +926,11 @@ ylinterpret(const char* stream, unsigned int streamsz) {
                  * (After GC, expression in the stack may be invalid one!)
                  */
                 _show_eval_stack();
+                /*
+                 * GC should be here.
+                 * If interpreting is success, next interpreting may be requested 
+                 *  in short time with high possibility. In this case, GC SHOULD NOT executed.
+                 */
                 ylmp_gc(); 
             }
 

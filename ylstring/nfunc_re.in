@@ -20,7 +20,7 @@
 
 
 
-NFUNC(re_match,           "s.re-match",             YLANfunc,
+NFUNC(re_match,           "s.re-match",             ylaif_nfunc(),
     "s.re-match <pattern> <subject> <option> : <list exp>\n"
     "    -match with 'pcre - Perl Compatible REgular expression'. And returns matched string.\n"
     "    @pattern [Symbol]: Pattern format\n"
@@ -33,7 +33,7 @@ NFUNC(re_match,           "s.re-match",             YLANfunc,
     "        (print (cadr r));'haha' is printed.\n")
 
 
-NFUNC(re_replace,         "s.re-replace",           YLANfunc,
+NFUNC(re_replace,         "s.re-replace",           ylaif_nfunc(),
     "s.re-replace <pattern> <new string> <subject> <option> : [Symbol]\n"
     "    -replace matched part with <new string>\n"
     "    @new string [Symbol]:\n"

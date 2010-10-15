@@ -1,3 +1,8 @@
+(print '"====== Start Testing 'ext' ======\n")
+
+;=============================
+; Test Pair Operation
+;=============================
 (set 'map '())
 (assert (eq 0 (length map)))
 (set 'map (pr+ map 'a 'A))
@@ -27,23 +32,142 @@
 (set 'map (pr- map '(a)))
 (assert (equal '() map))
 (assert (eq '() '()))
-(print (pr-from-list '() '(a b c)) '"\n")
-(assert (equal '((c ()) (b ()) (a ())) (pr-from-list '() '(a b c))))
+(print (pr-from-list '() '(a b c) '()) '"\n")
+(assert (equal '((c ()) (b ()) (a ())) (pr-from-list '() '(a b c) '())))
 
+;=============================
+; Test Trie
+;=============================
+; test about struct trie interface...
+(set 'tr0 (trie-create '((ab 12) (cd 34) (ef 56))))
+(set 'tr1 (trie-create '((rs '()) (tu 'name) (vw 100) )))
+(assert (eq 12 (trie-get tr0 'ab)))
+(trie-insert tr0 'ab 50)
+(assert (eq 50 (trie-get tr0 'ab)))
+(trie-insert tr0 'gh)
+(assert (eq '() (trie-get tr0 'gh)))
+(trie-insert tr0 'ij 90)
+(assert (eq 90 (trie-get tr0 'ij)))
+(assert (eq 't (trie-del tr0 'gh)))
+(assert (eq '() (trie-del tr0 'gh)))
+(assert (eq 56 (trie-get tr0 'ef)))
+(assert (eq 'name (trie-get tr1 'tu)))
+(trie-insert tr0 'ef tr1)
+(assert (eq 100 (trie-get (trie-get tr0 'ef) 'vw)))
+
+; -- Clone & equal
+(set 'tr0 (trie-create '((ab 12) (cd 34) (ef 56))))
+(set 'tr1 (clone tr0))
+(assert (eq 34 (trie-get tr0 'cd)))
+(trie-insert tr0 'cd 68)
+(assert (eq 34 (trie-get tr1 'cd)))
+(set 'tr1 (clone tr0))
+(assert (eq tr0 tr1))
+
+(unset 'tr0)
+(unset 'tr1)
+
+;=============================
+; Test Array
+;=============================
+(set 'i 0)
+(set 'j 0) 
+(set 'k 0) 
+
+;-- set & unset
+(set 'ar0 (arr-create 10))
+(unset 'ar0)
+
+
+(set 'ar1 '())
+(set 'ar0 (arr-create 10))
+(while (< i 10)
+    (arr-set ar0 i i)
+    (++ i))
+(assert (eq 0 (arr-get ar0 0)))
+(assert (eq 5 (arr-get ar0 5)))
+(arr-set ar0 100 5)
+(assert (eq 100 (arr-get ar0 5)))
+(set 'ar0 (arr-create 10 10))
+(set 'i 0)
+(while (< i 10)
+    (set 'j 0)
+    (while (< j 10)
+        (arr-set ar0 (+ (* 10 i) j) i j)
+        (++ j))
+    (++ i))
+(assert (eq 0 (arr-get ar0 0 0)))
+(assert (eq 5 (arr-get ar0 0 5)))
+(assert (eq 10 (arr-get ar0 1 0)))
+(assert (eq 23 (arr-get ar0 2 3)))
+(arr-set (arr-get ar0 2) 1000 4)
+(assert (eq 1000 (arr-get ar0 2 4)))
+(assert (eq 1000 (arr-get (arr-get ar0 2) 4)))
+(set 'ar1 (arr-create 100))
+(set 'i 0)
+(while (< i 100)
+    (arr-set ar1 (+ 1000 i) i)
+    (++ i))
+(arr-set ar0 ar1 1 1)
+(assert (eq 1000 (arr-get ar0 1 1 0)))
+(assert (eq 1050 (arr-get ar0 1 1 50)))
+(arr-set ar0 11 1 1)
+(assert (eq 11 (arr-get ar0 1 1)))
+
+;-- Clone & Equal
+(set 'ar0 (arr-create 10 10))
+(set 'i 0)
+(while (< i 10)
+    (set 'j 0)
+    (while (< j 10)
+        (arr-set ar0 (+ (* 10 i) j) i j)
+        (++ j))
+    (++ i))
+(set 'ar1 (clone ar0))
+(assert (eq 0 (arr-get ar1 0 0)))
+(assert (eq 5 (arr-get ar1 0 5)))
+(arr-set ar0 50 1 0)
+(assert (eq 10 (arr-get ar1 1 0)))
+(assert (eq 23 (arr-get ar1 2 3)))
+(set 'ar1 (clone ar0))
+(assert (eq ar0 ar1))
+
+(unset 'i)
+(unset 'j)
+(unset 'k)
+(unset 'ar0)
+(unset 'ar1)
+
+;=============================
+; Test Struct (Trie Based)
+;=============================
 (defstruct person (name sex))
 (set 'me (make-person))
-(person-name-set me 'cho)
-(assert (eq 'cho (person-name-get me)))
-(person-sex-set  me 'male)
-(assert (eq 'male (person-sex-get me)))
+(person.name+ me 'cho)
+(assert (eq 'cho (person.name* me)))
+(person.sex+  me 'male)
+(assert (eq 'male (person.sex* me)))
+
+(set 'you (clone me))
+(print me '"\n")
+(print you '"\n")
+(print '--- (person.name* me) '--- '"\n")
+(print '--- (person.name* you) '--- '"\n")
+(print (eq me you) '"\n")
+(assert (eq 'cho (person.name* you)))
+(assert (eq 'male (person.sex* you)))
+(unset 'you)
+
+(assert (eq 'cho (person.name* me)))
+(assert (eq 'male (person.sex* me)))
 
 (defstruct anim (name class nr-leg))
 (set 'my (make-anim))
-(anim-name-set my 'joe)
-(anim-class-set my 'dog)
-(anim-nr-leg-set my 4)
-(anim-name-set my 'wow)
-(assert (eq 'wow (anim-name-get my)))
-(assert (eq 4 (anim-nr-leg-get my)))
+(anim.name+ my 'joe)
+(anim.class+ my 'dog)
+(anim.nr-leg+ my 4)
+(anim.name+ my 'wow)
+(assert (eq 'wow (anim.name* my)))
+(assert (eq 4 (anim.nr-leg* my)))
 
 (unset 'map)

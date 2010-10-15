@@ -82,6 +82,8 @@ _assert(int a) {
 }
 
 
+extern void ylmp_gc();
+
 int
 main(int argc, char* argv[]) {
     ylsys_t          sys;
@@ -109,6 +111,7 @@ main(int argc, char* argv[]) {
         printf("Fail to interpret...\n");
         return 0;
     }
+    ylmp_gc();
 
     ylfree(strm);
     yldeinit();

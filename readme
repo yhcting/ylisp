@@ -286,6 +286,8 @@ TODO
 ----
     * Codes of memory pool (mempool.[ch]) is not satisfactory. Refactoring is required.
       (Any other simpler/better way?)
+    * The way to print element recursivly well. (especially for array and trie..etc)
+      => printing mechanism should be improved to support this.
 
 
 Known Bugs

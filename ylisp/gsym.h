@@ -69,11 +69,11 @@ yle_t*
 ylgsym_get(int* outty, const char* sym);
 
 /**
- * Mark memory blocks those can be reachable from Trie,  'Reachable' 
+ * Mark memory blocks those can be reachable from Trie for GC.
  * @return: number of memblock that is marked as 'Reachable'
  */
 void
-ylgsym_mark_reachable();
+ylgsym_gcmark();
 
 /**
  * get auto-completed-symbol

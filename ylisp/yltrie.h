@@ -57,6 +57,12 @@ yltrie_insert(yltrie_t*, const char* sym, void* v);
 extern int
 yltrie_delete(yltrie_t*, const char* sym);
 
+/*
+ * get fcb
+ */
+extern void(*yltrie_fcb(const yltrie_t* t))(void*);
+
+
 /**
  * @return     : NULL if @sym is not in trie.
  */
@@ -64,16 +70,50 @@ extern void*
 yltrie_get(yltrie_t*, const char* sym);
 
 /**
+ * get reference of value.
+ * (*yltrie_getref()) is value stored at trie.
+ * Sometimes, direct modification of reference is required
+ * (Especially to avoid duplicated 'Trie-Seaching')
+ */
+extern void**
+yltrie_getref(yltrie_t*, const char* sym);
+
+/**
  * walking order is dictionary order of symbol.
  * @return:
- *    0 : success. End of trie.
- *    1 : stop by user callback
+ *    1 : success. End of trie.
+ *    0 : stop by user callback
  *   -1 : fail. (ex. @from is invalid prefix of symbol.)
  */
 extern int
 yltrie_walk(yltrie_t*, void* user, const char* from,
             /* return : b_keepgoing => return 1 for keep going, 0 for stop and don't do anymore*/
             int(cb)(void* user, const char* sym, void* v));
+
+/**
+ * @cmp    : compare function of trie data. this should return 1 if value is same, otherwise 0.
+ * @return : 1 if same, otherwise 0.
+ */
+extern int
+yltrie_equal(const yltrie_t* t0, const yltrie_t* t1,
+             int(*cmp)(const void*, const void*));
+
+/**
+ * clone trie.
+ * @clonev   : return cloned value.
+ */
+extern yltrie_t*
+yltrie_clone(const yltrie_t* t, void*(*clonev)(const void*));
+
+
+/**
+ * copy trie.
+ * @dst    : old data will be freed before copying.
+ * @clonev : return cloned value.
+ */
+extern int
+yltrie_copy(yltrie_t* dst, const yltrie_t* src,
+            void*(*clonev)(const void*));
 
 /*
  * return value of auto complete
@@ -90,7 +130,7 @@ enum {
  * @return
  *    YLTRIEFail : ex. buffer size is not enough
  */
-int
+extern int
 yltrie_auto_complete(yltrie_t* t, 
                      const char* start_with, 
                      char* buf, unsigned int bufsz);

@@ -37,7 +37,7 @@ static unsigned int _eval_id = 0;
  * For debugging
  * -------------------------------*/
 unsigned int
-ylget_eval_id() { return _eval_id; }
+yleval_id() { return _eval_id; }
 
 /*=================================
  * Recursive S-functions - START
@@ -45,22 +45,12 @@ ylget_eval_id() { return _eval_id; }
 
 const yle_t*
 yleq(const yle_t* e1, const yle_t* e2) {
-    /* 
-     * check trivial case first.
-     */
-    if(yleis_nil(e1) && yleis_nil(e2)) {
-        return ylt();
-    } else if( (!yleis_nil(e1) && yleis_nil(e2))
-               || (yleis_nil(e1) && !yleis_nil(e2))) {
-        return ylnil();
-    }
-
     if(yleis_atom(e1) && yleis_atom(e2)) {
-        if(ylatype(e1) == ylatype(e2)) {
-            if(ylaif(e1)->eq) { 
-                return ((*ylaif(e1)->eq)(e1, e2))? ylt(): ylnil(); 
+        if( ylaif(e1)->eq == ylaif(e2)->eq ) {
+            if(ylaif(e1)->eq) {
+                return ylaif(e1)->eq(e1, e2)? ylt(): ylnil();
             } else {
-                yllogW0("There is an atom that doesn't support/allow CLEAN!\n");
+                yllogW0("There is an atom that doesn't support/allow EQ!\n");
                 return ylnil(); /* default is 'not equal' */
             }
         } else {
@@ -118,7 +108,7 @@ _list_find(yle_t* x, yle_t* y) {
 static yle_t*
 _set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
     yle_t* r;
-    if( !ylais_type(s, YLASymbol)
+    if( !ylais_type(s, ylaif_sym())
         || ylnil() == s) {
         yllogE0("Only symbol can be set!\n");
         ylinterpret_undefined(YLErr_eval_undefined); 
@@ -138,7 +128,7 @@ _set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
             yllogE0("unexpected set operation!\n");
             ylinterpret_undefined(YLErr_eval_undefined); 
         } else  {
-            ylassert(ylais_type(ylcar(r), YLASymbol));
+            ylassert(ylais_type(ylcar(r), ylaif_sym()));
             if(bmac) { ylasymset_macro(ylasym(ylcar(r)).ty); }
             else { ylasymclear_macro(ylasym(ylcar(r)).ty); }
             /* change value of local map yllist */
@@ -192,9 +182,9 @@ _mreplace(yle_t* e, yle_t* a) {
     }
 
     dbg_eval(yllogV1("---- macro replace -------\n"
-                     "    From :%s\n", yleprint(e));
+                     "    From :%s\n", ylechain_print(e));
              yllogV1("    To   :%s\n"
-                     "--------------------------\n", yleprint(a)););
+                     "--------------------------\n", ylechain_print(a)););
 
     /*
      * 'e' may be in global space. So, changing 'e' may affects global state.
@@ -237,7 +227,7 @@ _mreplace(yle_t* e, yle_t* a) {
 const yle_t*
 _assoc(int* ovty, yle_t* x, yle_t* y) {
     yle_t* r;
-    if( !ylais_type(x, YLASymbol) ) {
+    if( !ylais_type(x, ylaif_sym()) ) {
         yllogE0("Only symbol can be associated!\n");
         ylinterpret_undefined(YLErr_eval_undefined); 
     }
@@ -262,13 +252,13 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
      */
     if(r) { 
         /* Found! in local association list */
-        ylassert(ylais_type(ylcar(r), YLASymbol));
+        ylassert(ylais_type(ylcar(r), ylaif_sym()));
         *ovty = ylasym(ylcar(r)).ty;
-        return ylasymis_macro(*ovty)? yleclone_chain(ylcadr(r)): ylcadr(r);
+        return ylasymis_macro(*ovty)? ylechain_clone(ylcadr(r)): ylcadr(r);
     } else {
         r = (yle_t*)ylgsym_get(ovty, ylasym(x).sym);
         if(r) { 
-            return ylasymis_macro(*ovty)? yleclone_chain(r): r;
+            return ylasymis_macro(*ovty)? ylechain_clone(r): r;
         } else {
             /* 
              * check whether this represents number or not
@@ -315,8 +305,8 @@ yleval(yle_t* e, yle_t* a) {
     ylpush_eval_info(e);
 
     dbg_eval(yllogV2("[%d] eval In:\n"
-                     "    %s\n", evid, yleprint(e)););
-    dbg_eval(yllogV1("    =>%s\n", yleprint(a)););
+                     "    %s\n", evid, ylechain_print(e)););
+    dbg_eval(yllogV1("    =>%s\n", ylechain_print(a)););
     dbg_mem(yllogV4("START eval:\n"
                     "    MP usage : %d\n"
                     "    refcnt : nil(%d), t(%d), q(%d)\n", 
@@ -337,7 +327,7 @@ yleval(yle_t* e, yle_t* a) {
     ylmp_push();
 
     if( yleis_atom(e) ) { 
-        if(YLASymbol == ylatype(e)) {
+        if(ylaif_sym() == ylaif(e)) {
             r = (yle_t*)_assoc(&vty, e, a);
             if(ylasymis_macro(vty)) {
                 /* this is macro!. evaluate it again */
@@ -351,7 +341,7 @@ yleval(yle_t* e, yle_t* a) {
         yle_t*   car_e = ylcar(e);
         yle_t*   p;
 
-        if(YLASymbol == ylatype(car_e) ) {
+        if(ylaif_sym() == ylaif(car_e) ) {
             r = (yle_t*)_assoc(&vty, car_e, a);
             if(ylasymis_macro(vty)) {
                 /* 
@@ -361,9 +351,9 @@ yleval(yle_t* e, yle_t* a) {
                 r = yleval( ylcons(r, ylcdr(e)), a );
             } else {
                 if(yleis_atom(r)) {
-                    if(YLANfunc == ylatype(r)) {
+                    if(ylaif_nfunc() == ylaif(r)) {
                         r = (*(ylanfunc(r).f))(ylevlis(ylcdr(e), a), a);
-                    } else if(YLASfunc == ylatype(r)) {
+                    } else if(ylaif_sfunc() == ylaif(r)) {
                         /* parameters are not evaluated before being passed! */
                         r = (*(ylanfunc(r).f))(ylcdr(e), a);
                     } else {
@@ -412,7 +402,7 @@ yleval(yle_t* e, yle_t* a) {
                  *     To reserve original expression, we need to use cloned one. 
                  *  --> Now expression is preserved!
                  */
-                yle_t* exp = yleclone_chain(ylcaddar(e));
+                yle_t* exp = ylechain_clone(ylcaddar(e));
                 if(0 > _mreplace(exp, ylappend(ylpair(ylcadar(e), ylcdr(e)), ylnil()))) {
                     yllogE0("Fail to mreplace!!\n");
                     ylinterpret_undefined(YLErr_eval_undefined);
@@ -433,7 +423,7 @@ yleval(yle_t* e, yle_t* a) {
     if(r) {
         
         dbg_eval(yllogV2("[%d] eval Out:\n"
-                         "    %s\n", evid, yleprint(r)););
+                         "    %s\n", evid, ylechain_print(r)););
 
 
         /*
@@ -453,7 +443,6 @@ yleval(yle_t* e, yle_t* a) {
 
         ylmp_pop();
         ylercnt(r)--;
-
 
         /* pop evaluation stack -- for debugging */
         ylpop_eval_info();

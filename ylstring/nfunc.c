@@ -40,7 +40,7 @@
 
 
 YLDEFNF(length, 1, 1) {
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     return ylacreate_dbl(strlen(ylasym(ylcar(e)).sym));
 } YLENDNF(length)
 
@@ -48,7 +48,7 @@ YLDEFNF(itos, 1, 1) {
     long      l;
     char*     b; /* buffer */
 
-    ylnfcheck_atype_chain1(e, YLADouble);
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
 
     l = (long)yladbl(ylcar(e));
     b = ylmalloc(_NUMSTRSZ);
@@ -61,7 +61,7 @@ YLDEFNF(dtos, 1, 1) {
     char*     b; /* buffer */
     yle_t*    r;
 
-    ylnfcheck_atype_chain1(e, YLADouble);
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
 
     b = ylmalloc(_NUMSTRSZ);
     sprintf(b, "%f", yladbl(ylcar(e)));
@@ -83,7 +83,7 @@ YLDEFNF(btos, 1, 1) {
     char*          pd; /* pd : destination pointer */
     unsigned int   bsz;
     register int   i;
-    ylnfcheck_atype_chain1(e, YLABinary);
+    ylnfcheck_atype_chain1(e, ylaif_bin());
 
     /*
      * 2 byte to represent char to hex
@@ -116,7 +116,7 @@ YLDEFNF(split_to_line, 1, 1) {
     yle_t    *rh, *rt;  /* return head, return tail */
     unsigned int len;
 
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
 
     /* get dummy pair head */
     rt = rh = ylcons(ylnil(), ylnil());
@@ -150,43 +150,6 @@ YLDEFNF(split_to_line, 1, 1) {
 
 } YLENDNF(split_to_line)
 
-
-YLDEFNF(concat, 2, 9999) {
-    char*            buf = NULL;
-    unsigned int     len;
-    yle_t*           pe;
-    char*            p;
-
-    /* check input parameter */
-    ylnfcheck_atype_chain1(e, YLASymbol);
-
-    /* calculate total string length */
-    len = 0; pe = e;
-    while(!yleis_nil(pe)) {
-        len += strlen(ylasym(ylcar(pe)).sym);
-        pe = ylcdr(pe);
-    }
-
-    /* alloc memory and start to copy */
-    buf = ylmalloc(len*sizeof(char) +1); /* '+1' for trailing 0 */
-    if(!buf) {
-        ylnflogE1("Not enough memory: required [%d]\n", len);
-        ylinterpret_undefined(YLErr_func_fail);
-    }
-
-    pe = e; p = buf;
-    while(!yleis_nil(pe)) {
-        strcpy(p, ylasym(ylcar(pe)).sym);
-        p += strlen(ylasym(ylcar(pe)).sym);
-        pe = ylcdr(pe);
-    }
-    *p = 0; /* trailing 0 */
-
-    return ylacreate_sym(buf);
-
-} YLENDNF(concat)
-
-
 YLDEFNF(at, 2, 2) {
     int         idx;
     int         len;
@@ -194,8 +157,8 @@ YLDEFNF(at, 2, 2) {
     char*       ch;
 
     /* check parameter type */
-    ylnfcheck_atype1(ylcar(e), YLASymbol);
-    ylnfcheck_atype1(ylcadr(e), YLADouble);
+    ylnfcheck_atype1(ylcar(e), ylaif_sym());
+    ylnfcheck_atype1(ylcadr(e), ylaif_dbl());
 
     /* check index range */
     idx = (int)yladbl(ylcadr(e));
@@ -217,7 +180,7 @@ YLDEFNF(at, 2, 2) {
 
 YLDEFNF(compare, 2, 2) {
     /* check input parameter */
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     return ylacreate_dbl(strcmp(ylasym(ylcar(e)).sym, ylasym(ylcadr(e)).sym));
 } YLENDNF(compare)
 
@@ -227,7 +190,7 @@ YLDEFNF(end_with, 2, 2) {
     const char   *pstr, *psub;
 
     /* check input parameter */
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
 
     pstr = ylasym(ylcar(e)).sym;
     psub = ylasym(ylcadr(e)).sym;
@@ -248,11 +211,11 @@ YLDEFNF(start_with, 2, 3) {
     int           fromi;
 
     /* check parameter type */
-    ylnfcheck_atype1(ylcar(e), YLASymbol);
-    ylnfcheck_atype1(ylcadr(e), YLASymbol);
+    ylnfcheck_atype1(ylcar(e), ylaif_sym());
+    ylnfcheck_atype1(ylcadr(e), ylaif_sym());
     if(2 == pcsz) { fromi = 0; } 
     else {
-        ylnfcheck_atype1(ylcaddr(e), YLADouble);
+        ylnfcheck_atype1(ylcaddr(e), ylaif_dbl());
         fromi = (int)yladbl(ylcaddr(e));
     }
     
@@ -280,11 +243,11 @@ YLDEFNF(index_of, 2, 3) {
     int           fromi;
 
     /* check parameter type */
-    ylnfcheck_atype1(ylcar(e), YLASymbol);
-    ylnfcheck_atype1(ylcadr(e), YLASymbol);
+    ylnfcheck_atype1(ylcar(e), ylaif_sym());
+    ylnfcheck_atype1(ylcadr(e), ylaif_sym());
     if(2 == pcsz) { fromi = 0; } 
     else {
-        ylnfcheck_atype1(ylcaddr(e), YLADouble);
+        ylnfcheck_atype1(ylcaddr(e), ylaif_dbl());
         fromi = (int)yladbl(ylcaddr(e));
     }
 
@@ -324,11 +287,11 @@ YLDEFNF(last_index_of, 2, 3) {
     int           fromi;
 
     /* check parameter type */
-    ylnfcheck_atype1(ylcar(e), YLASymbol);
-    ylnfcheck_atype1(ylcadr(e), YLASymbol);
+    ylnfcheck_atype1(ylcar(e), ylaif_sym());
+    ylnfcheck_atype1(ylcadr(e), ylaif_sym());
     if(2 == pcsz) { fromi = 0xfffffff; } /* set to bit enough */
     else {
-        ylnfcheck_atype1(ylcaddr(e), YLADouble);
+        ylnfcheck_atype1(ylcaddr(e), ylaif_dbl());
         fromi = (int)yladbl(ylcaddr(e));
     }
     
@@ -376,7 +339,7 @@ YLDEFNF(replace, 3, 3) {
     char        *pbuf, *pb, *pbend;
     unsigned int lenstr, lennew, lenold;
     /* check input parameter */
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     
     pstr = p = ylasym(ylcar(e)).sym;
     lenstr = strlen(p);
@@ -425,9 +388,9 @@ YLDEFNF(substring, 2, 3) {
     
 
     /* check parameter type */
-    ylnfcheck_atype1(ylcar(e), YLASymbol);
-    ylnfcheck_atype1(ylcadr(e), YLADouble);
-    if(pcsz > 2) { ylnfcheck_atype1(ylcaddr(e), YLADouble); }
+    ylnfcheck_atype1(ylcar(e), ylaif_sym());
+    ylnfcheck_atype1(ylcadr(e), ylaif_dbl());
+    if(pcsz > 2) { ylnfcheck_atype1(ylcaddr(e), ylaif_dbl()); }
 
     pstr = ylasym(ylcar(e)).sym;
     lenstr = strlen(pstr);
@@ -461,7 +424,7 @@ YLDEFNF(to_lower_case, 1, 1) {
     char         *pbuf, *pb;
     int           delta;
     
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     
     p = ylasym(ylcar(e)).sym;
     pe = p + strlen(p);
@@ -485,7 +448,7 @@ YLDEFNF(to_upper_case, 1, 1) {
     char         *pbuf, *pb;
     int           delta;
     
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     
     p = ylasym(ylcar(e)).sym;
     pe = p + strlen(p);
@@ -510,7 +473,7 @@ YLDEFNF(trim, 1, 1) {
 
 #define __is_ws(c) (' ' == (c) || '\n' == (c) || '\r' == (c) || '\t' == (c))
     
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
 
     p = ylasym(ylcar(e)).sym;
     pend = p + strlen(p);

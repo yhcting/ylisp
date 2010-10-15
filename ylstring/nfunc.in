@@ -20,33 +20,33 @@
 
 
 
-NFUNC(length,                "s.length",               YLANfunc,
+NFUNC(length,                "s.length",               ylaif_nfunc(),
     "s.length <symbol> : [Double]\n"
     "    -return length of symbol\n"
     "    @symbol [Symbol]\n")
 
-NFUNC(itos,                  "s.itos",                 YLANfunc,
+NFUNC(itos,                  "s.itos",                 ylaif_nfunc(),
     "s.itos <value> : [Symbol]\n"
     "    -convert interger part of double to symbol - fraction is ignored\n"
     "    @<value> [Double]\n"
     "    *ex\n"
     "        (s.itos 12.78); => 12\n")
 
-NFUNC(dtos,                  "s.dtos",                 YLANfunc,
+NFUNC(dtos,                  "s.dtos",                 ylaif_nfunc(),
     "s.dtos <value> : [Symbol]\n"
     "    -convert double to symbol\n"
     "    @<value> [Double]\n"
     "    *ex\n"
     "        (s.dtos 12.78); => 12.78\n")
 
-NFUNC(btos,                  "s.btos",                 YLANfunc,
+NFUNC(btos,                  "s.btos",                 ylaif_nfunc(),
     "s.btos <value> : [Symbol]\n"
     "    -convert binary to human-readable symbol\n"
     "    @<value> [Binary]\n"
     "    *ex\n"
     "        !Not Tested YET!\n")
 
-NFUNC(split_to_line,         "s.split-to-line",        YLANfunc,
+NFUNC(split_to_line,         "s.split-to-line",        ylaif_nfunc(),
     "s.split-to-line <text> : <list exp>\n"
     "    -return symbol list. Each symbol contains one-line-string.\n"
     "     line-feed and carrage return are removed.\n"
@@ -57,63 +57,57 @@ NFUNC(split_to_line,         "s.split-to-line",        YLANfunc,
     "        (print (car r));   => '1st line'\n"
     "        (print (cadr r));  => '2nd line'\n")
 
-NFUNC(concat,                "s.concat",               YLANfunc,
-    "s.concat <sym1> <sym2> ... : [Symbol]\n"
-    "    -concatenate arguements.\n"
-    "    *ex\n"
-    "        (concat 'abc 'def 'gh) --> abcdefgh\n")
-
-NFUNC(at,                    "s.at",                   YLANfunc,
+NFUNC(at,                    "s.at",                   ylaif_nfunc(),
     "s.at <string> <index> : [Symbol]\n"
     "    -get character at the specific index.\n"
     "    @index [Double] :\n"
     "    @return         : one-character-symbol\n")
 
-NFUNC(compare,               "s.compare",              YLANfunc,
+NFUNC(compare,               "s.compare",              ylaif_nfunc(),
     "s.compare <str1> <str2>: [Double]\n"
     "    -Compare two strings lexicographically\n"
     "    @return:    same with 'strcmp'\n")
 
-NFUNC(end_with,              "s.end-with",             YLANfunc,
+NFUNC(end_with,              "s.end-with",             ylaif_nfunc(),
     "s.end-with <string> <suffix> : [t/nil]\n"
     "    -Tests if <string> ends with specific suffix.\n")
 
-NFUNC(start_with,            "s.start-with",           YLANfunc,
+NFUNC(start_with,            "s.start-with",           ylaif_nfunc(),
     "s.start-with <string> <prefix> (<from index>): [t/nil]\n"
     "    -Tests if this <string> starts with the specified <prefix> beginning a specified <from index>.\n"
     "    @from index [Double] :\n")
 
-NFUNC(index_of,              "s.index-of",             YLANfunc,
+NFUNC(index_of,              "s.index-of",             ylaif_nfunc(),
     "s.index-of <string> <str> (<from index>): [Double/nil]\n"
     "    -Returns the index within <string> of the first occurrence of the <str>, starting the search forward at the <from index>\n"
     "    @return [Double]     : nil if fail to search. Otherwise index.\n"
     "    @from index [Double] :\n");
 
-NFUNC(last_index_of,          "s.last-index-of",       YLANfunc,
+NFUNC(last_index_of,          "s.last-index-of",       ylaif_nfunc(),
     "s.last-index-of <string> <str> (<from index>): [Double/nil]\n"
     "    -Returns the index within <string> of the last occurrence of the <str>, starting the search backward from the <from index>\n"
     "    @from index [Double] :\n"
     "    @return: nil if fails\n")
 
-NFUNC(replace,                "s.replace",             YLANfunc,
+NFUNC(replace,                "s.replace",             ylaif_nfunc(),
     "s.replace <string> <old> <new>: [Symbol]\n"
     "    -Returns a new string resulting from replacing all occurrences of <old> in <string> with <new>.\n"
     "     If fails to match, original string is returned.\n")
 
-NFUNC(substring,              "s.substring",           YLANfunc,
+NFUNC(substring,              "s.substring",           ylaif_nfunc(),
     "s.substring <string> <begin index> (<end index>): [Symbol]\n"
     "    -Returns a new string that is a substring of this string.\n"
     "    @begin index [Double] : inclusive\n"
     "    @end index [Double]   : exclusive\n")
 
-NFUNC(to_lower_case,          "s.to-lower-case",       YLANfunc,
+NFUNC(to_lower_case,          "s.to-lower-case",       ylaif_nfunc(),
     "s.to-lower-case <string>: [Symbol]\n"
     "    -Converts all of the characters in this string to lower case - assume ASCII\n");
 
-NFUNC(to_upper_case,          "s.to-upper-case",       YLANfunc,
+NFUNC(to_upper_case,          "s.to-upper-case",       ylaif_nfunc(),
     "s.to-upper-case <string>: [Symbol]\n"
     "    -Converts all of the characters in this string to upper case - assume ASCII\n");
 
-NFUNC(trim,                   "s.trim",                YLANfunc,
+NFUNC(trim,                   "s.trim",                ylaif_nfunc(),
     "s.trim <string>: [Symbol]\n"
     "    -Removes white space from both ends of <string>\n")

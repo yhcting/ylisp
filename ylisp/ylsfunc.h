@@ -77,7 +77,7 @@ yleval(yle_t* e, yle_t* a);
  * Elementary S-functions - START
  *=================================*/
 static inline yle_t*
-ylcar(yle_t* e) {
+ylcar(const yle_t* e) {
     if(!yleis_atom(e)) {
         return ylpcar(e);
     }
@@ -86,7 +86,7 @@ ylcar(yle_t* e) {
 }
 
 static inline yle_t*
-ylcdr(yle_t* e) {
+ylcdr(const yle_t* e) {
     if(!yleis_atom(e)) {
         return ylpcdr(e);
     }

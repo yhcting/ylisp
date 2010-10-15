@@ -1,4 +1,4 @@
-; extention... This should be interpreted after loading string library.
+; extention of base lisp... This should be interpreted after loading string library.
 
 (defun pr? (PAIR key)
 "pr? <pair> <key>
@@ -47,31 +47,52 @@
           ('t (pr* (cdr PAIR) key))))
 
 
-(defun pr-from-list (P L)
-"pr-from-list <pair> <key-list>
+(defun pr-from-list (P L V)
+"pr-from-list <pair> <key-list> <value>
     -make and append initialized pair from key-list (reverse order)
 "
     (cond 
         (   (not (null L))
-            (pr-from-list (pr+ P (car L) '()) (cdr L)))
+            (pr-from-list (pr+ P (car L) V) (cdr L) V) )
         ('t P)))
-        
 
-(mset defstruct 
+
+; two different implementations of defstruct
+(mset defstruct
     (mlambda (name SLOTS)
         (let ( (rf '()) )
             (defun rf (st S) ""
                 (cond ((not (null S))
                     (progn
-                        (f-mset (s.concat st '- (car S) '-get)
-                            (list 'mlambda '(inst) (list 'pr* 'inst (list 'car (list 'quote S)))))
-                        (f-mset (s.concat st '- (car S) '-set)
-                            (list 'mlambda '(inst val) (list 'set ''inst (list 'pr+ 'inst (list 'car (list 'quote S)) 'val))))
+                        (f-mset (concat st '. (car S) '*)
+                            (list 'mlambda '(inst) (list 'trie-get 'inst (list 'car (list 'quote S)))))
+                        (f-mset (concat st '. (car S) '+)
+                           (list 'mlambda '(inst val) (list 'trie-insert 'inst (list 'car (list 'quote S)) 'val)))
                         (rf st (cdr S))))))
-            (f-mset (s.concat 'make- 'name)
-                '(lambda () (pr-from-list '() 'SLOTS)))
+            (f-mset (concat 'make- 'name)
+                '(lambda () (trie-create (pr-from-list '() 'SLOTS ''()))))
             (rf 'name 'SLOTS)))
 "defstruct <name> <slots> ")
 
+; ---
+; Below 'defstruct' is implemented by using 'list'
+; It's very good to understand and lisplike implementation.
+; But, its slow for large structure...
+; ---
+;(mset defstruct
+;    (mlambda (name SLOTS)
+;        (let ( (rf '()) )
+;            (defun rf (st S) ""
+;                (cond ((not (null S))
+;                    (progn
+;                        (f-mset (concat st '. (car S) '*)
+;                            (list 'mlambda '(inst) (list 'pr* 'inst (list 'car (list 'quote S)))))
+;                        (f-mset (concat st '. (car S) '+)
+;                            (list 'mlambda '(inst val) (list 'set ''inst (list 'pr+ 'inst (list 'car (list 'quote S)) 'val))))
+;                        (rf st (cdr S))))))
+;            (f-mset (concat 'make- 'name)
+;                '(lambda () (pr-from-list '() 'SLOTS ''())))
+;            (rf 'name 'SLOTS)))
+;"defstruct <name> <slots> ")))
 
 

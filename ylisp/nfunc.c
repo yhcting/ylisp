@@ -49,8 +49,8 @@ YLDEFNF(quote, 1, 1) {
     /* make intentional cross-reference!*/
     {
         yle_t *e0, *e1;
-        e0 = ylmp_get_block();
-        e1 = ylmp_get_block();
+        e0 = ylmp_block();
+        e1 = ylmp_block();
         ylpassign(e0, ylnil(), e1);
         ylpassign(e1, e0, ylnil());
     }
@@ -64,7 +64,7 @@ YLDEFNF(apply, 1, 9999) {
 
 YLDEFNF(f_mset, 2, 3) {
     if(pcsz > 2) {
-        if(ylais_type(ylcaddr(e), YLASymbol))  {
+        if(ylais_type(ylcaddr(e), ylaif_sym()))  {
             return ylmset(ylcar(e), ylcadr(e), a, ylasym(ylcaddr(e)).sym);
         } else {
             ylnflogE0("MSET : 3rd parameter should be description string\n");
@@ -82,7 +82,7 @@ YLDEFNF(eq, 2, 2) {
 
 YLDEFNF(set, 2, 3) {
     if(pcsz > 2) {
-        if(ylais_type(ylcaddr(e), YLASymbol))  {
+        if(ylais_type(ylcaddr(e), ylaif_sym()))  {
             return ylset(ylcar(e), ylcadr(e), a,ylasym(ylcaddr(e)).sym);
         } else {
             ylnflogE0("SET : 3rd parameter should be description string\n");
@@ -94,13 +94,13 @@ YLDEFNF(set, 2, 3) {
 } YLENDNF(set)
 
 YLDEFNF(unset, 1, 1) {
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     if(0 <= ylgsym_delete(ylasym(ylcar(e)).sym)) { return ylt(); }
     else { return ylnil(); }
 } YLENDNF(unset)
 
 YLDEFNF(is_set, 1, 1) {
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     if(ylis_set(ylasym(ylcar(e)).sym)) { return ylt(); }
     else { return ylnil(); }
 } YLENDNF(is_set)
@@ -111,7 +111,7 @@ YLDEFNF(eval, 1, 1) {
 
 YLDEFNF(help, 1, 9999) {
     const char*  desc;
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     while(!yleis_nil(e)) {
         if(desc = ylgsym_get_description(ylasym(ylcar(e)).sym)) {
             int    outty;
@@ -124,7 +124,7 @@ YLDEFNF(help, 1, 9999) {
                      , ylasym(ylcar(e)).sym
                      , desc
                      , (ylasymis_macro(outty))? "M": ""
-                     , yleprint(v)));
+                     , ylechain_print(v)));
         } else {
             ylprint(("======== %s =========\n"
                      "Cannot find symbol\n", ylasym(ylcar(e)).sym));
@@ -139,7 +139,7 @@ YLDEFNF(load_cnf, 1, 1) {
     void  (*register_cnf)();
     const char*  fname;
 
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
 
     fname = ylasym(ylcar(e)).sym;
     handle = dlopen(fname, RTLD_LAZY);
@@ -171,7 +171,7 @@ YLDEFNF(unload_cnf, 1, 1) {
     void  (*unregister_cnf)();
     const char* fname;
 
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
 
     fname = ylasym(ylcar(e)).sym;
     /* 
@@ -217,7 +217,7 @@ YLDEFNF(interpret_file, 1, 1) {
     const char*  fname = NULL; /* file name */
     long int     sz;
 
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
 
     while(!yleis_nil(e)) {
         fh = NULL; buf = NULL;

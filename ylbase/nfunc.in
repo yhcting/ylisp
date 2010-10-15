@@ -19,8 +19,7 @@
  *****************************************************************************/
 
 
-
-NFUNC(f_cond,         "f-cond",          YLANfunc,
+NFUNC(f_cond,         "f-cond",          ylaif_nfunc(),
     "f-cond  <arg1> <arg2> ...\n"
     "    -function version of 'COND' of S-Expression\n"
     "    @argN: (<cond>, <exp>) form.\n"
@@ -29,84 +28,92 @@ NFUNC(f_cond,         "f-cond",          YLANfunc,
     "        (f-cond arg1 '(arg2 (cadr '(x y))))\n")
 
 /* To implement lazy-evaluation, and/or should be bare-nfunc! */
-NFUNC(f_and,          "f-and",           YLANfunc,
+NFUNC(f_and,          "f-and",           ylaif_nfunc(),
     "f-and  <exp1> <exp2> ...\n"
     "    -function version of 'AND' of S-Expression\n"
     "     'f-and' uses lazy evaluation mechanism.\n")
 
-NFUNC(f_or,           "f-or",            YLANfunc,
+NFUNC(f_or,           "f-or",            ylaif_nfunc(),
     "f-or  <exp1> <exp2> ...\n"
     "    -function version of 'OR' of S-Expression\n"
     "     'f-or' uses lazy evaluation mechanism.\n")
 
-NFUNC(f_let,          "f-let",           YLANfunc,
+NFUNC(f_let,          "f-let",           ylaif_nfunc(),
     "f-let <vars> <exp1> <exp2> ...\n"
     "    -function version of 'let.\n"
     "    @vars:  ((<var1> <init value1>) (<var2> <init value2>) ...)\n"
     "    @expN:  Expressions to execute.\n")
 
 
-NFUNC(f_while,        "f-while",         YLANfunc,
+NFUNC(f_while,        "f-while",         ylaif_nfunc(),
     "f-while <cond_exp> <exp1> <exp2> ...\n"
     "    -function version of while\n"
     "     loop while (eval <cond_exp>) is not nil.\n")
 
-NFUNC(atom,           "atom",            YLANfunc,
+NFUNC(atom,           "atom",            ylaif_nfunc(),
     "atom <exp> : [t/nil]\n"
     "    -check whether <exp> is atom or not.\n")
 
-NFUNC(clone,          "clone",           YLANfunc,
+NFUNC(type,           "type",            ylaif_nfunc(),
+    "type  <exp> : [Symbol]\n"
+    "    @return : symbol that represents type of given exp.\n"
+    "              '0x0' for pair, others for atom.\n"
+    "    *ex\n"
+    "        To get type value of 'Double'\n"
+    "        (type 7)\n")
+
+NFUNC(clone,          "clone",           ylaif_nfunc(),
     "clone <exp> : [exp]\n"
     "    -return cloned exp (deep copied one).\n")
 
-NFUNC(car,            "car",             YLANfunc,
+NFUNC(car,            "car",             ylaif_nfunc(),
     "car <exp>\n")
 
-NFUNC(cdr,            "cdr",             YLANfunc,
+NFUNC(cdr,            "cdr",             ylaif_nfunc(),
     "cdr <exp>\n")
 
-NFUNC(setcar,         "setcar",          YLANfunc,
+NFUNC(setcar,         "setcar",          ylaif_nfunc(),
     "setcar <exp> <new car>\n"
     "    -Changes car value(reference) of <exp>\n"
     "     This may make very serious problem. This changes reference directly.\n"
     "     So, be careful when you use this!\n")
 
-NFUNC(setcdr,         "setcdr",          YLANfunc,
+NFUNC(setcdr,         "setcdr",          ylaif_nfunc(),
     "setcdr <exp> <new cdr>\n"
     "    -changes cdr value(reference) of <exp>\n"
     "     This may make very serious problem. This changes reference directly.\n"
     "     So, be careful when you use this!\n")
 
-NFUNC(cons,           "cons",            YLANfunc,
+NFUNC(cons,           "cons",            ylaif_nfunc(),
     "cons <exp1> <exp2>\n")
 
-NFUNC(null,           "null",            YLANfunc,
+NFUNC(null,           "null",            ylaif_nfunc(),
     "null <exp> : [t/nil]\n"
     "    -check whether <exp> is nil or not.\n")
 
-NFUNC(list,           "list",            YLANfunc,
+NFUNC(list,           "list",            ylaif_nfunc(),
     "list <exp1> <exp2> <exp3> ...: [exp]\n"
     "    -construct list expression with argumented expressions.\n"
     "    *ex\n"
     "        (list 'a 'b '(c d)); => (a b (c d))\n")
 
-NFUNC(assert,         "assert",          YLANfunc,
+NFUNC(assert,         "assert",          ylaif_nfunc(),
     "assert <exp>\n"
     "    -assert if <exp> is nil\n"
     "    *ex\n"
     "        (assert (eq 'a 'b))\n")
 
-NFUNC(exit,           "exit",            YLANfunc,
+NFUNC(exit,           "exit",            ylaif_nfunc(),
     "assert <exp>\n"
     "    -exit from interpreting input stream\n"
     "    *ex\n"
     "        (exit)\n")
 
-NFUNC(print,          "print",           YLANfunc,
+NFUNC(print,          "print",           ylaif_nfunc(),
     "print <exp1> <exp2> ...\n"
     "    -print expression detail values.\n")
 
-NFUNC(printf,         "printf",          YLANfunc,
+NFUNC(printf,         "printf",          ylaif_nfunc(),
     "printf <format string>  <exp1> <exp2> ...\n"
     "    -print expression detail values with format.\n"
     "     format is same with the one of 'printf' in C.\n"
@@ -117,30 +124,36 @@ NFUNC(printf,         "printf",          YLANfunc,
     "    *ex\n"
     "        (printf \"%20s  %s --> %s\" e0 e1 e2)\n")
 
-NFUNC(log,            "log",             YLANfunc,
+NFUNC(log,            "log",             ylaif_nfunc(),
     "log <level> <exp1> <exp2> ...\n"
     "    -send to logger. This logs exactly same string with 'print'.\n"
     "    @<level> [Symbol] : one of 'v, d, i, w, e'. verbose, develop, info, warning, error respectively.\n")
 
-NFUNC(to_string,      "to-string",       YLANfunc,
+NFUNC(to_string,      "to-string",       ylaif_nfunc(),
     "to-string <exp> : [Symbol]\n"
     "    -get printable string of <exp> - same with the one of 'print <exp>'.\n")
 
-NFUNC(bit_and,        "&",               YLANfunc,
+NFUNC(concat,                "concat",               ylaif_nfunc(),
+    "concat <sym1> <sym2> ... : [Symbol]\n"
+    "    -concatenate arguements.\n"
+    "    *ex\n"
+    "        (concat 'abc 'def 'gh) --> abcdefgh\n")
+
+NFUNC(bit_and,        "&",               ylaif_nfunc(),
     "& <value1> <value2> ... : [Double]\n"
     "    -bitwise-and all values and returns result.\n"
     "    @valueN [Double]: values\n"
     "    *ex\n"
     "        (& 0x1 0x3 0x7); => 1\n")
 
-NFUNC(bit_or,         "|",               YLANfunc,
+NFUNC(bit_or,         "|",               ylaif_nfunc(),
     "| <value1> <value2> ... : [Double]\n"
     "    -bitwise-or all values and returns result.\n"
     "    @valueN [Double]: values\n"
     "    *ex\n"
     "        (| 0x1 0x2 0x4); => 7\n")
 
-NFUNC(bit_xor,        "^",               YLANfunc,
+NFUNC(bit_xor,        "^",               ylaif_nfunc(),
     "^ <value1> <value2> ... : [Double]\n"
     "    -bitwise-or all values and returns result.\n"
     "    @valueN [Double]: values\n"
@@ -148,29 +161,29 @@ NFUNC(bit_xor,        "^",               YLANfunc,
     "        (^ 0x1 0x2 0x2); => 1\n")
 
 /* Functions for simple calculation*/
-NFUNC(add,            "+",               YLANfunc,
+NFUNC(add,            "+",               ylaif_nfunc(),
     "+ <value1> <value2> ... : [Double]\n"
     "    -adds all values and returns result.\n"
     "    @valueN [Double]: values\n"
     "    *ex\n"
     "        (+ 1 2 3 4 5); => 15\n")
 
-NFUNC(sub,            "-",               YLANfunc,
+NFUNC(sub,            "-",               ylaif_nfunc(),
     "+ <value1> <value2> ... : [Double]\n"
     "    -subtracts all other values from the 1st argument.\n"
     "    @valueN [Double]: values\n"
     "    *ex\n"
     "        (- 10 2 3 ); => 10 - 2 - 3 = 5\n")
 
-NFUNC(mul,            "*",               YLANfunc,
+NFUNC(mul,            "*",               ylaif_nfunc(),
     "* <value1> <value2> ... : [Double]\n"
     "    -see '+' for more details.\n")
 
-NFUNC(div,            "/",               YLANfunc,
+NFUNC(div,            "/",               ylaif_nfunc(),
     "/ <value1> <value2> ... : [Double]\n"
     "    -see '-' for more details.\n")
 
-NFUNC(mod,            "%",               YLANfunc,
+NFUNC(mod,            "%",               ylaif_nfunc(),
     "% <val1> <val2> : [Double]\n"
     "    -same with '%' in C.\n"
     "     Only integer parts are used. Fraction parts are ignored\n"
@@ -179,13 +192,13 @@ NFUNC(mod,            "%",               YLANfunc,
     "        (mod 7 3); => 1.\n"
     "        (mod 7.5 3.9); => (mod 7 3) => 1.\n")
 
-NFUNC(gt,             ">",               YLANfunc,
+NFUNC(gt,             ">",               ylaif_nfunc(),
     "> <exp1> <exp2> : [t/nil]\n"
     "    -'<exp1> > <exp2>'.\n"
     "     In case of Symbol, 'strcmp' is used.\n"
     "    @expN [Double | Symbol]\n")
 
-NFUNC(lt,             "<",               YLANfunc,
+NFUNC(lt,             "<",               ylaif_nfunc(),
     "< <exp1> <exp2> : [t/nil]\n"
     "    -'<exp1> < <exp2>'.\n"
     "     see '>' for more details\n")

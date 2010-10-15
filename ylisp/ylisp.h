@@ -37,6 +37,8 @@ typedef enum {
 
     YLErr_out_of_memory,
 
+    YLErr_unexpected_cyclic_reference,
+
     YLErr_internal,
 
     YLErr_io, /* io error */

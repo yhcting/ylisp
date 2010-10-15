@@ -36,6 +36,37 @@ ylmp_init();
 extern void
 ylmp_deinit();
 
+/*
+ * Clean memory block.
+ * All data in memory block will be removed!
+ * (memory block that is not in use, should be in clean-state!)
+ *
+ * This is for making GC be happy.
+ * There are two unexpected state during GC
+ *     Case 1 : it's type is PAIR but it's car and cdr is NOT NULL.
+ *     Case 2 : it's type is ATOM but it's 'atomif' value is invalid.
+ *
+ * To avoid these two error-state, we need to clean block into expected state after/before using block.
+ * NOTE! : Reference count is NOT handled at 'ylmp_clean_block'.
+ *
+ * Appendix :
+ *     Case 1 (detail)
+ *     This cleaned block may be used as a pair. That is a point!.
+ *     When the block is used as pair later,
+ *      if car/cdr value is not initialised as NULL,
+ *      'ylpassign()' may try to unref car/cdr which has invalid initial value.
+ *     (See, ylpassign->ylpsetcar/ylpsetcdr)
+ *     => To set into NULL, we SHOULD NOT use ylpsetcar()/ylpsetcdr().
+ *        Set directly.
+ */
+static inline void
+ylmp_clean_block(yle_t* e) {
+    /*
+     * Clean-block's value is like this.!
+     */
+    yleset_type(e, YLEPair);
+    ylpcar(e) = ylpcdr(e) = NULL;
+}
 
 /*
  * Those two are very sensitive and dangerous function!

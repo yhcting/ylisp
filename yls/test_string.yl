@@ -3,7 +3,6 @@
 (set 'x 10.98)
 (assert (eq '10 (s.itos x)))
 (assert (eq '10.980000 (s.dtos x)))
-(assert (eq 'abcdefgh (s.concat 'ab 'cdef 'gh)))
 (set 'lns (s.split-to-line '"123\n\n7890\nabcd"))
 (assert (eq '123 (car lns)))
 (assert (eq 0 (s.length (cadr lns))))

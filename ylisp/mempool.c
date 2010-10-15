@@ -129,6 +129,7 @@ ylmp_init() {
     _a.i = 0;
 
     for(i=0; i<ylmpsz(); i++) {
+        ylmp_clean_block(&_m.pool[i].e);
         _mark_as_free(&_m.pool[i].e);
         _m.fbp[i] = &_m.pool[i].e;
         _m.pool[i].i = i;
@@ -153,17 +154,24 @@ ylmp_deinit() {
 }
 
 yle_t*
-ylmp_get_block() {
+ylmp_block() {
     if(_m.fbi <= 0) {
         yllogE1("Not enough Memory Pool.. Current size is %d\n", ylmpsz());
         ylassert(0);
     } else {
+        yle_t*  e;
         --_m.fbi;
         /* it's taken out from pool! */
-        ylercnt(_m.fbp[_m.fbi]) = 0;
-        dbg_mem(_m.fbp[_m.fbi]->evid = ylget_eval_id(););
-
-        _a.p[_a.i] = _m.fbp[_m.fbi];
+        e = _m.fbp[_m.fbi];
+        ylercnt(e) = 0;
+        dbg_mem(e->evid = yleval_id(););
+        /*
+         * initialize block (make car and cdr be NULL)
+         * (See comments ylmp_clean_block)
+         * => This is important!
+         */
+        ylmp_clean_block(e);
+        _a.p[_a.i] = e;
         _a.i++;
         if(_a.i >= ylmpsz()) {
             yllogE0("Not enough used block checker..\n");
@@ -171,7 +179,8 @@ ylmp_get_block() {
         }
 
         if(_used_block_count() > _stat.hwm) { _stat.hwm = _used_block_count(); }
-        return _m.fbp[_m.fbi];
+
+        return e;
     }
 }
 
@@ -234,7 +243,8 @@ __ylmp_release_block(yle_t* e) {
 static void
 _scanning_gc() {
     register int     i;
-    int              j; 
+    int              j;
+    unsigned int     cnt = 0;
 
     /* for logging */
     int              sv = _usage_ratio();
@@ -243,17 +253,18 @@ _scanning_gc() {
 
     /* check all used blocks as NOT-REACHABLE */
     for(i=_m.fbi; i<ylmpsz(); i++) {
-        yleclear_reachable(_m.fbp[i]);
+        yleclear_gcmark(_m.fbp[i]);
     }
 
     /* mark memory blocks that can be reachable from the Trie.*/
-    ylgsym_mark_reachable();
+    ylgsym_gcmark();
 
     /* Collect memory blocks those are not reachable (dangling) from the Trie! */
     for(i=_m.fbi; i<ylmpsz(); i++) {
         /* We need to find blocks that is dangling but not in the pool. */
         if( !ylmp_is_free_block(_m.fbp[i])
-            && !yleis_reachable(_m.fbp[i]) ) {
+            && !yleis_gcmark(_m.fbp[i]) ) {
+            cnt++;
             /* 
              * This is dangling - may be cross referred...
              * We need to check it... why this happenned..
@@ -267,6 +278,7 @@ _scanning_gc() {
             __ylmp_release_block(_m.fbp[i]);
         }
     }
+    if(cnt>0) { yllogW1("Dangling Block Detected : %d\n", cnt); }
 
     ylassert(sv >= _usage_ratio());
     yllogI2("\n=== Result of Scanning GC\n"

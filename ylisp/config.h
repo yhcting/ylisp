@@ -27,16 +27,6 @@
 /* ---------------------------------
  * Feature Configuration
  * ---------------------------------*/
-
-
-
-/* ---------------------------------
- * Interpreter Internal Configuration
- * ---------------------------------*/
-
-/* ---------------------------------
- * Switches for debugging
- * ---------------------------------*/
 #define CONFIG_LOG
 #define CONFIG_ASSERT
 
@@ -45,6 +35,8 @@
 /* #define CONFIG_DBG_MEM     */  /* to debug memory pool and GC */
 /* #define CONFIG_DBG_INTEVAL */  /* to debug interrupting evaluation */
 
-
+/* ---------------------------------
+ * Interpreter Internal Constants
+ * ---------------------------------*/
 
 #endif /* ___CONFIg_h___ */

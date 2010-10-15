@@ -31,7 +31,7 @@
 #define _MATHFUNC1(nAME)                                                \
     YLDEFNF(nAME, 1, 1) {                                               \
         double r;                                                       \
-        ylnfcheck_atype_chain1(e, YLADouble);                           \
+        ylnfcheck_atype_chain1(e, ylaif_dbl());                         \
         r = nAME(yladbl(ylcar(e)));                                     \
         return ylacreate_dbl(r);                                        \
     } YLENDNF(nAME)
@@ -39,7 +39,7 @@
 #define _MATHFUNC2(nAME)                                                \
     YLDEFNF(nAME, 2, 2) {                                               \
         double r;                                                       \
-        ylnfcheck_atype_chain1(e, YLADouble);                           \
+        ylnfcheck_atype_chain1(e, ylaif_dbl());                         \
         r = nAME(yladbl(ylcar(e)), yladbl(ylcadr(e)));                  \
         return ylacreate_dbl(r);                                        \
     } YLENDNF(nAME)

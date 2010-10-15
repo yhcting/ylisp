@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -35,11 +35,11 @@
 
 static int _mblk = 0;
 
-static const char* _exp = 
+static const char* _exp =
     "(load-cnf '../lib/libylbase.so)\n"
     "(interpret-file '../yls/base.yl)\n"
-    "(interpret-file '../yls/string.yl)\n"
-    "(interpret-file '../yls/test_string.yl)\n"
+    "(interpret-file '../yls/ext.yl)\n"
+    "(interpret-file '../yls/test_ext.yl)\n"
     ;
 
 void*
@@ -76,8 +76,10 @@ _assert(int a) {
 
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
 #   include "nfunc.in"
-#   include "nfunc_re.in"
 #undef NFUNC
+
+/* to check memory status of this library */
+extern void ylmp_gc();
 
 int
 main(int argc, char* argv[]) {
@@ -93,18 +95,23 @@ main(int argc, char* argv[]) {
 
     ylinit(&sys);
 
+    __LNF__libylext__nfunc__INIT__();
+
 #define NFUNC(n, s, type, desc)  \
     if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, desc)) { return; }
 #   include "nfunc.in"
-#   include "nfunc_re.in"
 #undef NFUNC
 
     if(YLOk != ylinterpret(_exp, strlen(_exp))) {
-        printf("Error during interpret\n");
         return;
     }
 
+    /* to check memory status */
+    ylmp_gc();
+
+    __LNF__libylext__nfunc__DeINIT__();
     yldeinit();
+
     assert(0 == get_mblk_size());
 
     printf("---------------------------\n"
@@ -113,81 +120,33 @@ main(int argc, char* argv[]) {
 
 #else /* __YLDBG__ */
 
-#include <dlfcn.h>
-#include <string.h>
-
-#define CONFIG_LOG
-
-#include "ylsfunc.h"
+#include "yldev.h"
 
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
 #   include "nfunc.in"
-#   include "nfunc_re.in"
 #undef NFUNC
 
-#define PCRELIB_PATH_SYM "s.pcrelib-path"
-static void* _pcrelib = NULL;
+extern void __LNF__libylext__nfunc__INIT__();
+extern void __LNF__libylext__nfunc__DeINIT__();
 
 void
 ylcnf_onload() {
-    yle_t*     libpath;
-    char*      sym;
+    __LNF__libylext__nfunc__INIT__();
 
     /* return if fail to register */
 #define NFUNC(n, s, type, desc)  \
-    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylstring <<\n" desc)) { return; }
+    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylext <<\n" desc)) { return; }
 #   include "nfunc.in"
 #undef NFUNC
 
-    /* make lib path symbol to get pcre-lib path */
-    sym = ylmalloc(sizeof(PCRELIB_PATH_SYM));
-    strcpy(sym, PCRELIB_PATH_SYM);
-    libpath = ylacreate_sym(sym);
-
-    if(ylis_set(sym)) {
-        libpath = yleval(libpath, ylnil());
-        if(!yleis_nil(libpath) && ylais_type(libpath, ylaif_sym()) ) {
-            /* if there is pcre, let's use it! */
-            _pcrelib = dlopen(ylasym(libpath).sym, RTLD_NOW | RTLD_GLOBAL);
-            if(_pcrelib) {
-#define NFUNC(n, s, type, desc)                                         \
-                if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylstring <<\n" desc)) { return; }
-#   include "nfunc_re.in"
-#undef NFUNC
-            } else { goto pcre_bail; }
-        } else { goto pcre_bail; }
-    } else { goto pcre_bail; }
-
-    /* success */
-    return;
-
- pcre_bail:
-    yllogW0("WARNING!\n"
-            "    Fail to load pcre library!.\n"
-            "    Set library path to 'string,pcrelib-path' before load-cnf.\n"
-            "    ex. (set 'string,pcrelib-path '/usr/local/lib/libpcre.so).\n"
-            "    (pcre-relative-cnfs are not loaded!)");
 }
 
 void
 ylcnf_onunload() {
-
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc.in"
 #undef NFUNC
 
-    if(_pcrelib) { /* re is loaded */
-#define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
-#   include "nfunc_re.in"
-#undef NFUNC
-        /*
-         * All functions that uses 'libpcre.so' SHOULD BE HERE.
-         * We don't care of others who uses 'libm.so' out of here!
-         * Let's close it!
-         */
-        dlclose(_pcrelib);
-    }
+    __LNF__libylext__nfunc__DeINIT__();
 }
-
-
 #endif /* __YLDBG__ */

@@ -25,13 +25,13 @@
  * Function pointer 'NULL' for 'lambda' and 'mlamdba' are never used.
  * (For details, see 'sfunc.c')
  ****************************************************/
-NFUNC(__dummy,                "lambda",                  YLASfunc,
+NFUNC(__dummy,                "lambda",                  ylaif_sfunc(),
     "(lambda <arg> <body>) <param1> <param2> ...\n"
     "    -lambda expression of S-Function.\n"
     "    *ex\n"
     "        ((lambda (x y) (+ x y)) 7 8) ; ==> 15\n")
 
-NFUNC(__dummy,                "mlambda",                 YLASfunc,
+NFUNC(__dummy,                "mlambda",                 ylaif_sfunc(),
     "(mlambda <arg> <body>) <param1> <param2> ...\n"
     "    -macro versin of lambda. parameters are never evaluated.\n"
     "     (eval ((mlambda (x y) (+ x y) 7 8)))\n"
@@ -40,7 +40,7 @@ NFUNC(__dummy,                "mlambda",                 YLASfunc,
     "        (eval ((mlambda () (<body>)) <param1> ...))\n"
     "            => eval [ (<body> <param1> ...) ]\n")
 
-NFUNC(quote,                  "quote",                   YLASfunc,
+NFUNC(quote,                  "quote",                   ylaif_sfunc(),
     "quote <exp>\n"
     "    -Special s-function. parameter is not evaluated.\n"
     "    @exp:    any lisp expression.\n"
@@ -48,7 +48,7 @@ NFUNC(quote,                  "quote",                   YLASfunc,
     "    *ex\n"
     "        (quote abc); => abc\n")
 
-NFUNC(apply,                  "apply",                   YLASfunc,
+NFUNC(apply,                  "apply",                   ylaif_sfunc(),
     "apply <func> <arg1> <arg2> ...\n"
     "    -Special s-function. parameter is not evaluated.\n"
     "     ** apply [f; args] = eval [cons [f; appq [args]]; NIL] **\n"
@@ -57,7 +57,7 @@ NFUNC(apply,                  "apply",                   YLASfunc,
     "    *ex\n"
     "        (apply list a b) ; => (list 'a 'b) => (a b)\n")
 
-NFUNC(f_mset,                 "f-mset",                  YLANfunc,
+NFUNC(f_mset,                 "f-mset",                  ylaif_nfunc(),
     "f-mset <symbol> <exp> (<desc>)\n"
     "    -Set macro. Syntax is same with 'set'. But this is for setting macro\n"
     "     Evaluating <symbol> is same with evaluating <exp>.\n"
@@ -73,7 +73,7 @@ NFUNC(f_mset,                 "f-mset",                  YLANfunc,
     "        (f-mset 'yy '(car '(ab cd)))\n"
     "        ;(eq zzz 'ab) => t\n")
 
-NFUNC(eq,                     "eq",                      YLANfunc,
+NFUNC(eq,                     "eq",                      ylaif_nfunc(),
     "eq <atom1> <atom2>: [t/nil]\n"
     "    -Compare two atoms.\n"
     "    @return: t if two atoms are same. nil otherwise.\n"
@@ -82,25 +82,25 @@ NFUNC(eq,                     "eq",                      YLANfunc,
     "        (eq 'ab 'a); => nil\n"
     "        (eq '(a b) 'c); => nil\n");
 
-NFUNC(set,                    "set",                     YLANfunc,
+NFUNC(set,                    "set",                     ylaif_nfunc(),
     "set <symbol> <exp> (<desc>)\n"
     "    -After evaluating this expression, evaluating <symbol> returns <exp>.\n"
     "     see 'mset' for more descrption.\n"
     "     *ex\n"
     "         (set 'a '(x y)); (a) => ('(x y))\n")
 
-NFUNC(unset,                  "unset",                   YLANfunc,
+NFUNC(unset,                  "unset",                   ylaif_nfunc(),
     "unset <symbol>\n"
     "    -Remove symbol from the global space.\n"
     "    @return: t if removed, nil if symbol doesn't exist.\n")
 
-NFUNC(is_set,                 "is-set",                  YLANfunc,
+NFUNC(is_set,                 "is-set",                  ylaif_nfunc(),
     "is-set <symbol> : [t/nil]\n"
     "    -check whether specified <symbol> is set in global symbol space or not.\n"
     "    @return: t if exists. Otherwise nil\n")
 
 
-NFUNC(eval,                   "eval",                    YLANfunc,
+NFUNC(eval,                   "eval",                    ylaif_nfunc(),
     "eval <exp>\n"
     "    -Evaluates expression.\n"
     "    @return: depends on <exp>\n"
@@ -108,23 +108,23 @@ NFUNC(eval,                   "eval",                    YLANfunc,
     "        (set 'q '(x y))\n"
     "        (eval 'q); => eval [q] => (x y)\n")
 
-NFUNC(help,                   "help",                    YLANfunc,
+NFUNC(help,                   "help",                    ylaif_nfunc(),
     "help <sym1> <sym2> ...\n"
     "    -see description and it's contents of this symbol\n"
     "     'M :' means \"This value is macro.\"\n"
     "    *ex\n"
     "        (help 'help); to see this description\n")
 
-NFUNC(load_cnf,               "load-cnf",                YLANfunc,
+NFUNC(load_cnf,               "load-cnf",                ylaif_nfunc(),
     "load-cnf <file name> : [t/nil]\n"
-    "    -LOAD Customized Native Function.\n"
+    "    -LOAD Customized Native Function with given namespace.\n"
     "     Register new custom-native functions from plug-in library\n"
     "     ylcnf_onload of plug-in is called\n"
-    "    @file name[Symbol]:       plug-in file name\n"
+    "    @file name [Symbol]:  plug-in file name\n"
     "    *ex\n"
-    "        (load-cnf 'ylbase.so 'yllibylbase_register)\n")
+    "        (load-cnf 'ylbase.so)\n")
 
-NFUNC(unload_cnf,             "unload-cnf",              YLANfunc,
+NFUNC(unload_cnf,             "unload-cnf",              ylaif_nfunc(),
     "unload-cnf <file name> : [t/nil]\n"
     "    -UNLOAD Custom-Native-Function.\n"
     "     ylcnf_onunload of plug-in is called\n"
@@ -132,7 +132,7 @@ NFUNC(unload_cnf,             "unload-cnf",              YLANfunc,
     "     *ex\n"
     "         (unload-cnf 'ylbase.so 'yllibylbase_unregister)\n")
 
-NFUNC(interpret_file,         "interpret-file",          YLANfunc,
+NFUNC(interpret_file,         "interpret-file",          ylaif_nfunc(),
     "interpret-file <file name> : [t/nil]\n"
     "    -interpret other ylisp script file\n"
     "    @file name [Symbol]: file path\n"
@@ -144,7 +144,7 @@ NFUNC(interpret_file,         "interpret-file",          YLANfunc,
  **********************************************************/
 #ifdef __DBG_MEM
 
-NFUNC(gc,                     "gc",                      YLANfunc,
+NFUNC(gc,                     "gc",                      ylaif_nfunc(),
     "gc\n"
     "    -Trigger Full-Scanning-GC manually!\n"
     "     Summary is shown when done.\n"
@@ -155,7 +155,7 @@ NFUNC(gc,                     "gc",                      YLANfunc,
 
 #endif /* __DBG_MEM */
 
-NFUNC(memstat,                "memstat",                 YLANfunc,
+NFUNC(memstat,                "memstat",                 ylaif_nfunc(),
     "memstat\n"
     "    -Shows memory pool stats.\n")
 

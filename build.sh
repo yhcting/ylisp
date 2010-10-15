@@ -55,6 +55,14 @@ check_exit_status
 make release
 check_exit_status
 
+cd ../ylext
+echo --- build ylext
+check_exit_status
+make clean
+check_exit_status
+make release
+check_exit_status
+
 cd ../ylcon
 echo --- build ylcon
 check_exit_status

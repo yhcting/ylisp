@@ -1,0 +1,73 @@
+/*****************************************************************************
+ *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
+ *    
+ *    This file is part of YLISP.
+ *
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as
+ *    published by the Free Software Foundation either version 3 of the 
+ *    License, or (at your option) any later version.
+ *    
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU Lesser General Public License 
+ *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
+
+NFUNC(trie_create,              "trie-create",                ylaif_nfunc(),
+    "trie-create (<pair>)\n"
+    "    @pair : <key value> pair list.\n"
+    "    *ex\n"
+    "        trie-create '(name class age)\n")
+
+NFUNC(trie_insert,              "trie-insert",                ylaif_nfunc(),
+    "trie-insert <instance> <slot> (<value>)\n"
+    "    @instance : returned value from st_create\n"
+    "    @slot     : newly added slot\n"
+    "    @value    : initial value of newly added slot. (default is nil)\n"
+    "    @return   : t(overwritten). nil(newly inserted)\n"
+    "    *ex\n"
+    "        (trie-insert me 'age 34)\n")
+
+NFUNC(trie_del,                 "trie-del",                   ylaif_nfunc(),
+    "trie-del <instance> <slot>\n"
+    "    @instance : returned value from st_create\n"
+    "    @slot     : slot name.\n"
+    "    @return   : t if success. nil if there is no slot whose name is <slot>\n"
+    "    *ex\n"
+    "        (trie-del me 'age)\n")
+
+NFUNC(trie_get,                 "trie-get",                   ylaif_nfunc(),
+    "trie-get <instance> <slot>\n"
+    "    @instance : returned value from st_create\n"
+    "    @return   : nil if not int the trie, otherwise value.\n"
+    "                (value itself can be nil!)\n"
+    "    *ex\n"
+    "        (trie-get me 'age)\n")
+
+NFUNC(arr_create,               "arr-create",                 ylaif_nfunc(),
+    "arr-create <dim0> <dim1> ...\n"
+    "    -Create array of given dimension - row major\n"
+    "    @dimN [Double] : \n"
+    "    *ex\n"
+    "        (arr-create 5 6)\n")
+
+NFUNC(arr_get,                  "arr-get",                    ylaif_nfunc(),
+    "arr-get <arr> <dim0> <dim1> ...\n"
+    "    -access array of given dimension - row major\n"
+    "    @dimN [Double] : \n"
+    "    *ex\n"
+    "        (arr-get 5 6)\n")
+
+NFUNC(arr_set,                  "arr-set",                    ylaif_nfunc(),
+    "arr-set <arr> <value> <dim0> <dim1> ...\n"
+    "    -access array of given dimension - row major\n"
+    "    @value :\n"
+    "    @dimN [Double] : \n"
+    "    *ex\n"
+    "        (arr-set 'name 5 6)\n")

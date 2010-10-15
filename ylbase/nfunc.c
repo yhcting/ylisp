@@ -160,12 +160,32 @@ YLDEFNF(atom, 1, 1) {
     return (yle_t*)ylatom(ylcar(e)); 
 } YLENDNF(atom)
 
+YLDEFNF(type, 1, 1) {
+#define __SZ (1024) /* This is big enough */
+    int    bw;
+    char   b[__SZ]; /* even 128bit machine, 32bit is enough */
+    if(yleis_atom(ylcar(e))) {
+        bw = snprintf(b, __SZ, "%p", ylaif(ylcar(e)));
+        ylassert(bw < __SZ); /* check unexpected result */
+    } else {
+        strcpy(b, "0x0");
+    }
+
+    { /* Just Scope */
+        char*  s = ylmalloc(strlen(b) + 1);
+        ylassert(s);
+        strcpy(s, b);
+        return ylacreate_sym(s);
+    }
+#undef __SZ
+} YLENDNF(type)
+
 YLDEFNF(clone, 1, 1) {
     if(yleis_nil(e)) {
         ylnflogE0("nil cannot be cloned!!\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
-    return yleclone_chain(ylcar(e));
+    return ylechain_clone(ylcar(e));
 } YLENDNF(clone)
 
 /* eq [car [e]; CAR] -> car [eval [cadr [e]; a]] */
@@ -230,7 +250,7 @@ YLDEFNF(exit, 0, 0) {
 YLDEFNF(print, 1, 9999) {
     if(yleis_atom(e)) { ylinterpret_undefined(YLErr_func_invalid_param); }
     do {
-        ylprint(("%s", yleprint(ylcar(e)) ));
+        ylprint(("%s", ylechain_print(ylcar(e)) ));
         e = ylcdr(e);
     } while(!yleis_nil(e));
     return ylt();
@@ -245,7 +265,7 @@ YLDEFNF(printf, 1, 10) {
             if(s[i]) { ylfree(s[i]); }          \
         }                                       \
         if(s) { ylfree(s); }                    \
-        yldynb_clean(&b);                     \
+        yldynb_clean(&b);                       \
     }while(0)
 
     int          i;
@@ -262,7 +282,7 @@ YLDEFNF(printf, 1, 10) {
     memset(s, 0, sizeof(char*) * (pcsz-1));
     fmt = ylasym(ylcar(e)).sym;
     for(i=0, e=ylcdr(e); !yleis_nil(e); i++, e=ylcdr(e)) {
-        const char* es = yleprint(ylcar(e));
+        const char* es = ylechain_print(ylcar(e));
         s[i] = ylmalloc(strlen(es) + 1);
         if(!s[i]) { goto bail; }
         strcpy(s[i], es);
@@ -316,7 +336,7 @@ YLDEFNF(printf, 1, 10) {
 YLDEFNF(log, 2, 9999) {
     const char*  lvstr;
     int          loglv;
-    ylnfcheck_atype1(ylcar(e), YLASymbol);
+    ylnfcheck_atype1(ylcar(e), ylaif_sym());
     lvstr = ylasym(ylcar(e)).sym;
     if(0 == lvstr[0] || 0 != lvstr[1]) { goto invalid_loglv; }
     switch(lvstr[0]) {
@@ -328,7 +348,7 @@ YLDEFNF(log, 2, 9999) {
         default: goto invalid_loglv;
     }
     do {
-        yllog((loglv, "%s", yleprint(ylcar(e)) ));
+        yllog((loglv, "%s", ylechain_print(ylcar(e)) ));
         e = ylcdr(e);
     } while(!yleis_nil(e));
     return ylt();
@@ -342,7 +362,7 @@ YLDEFNF(to_string, 1, 1) {
     unsigned int len;
     const char*  estr;
     char*        s;
-    estr = yleprint(ylcar(e));
+    estr = ylechain_print(ylcar(e));
     ylassert(estr);
     len = strlen(estr);
     s = ylmalloc(len+1); /* +1 for trailing 0 */
@@ -354,13 +374,48 @@ YLDEFNF(to_string, 1, 1) {
     return ylacreate_sym(s);
 } YLENDNF(to_string)
 
+YLDEFNF(concat, 2, 9999) {
+    char*            buf = NULL;
+    unsigned int     len;
+    yle_t*           pe;
+    char*            p;
+
+    /* check input parameter */
+    ylnfcheck_atype_chain1(e, ylaif_sym());
+
+    /* calculate total string length */
+    len = 0; pe = e;
+    while(!yleis_nil(pe)) {
+        len += strlen(ylasym(ylcar(pe)).sym);
+        pe = ylcdr(pe);
+    }
+
+    /* alloc memory and start to copy */
+    buf = ylmalloc(len*sizeof(char) +1); /* '+1' for trailing 0 */
+    if(!buf) {
+        ylnflogE1("Not enough memory: required [%d]\n", len);
+        ylinterpret_undefined(YLErr_func_fail);
+    }
+
+    pe = e; p = buf;
+    while(!yleis_nil(pe)) {
+        strcpy(p, ylasym(ylcar(pe)).sym);
+        p += strlen(ylasym(ylcar(pe)).sym);
+        pe = ylcdr(pe);
+    }
+    *p = 0; /* trailing 0 */
+
+    return ylacreate_sym(buf);
+
+} YLENDNF(concat)
+
 /*===========================
  * Simple calculations
  *===========================*/
 
 YLDEFNF(bit_and, 2, 9999) {
     long   r = -1; /* to make r be 'ffff...fff' type value. - 2's complement */
-    ylnfcheck_atype_chain1(e, YLADouble);
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
     while( !yleis_nil(e) ) {
         if( ((long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
             r &= ((long)yladbl(ylcar(e)));
@@ -377,7 +432,7 @@ YLDEFNF(bit_and, 2, 9999) {
 
 YLDEFNF(bit_or, 2, 9999) {
     long   r = 0;
-    ylnfcheck_atype_chain1(e, YLADouble);
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
     while( !yleis_nil(e) ) {
         if( ((long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
             r |= ((long)yladbl(ylcar(e)));
@@ -394,7 +449,7 @@ YLDEFNF(bit_or, 2, 9999) {
 
 YLDEFNF(bit_xor, 2, 9999) {
     long   r = 0;
-    ylnfcheck_atype_chain1(e, YLADouble);
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
     while( !yleis_nil(e) ) {
         if( ((long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
             r ^= ((long)yladbl(ylcar(e)));
@@ -412,7 +467,7 @@ YLDEFNF(bit_xor, 2, 9999) {
 
 YLDEFNF(mod, 2, 2) {
     long   r = 0;
-    ylnfcheck_atype_chain1(e, YLADouble);
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
     r = ((long)yladbl(ylcar(e))) % ((long)yladbl(ylcadr(e)));
     return ylacreate_dbl(r);
 } YLENDNF(add)
@@ -420,7 +475,7 @@ YLDEFNF(mod, 2, 2) {
 
 YLDEFNF(add, 2, 9999) {
     double   r = 0;
-    ylnfcheck_atype_chain1(e, YLADouble);
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
     while( !yleis_nil(e) ) {
         r += yladbl(ylcar(e));
         e = ylcdr(e);
@@ -429,8 +484,8 @@ YLDEFNF(add, 2, 9999) {
 } YLENDNF(add)
 
 YLDEFNF(mul, 2, 9999) {
-    double   r = 0;
-    ylnfcheck_atype_chain1(e, YLADouble);
+    double   r = 1;
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
     while( !yleis_nil(e) ) {
         r *= yladbl(ylcar(e));
         e = ylcdr(e);
@@ -440,7 +495,7 @@ YLDEFNF(mul, 2, 9999) {
 
 YLDEFNF(sub, 2, 9999) {
     double   r = 0;
-    ylnfcheck_atype_chain1(e, YLADouble);
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
     r = yladbl(ylcar(e));
     e = ylcdr(e);
     while( !yleis_nil(e) ) {
@@ -453,10 +508,10 @@ YLDEFNF(sub, 2, 9999) {
 
 YLDEFNF(div, 2, 9999) {
     double   r = 0;
-    ylnfcheck_atype_chain1(e, YLADouble);
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
     r = yladbl(ylcar(e));
     e = ylcdr(e);
-    while( yleis_nil(e) ) {
+    while( !yleis_nil(e) ) {
         if(0 == yladbl(ylcar(e))) {
             ylnflogE0("divide by zero!!!\n");
             ylinterpret_undefined(YLErr_func_fail);
@@ -470,30 +525,22 @@ YLDEFNF(div, 2, 9999) {
 YLDEFNF(gt, 2, 2) {
     yle_t *p1 = ylcar(e), 
           *p2 = ylcadr(e);
-    ylnfcheck_atype_chain2(e, YLADouble, YLASymbol);
-    switch(ylatype(ylcar(e))) {
-        case YLADouble: {
-            return (yladbl(p1) > yladbl(p2))? ylt(): ylnil();
-        } break;
-        case YLASymbol: {
-            return (strcmp(ylasym(p1).sym, ylasym(p2).sym) > 0)? ylt(): ylnil();
-        } break;
+    ylnfcheck_atype_chain2(e, ylaif_dbl(), ylaif_sym());
+    if(ylaif_dbl() == ylaif(ylcar(e))) {
+        return (yladbl(p1) > yladbl(p2))? ylt(): ylnil();
+    } else {
+        return (strcmp(ylasym(p1).sym, ylasym(p2).sym) > 0)? ylt(): ylnil();
     }
-    ylassert(0);
 } YLENDNF(gt)
 
 YLDEFNF(lt, 2, 2) {
     yle_t *p1 = ylcar(e), 
           *p2 = ylcadr(e);
-    ylnfcheck_atype_chain2(e, YLADouble, YLASymbol);
-    switch(ylatype(ylcar(e))) {
-        case YLADouble: {
-            return (yladbl(p1) < yladbl(p2))? ylt(): ylnil();
-        } break;
-        case YLASymbol: {
-            return (strcmp(ylasym(p1).sym, ylasym(p2).sym) < 0)? ylt(): ylnil();
-        } break;
+    ylnfcheck_atype_chain2(e, ylaif_dbl(), ylaif_sym());
+    if(ylaif_dbl() == ylaif(ylcar(e))) {
+        return (yladbl(p1) < yladbl(p2))? ylt(): ylnil();
+    } else {
+        return (strcmp(ylasym(p1).sym, ylasym(p2).sym) < 0)? ylt(): ylnil();
     }
-    ylassert(0);
 } YLENDNF(lt)
 

@@ -27,6 +27,7 @@
 #include "mempool.h"
 #include "lisp.h"
 
+
 /*=======================
  * Local varaible 
  *=======================*/
@@ -34,11 +35,15 @@ static ylsys_t* _sysv = NULL;
 static ylerr_t  _err  = YLOk;
 
 /* 
- * print buffer. This is used in yleprint 
+ * print buffer. This is used in ylechain_print 
  * (DO NOT USE THIS ELSEWHERE)
  */
 static yldynb_t _prdynb = {0, 0, NULL};
 
+/*
+ * static variable is initialized as 0!
+ * So, we don't need to 'memset(&.., 0, ...) explicitly.
+ */
 static yle_t   _predefined_true;
 static yle_t   _predefined_nil;
 static yle_t   _predefined_quote;
@@ -62,32 +67,28 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
  * aif interfaces - START
  * =======================*/
 
-#define _DEFAIF_EQ_START(sUFFIX, tY)                                    \
+#define _DEFAIF_EQ_START(sUFFIX)                                        \
     static int                                                          \
     _aif_##sUFFIX##_eq(const yle_t* e0, const yle_t* e1) {              \
         do
 
 #define _DEFAIF_EQ_END while(0); ylassert(0); }
 
-#define _DEFAIF_CLONE_START(sUFFIX, tY)                                 \
-    static yle_t*                                                       \
-    _aif_##sUFFIX##_clone(const yle_t* e) {                             \
-        yle_t* n;                                                       \
-        n = ylmp_get_block();                                           \
-        memcpy(n, e, sizeof(yle_t));                                    \
-        ylercnt(n) = 0; /* this is not referenced yet */                \
+#define _DEFAIF_COPY_START(sUFFIX)                                      \
+    static int                                                          \
+    _aif_##sUFFIX##_copy(yle_t* n, const yle_t* e) {                    \
             do
 
-#define _DEFAIF_CLONE_END while(0); ylassert(n); return n; }
+#define _DEFAIF_COPY_END while(0); return 0; }
 
-#define _DEFAIF_TO_STRING_START(sUFFIX, tY)                             \
+#define _DEFAIF_TO_STRING_START(sUFFIX)                                 \
     static const char*                                                  \
     _aif_##sUFFIX##_to_string(const yle_t* e) {                         \
         do
 
 #define _DEFAIF_TO_STRING_END while(0); ylassert(0); }
 
-#define _DEFAIF_CLEAN_START(sUFFIX, tY)                                 \
+#define _DEFAIF_CLEAN_START(sUFFIX)                                     \
     static void                                                         \
     _aif_##sUFFIX##_clean(yle_t* e) {                                   \
         do
@@ -99,7 +100,7 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
 static char _atom_prbuf[_MAX_ATOM_PR_BUFSZ];
 
 /* --- aif sym --- */
-_DEFAIF_EQ_START(sym, YLASymbol) {
+_DEFAIF_EQ_START(sym) {
     /* trivial case : compare pointed address first */
     if(ylasym(e0).sym == ylasym(e1).sym) {
         /* predefined nil can be compared here */
@@ -109,7 +110,7 @@ _DEFAIF_EQ_START(sym, YLASymbol) {
     }
 } _DEFAIF_EQ_END
 
-_DEFAIF_CLONE_START(sym, YLASymbol) {
+_DEFAIF_COPY_START(sym) {
     /* deep clone */
     ylasym(n).sym = ylmalloc(strlen(ylasym(e).sym)+1);
     if(!ylasym(n).sym) {
@@ -117,29 +118,28 @@ _DEFAIF_CLONE_START(sym, YLASymbol) {
         ylinterpret_undefined(YLErr_out_of_memory);
     }
     strcpy(ylasym(n).sym, ylasym(e).sym);
-} _DEFAIF_CLONE_END
+} _DEFAIF_COPY_END
 
-_DEFAIF_TO_STRING_START(sym, YLASymbol) {
-    return (&_predefined_nil == e)? "nil": ylasym(e).sym;
+_DEFAIF_TO_STRING_START(sym) {
+    return ylasym(e).sym;
 } _DEFAIF_TO_STRING_END
 
-_DEFAIF_CLEAN_START(sym, YLASymbol) {
+_DEFAIF_CLEAN_START(sym) {
     if(ylasym(e).sym) { ylfree(ylasym(e).sym); }
 } _DEFAIF_CLEAN_END
 
 
 /* --- aif nfunc --- */
-_DEFAIF_EQ_START(nfunc, YLANfunc) {
+_DEFAIF_EQ_START(nfunc) {
     if(ylanfunc(e0).f == ylanfunc(e1).f) { return 1; }
     else { return 0; }
 } _DEFAIF_EQ_END
 
-_DEFAIF_CLONE_START(nfunc, YLANfunc) {
+_DEFAIF_COPY_START(nfunc) {
     /* nothing to do */
-    return n;
-} _DEFAIF_CLONE_END
+} _DEFAIF_COPY_END
 
-_DEFAIF_TO_STRING_START(nfunc, YLANfunc) {
+_DEFAIF_TO_STRING_START(nfunc) {
     if(_MAX_ATOM_PR_BUFSZ <= snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, 
                                       "<!%s!>", ylanfunc(e).name)) {
         /* atom pr buf is too small.. */
@@ -149,7 +149,31 @@ _DEFAIF_TO_STRING_START(nfunc, YLANfunc) {
     return _atom_prbuf;
 } _DEFAIF_TO_STRING_END
 
-_DEFAIF_CLEAN_START(nfunc, YLANfunc) {
+_DEFAIF_CLEAN_START(nfunc) {
+    /* nothing to do */
+} _DEFAIF_CLEAN_END
+
+/* --- aif sfunc --- */
+_DEFAIF_EQ_START(sfunc) {
+    if(ylanfunc(e0).f == ylanfunc(e1).f) { return 1; }
+    else { return 0; }
+} _DEFAIF_EQ_END
+
+_DEFAIF_COPY_START(sfunc) {
+    /* nothing to do */
+} _DEFAIF_COPY_END
+
+_DEFAIF_TO_STRING_START(sfunc) {
+    if(_MAX_ATOM_PR_BUFSZ <= snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, 
+                                      "<!%s!>", ylanfunc(e).name)) {
+        /* atom pr buf is too small.. */
+        yllogE1("Atom print buffer size is not enough!: Current [%d]\n", _MAX_ATOM_PR_BUFSZ);
+        ylassert(0);
+    }
+    return _atom_prbuf;
+} _DEFAIF_TO_STRING_END
+
+_DEFAIF_CLEAN_START(sfunc) {
     /* nothing to do */
 } _DEFAIF_CLEAN_END
 
@@ -158,15 +182,15 @@ _DEFAIF_CLEAN_START(nfunc, YLANfunc) {
 /* This SHOULD BE SAME with NFUNC.. So, let's skip it! */
 
 /* --- aif double --- */
-_DEFAIF_EQ_START(dbl, YLADouble) {
+_DEFAIF_EQ_START(dbl) {
     return (yladbl(e0) == yladbl(e1))? 1: 0;
 } _DEFAIF_EQ_END
 
-_DEFAIF_CLONE_START(dbl, YLADouble) {
+_DEFAIF_COPY_START(dbl) {
     /* nothing to do */
-} _DEFAIF_CLONE_END
+} _DEFAIF_COPY_END
 
-_DEFAIF_TO_STRING_START(dbl, YLADouble) {
+_DEFAIF_TO_STRING_START(dbl) {
     int cnt;
     if((double)((int)yladbl(e)) == yladbl(e)) {
         cnt = snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, "%d", (int)(yladbl(e)));
@@ -181,12 +205,12 @@ _DEFAIF_TO_STRING_START(dbl, YLADouble) {
     return _atom_prbuf;
 } _DEFAIF_TO_STRING_END
 
-_DEFAIF_CLEAN_START(dbl, YLADouble) {
+_DEFAIF_CLEAN_START(dbl) {
     /* nothing to do */
 } _DEFAIF_CLEAN_END
 
 /* --- aif binary --- */
-_DEFAIF_EQ_START(bin, YLABinary) {
+_DEFAIF_EQ_START(bin) {
     if(ylabin(e0).sz == ylabin(e1).sz
        && (0 == memcmp(ylabin(e0).d, ylabin(e1).d, ylabin(e0).sz)) ) {
         return 1;
@@ -195,7 +219,7 @@ _DEFAIF_EQ_START(bin, YLABinary) {
     }
 } _DEFAIF_EQ_END
 
-_DEFAIF_CLONE_START(bin, YLABinary) {
+_DEFAIF_COPY_START(bin) {
     /* deep clone */
     ylabin(n).d = ylmalloc(ylabin(e).sz);
     if(!ylabin(n).d) {
@@ -203,14 +227,34 @@ _DEFAIF_CLONE_START(bin, YLABinary) {
         ylinterpret_undefined(YLErr_out_of_memory);
     }
     memcpy(ylabin(n).d, ylabin(e).d, ylabin(e).sz);
-} _DEFAIF_CLONE_END
+} _DEFAIF_COPY_END
 
-_DEFAIF_TO_STRING_START(bin, YLABinary) {
+_DEFAIF_TO_STRING_START(bin) {
     return ">>BIN DATA<<";
 } _DEFAIF_TO_STRING_END
 
-_DEFAIF_CLEAN_START(bin, YLABinary) {
+_DEFAIF_CLEAN_START(bin) {
     if(ylabin(e).d) { ylfree(ylabin(e).d); }
+} _DEFAIF_CLEAN_END
+
+/* --- aif nil --- */
+_DEFAIF_EQ_START(nil) {
+    return (e0 == e1 && e0 == ylnil())? 1: 0;
+} _DEFAIF_EQ_END
+
+_DEFAIF_COPY_START(nil) {
+    yllogE0("NIL is NOT ALLOWED TO COPY\n");
+    ylinterpret_undefined(YLErr_eval_undefined);
+} _DEFAIF_COPY_END
+
+_DEFAIF_TO_STRING_START(nil) {
+    return "NIL";
+} _DEFAIF_TO_STRING_END
+
+_DEFAIF_CLEAN_START(nil) {
+    ylassert(0); /* un-recovable error!! */
+    yllogE0("NIL SHOULD NOT BE CLEANED\n");
+    ylinterpret_undefined(YLErr_eval_undefined);
 } _DEFAIF_CLEAN_END
 
 
@@ -218,8 +262,8 @@ _DEFAIF_CLEAN_START(bin, YLABinary) {
 
 #undef _DEFAIF_EQ_START
 #undef _DEFAIF_EQ_END
-#undef _DEFAIF_CLONE_START
-#undef _DEFAIF_CLONE_END
+#undef _DEFAIF_COPY_START
+#undef _DEFAIF_COPY_END
 #undef _DEFAIF_TO_STRING_START
 #undef _DEFAIF_TO_STRING_END
 #undef _DEFAIF_CLEAN_START
@@ -227,41 +271,38 @@ _DEFAIF_CLEAN_START(bin, YLABinary) {
 
 
 
-#define _DEFAIF_VAR(sUFFIX)                     \
-    static ylatomif_t _aif_##sUFFIX = {         \
-        &_aif_##sUFFIX##_eq,                    \
-        &_aif_##sUFFIX##_clone,                 \
-        &_aif_##sUFFIX##_to_string,             \
-        NULL,                                   \
-        &_aif_##sUFFIX##_clean                  \
-}
+#define _DEFAIF_VAR(sUFFIX)                                             \
+    static const ylatomif_t _aif_##sUFFIX = {                           \
+        &_aif_##sUFFIX##_eq,                                            \
+        &_aif_##sUFFIX##_copy,                                          \
+        &_aif_##sUFFIX##_to_string,                                     \
+        NULL,                                                           \
+        &_aif_##sUFFIX##_clean                                          \
+    };                                                                  \
+    const ylatomif_t* const ylg_predefined_aif_##sUFFIX = &_aif_##sUFFIX
 
 
 _DEFAIF_VAR(sym);
+_DEFAIF_VAR(sfunc);
 _DEFAIF_VAR(nfunc);
 _DEFAIF_VAR(dbl);
 _DEFAIF_VAR(bin);
+_DEFAIF_VAR(nil);
 
 #undef _DEFAIF_VAR
 
-const ylatomif_t*
-ylget_aif_sym() { return &_aif_sym; }
 
-const ylatomif_t*
-ylget_aif_nfunc() { return &_aif_nfunc; }
-
-/*
- * Interface of 'sfunc' is same with the one of 'nfunc'
- * So, just re-use _aif_nfunc!
- */
-const ylatomif_t*
-ylget_aif_sfunc() { return &_aif_nfunc; }
-
-const ylatomif_t*
-ylget_aif_dbl() { return &_aif_dbl; }
-
-const ylatomif_t*
-ylget_aif_bin() { return &_aif_bin; }
+static int
+_detect_cycle(const yle_t* e) {
+    /*
+     * Assume : YLEMark bit of all memory block is clear.
+     * (see mempool.c : ylmp_block & ylmp_init)
+     */
+    int bcycle;
+    bcycle = !ylechain_set_mark(NULL, (yle_t*)e);
+    ylechain_clear_mark(NULL, (yle_t*)e); /* restore */
+    return bcycle;
+}
 
 
 /**
@@ -274,86 +315,96 @@ yleclean(yle_t* e) {
         if(ylaif(e)->clean) { (*ylaif(e)->clean)(e); }
         else { yllogW0("There is an atom that doesn't support/allow CLEAN!\n"); }
     } else {
-        ylassert( ylercnt(ylpcar(e)) && ylercnt(ylpcdr(e)) );
-
         /*
-         * cdr and car may be already collected by GC.
-         * So, we need to check it!
-         *
-         * In normal case, car/cdr block cannot be 'free block'
-         * But, there is one special execptional case - Scanning GC.
-         * Scanning GC collect blocks without caring about reference count.
-         * Therefore, during Scanning GC, having free-car/cdr-block is possible.
-         * So, we need to check it firstly.
+         * Let'a think of memory block M that is taken from pool, but not initialized.
+         * Value of M is invald. But, All cleaned memory block has NULL car and cdr value. 
+         * (see bottom of this funcion and ylmp_block().)
+         * If there is interpreting error before M is initialized, M is GCed.
+         * In this case, car and cdr of M can be NULL!.
+         * But, case that only one of car and cdr is NULL, is unexpected!
          */
-        if( !ylmp_is_free_block(ylpcar(e)) ) { yleunref(ylpcar(e)); }
-        if( !ylmp_is_free_block(ylpcdr(e)) ) { yleunref(ylpcdr(e)); }
+        ylassert( (ylpcar(e) && ylpcdr(e)) || (!ylpcar(e) && !ylpcdr(e)) );
+
+        if(ylpcar(e)) {
+            ylassert( ylercnt(ylpcar(e)) && ylercnt(ylpcdr(e)) );
+
+            /*
+             * cdr and car may be already collected by GC.
+             * So, we need to check it!
+             *
+             * In normal case, car/cdr block cannot be 'free block'
+             * But, there is one special execptional case - Scanning GC.
+             * Scanning GC collect blocks without caring about reference count.
+             * Therefore, during Scanning GC, having free-car/cdr-block is possible.
+             * So, we need to check it firstly.
+             */
+            if( !ylmp_is_free_block(ylpcar(e)) ) { yleunref(ylpcar(e)); }
+            if( !ylmp_is_free_block(ylpcdr(e)) ) { yleunref(ylpcdr(e)); }
+        }
     }
     /*
-     * And after cleaning, we need to force car/cdr be set as NULL,
-     *  EVEN IF it's type may NOT be PAIR!.
-     * This cleaned block may be used as a pair. That is a point!.
-     * When the block is used as pair later,
-     *  if car/cdr value is not initialised as NULL,
-     *  'ylpassign()' may try to unref car/cdr which has invalid initial value.
-     * (See, ylpassign->ylpsetcar/ylpsetcdr)
-     *
-     * => To set into NULL, we SHOULD NOT use ylpsetcar()/ylpsetcdr().
-     *    Set directly.
+     * And after cleaning, we need to be in clean-state.
+     * -> See comments of 'ylmp_clean_block'
      */
-    ylpcar(e) = NULL;
-    ylpcdr(e) = NULL;
+    ylmp_clean_block(e);
 }
 
+static yle_t*
+_eclone(const yle_t* e) {
+    yle_t* n; /* new one */
 
-yle_t*
-yleclone(const yle_t* e) {
     ylassert(e);
 
     /* handle special case "nil" */
     if(yleis_nil(e)) { return ylnil(); }
 
+    n = ylmp_block();
+    memcpy(n, e, sizeof(yle_t));
+    ylercnt(n) = 0; /* this is not referenced yet */
     if(yleis_atom(e)) {
-        if(ylaif(e)->clone) { return (*ylaif(e)->clone)(e); }
-        else {
-            yllogE0("There is an atom that doesn't support/allow CLONE!\n");
+        if( ylaif(e)->copy && (0 > ylaif(e)->copy(n, e)) ) {
+            yllogE0("There is an error at COPYING atom\n");
             ylinterpret_undefined(YLErr_eval_undefined);
-            return NULL; /* to make compiler be happy */
         }
     } else {
-        yle_t* n; /* new one */
-        n = ylmp_get_block();
-        memcpy(n, e, sizeof(yle_t));
-        ylercnt(n) = 0; /* this is not referenced yet */
         /* 
          * we should increase reference count of each car/cdr.
          * exp, is cloned. So, one more exp refers car/cdr.
          */
         yleref(ylpcar(n));
         yleref(ylpcdr(n));
-        return n;
-    }
-}
-
-
-yle_t*
-yleclone_chain(const yle_t* e) {
-    yle_t* n;
-    if(yleis_atom(e)) {
-        n = yleclone(e);
-    } else {
-        n = yleclone(e);
-        ylpsetcar(n, yleclone_chain(ylpcar(e)));
-        ylpsetcdr(n, yleclone_chain(ylpcdr(e)));
     }
     return n;
 }
 
+static yle_t*
+_echain_clone(const yle_t* e) {
+    yle_t* n;
+    if(yleis_atom(e)) {
+        n = _eclone(e);
+    } else {
+        n = _eclone(e);
+        ylpsetcar(n, _echain_clone(ylpcar(e)));
+        ylpsetcdr(n, _echain_clone(ylpcdr(e)));
+    }
+    return n;
+}
+
+yle_t*
+ylechain_clone(const yle_t* e) {
+    if(_detect_cycle(e)) {
+        yllogE0("Clone Fails : CYCLE DETECTED!\n");
+        ylinterpret_undefined(YLErr_unexpected_cyclic_reference);
+        return NULL; /* to make compiler happy */
+    } else {
+        return _echain_clone(e);
+    }
+}
 
 ylerr_t
 ylregister_nfunc(unsigned int version,
                  const char* sym, ylnfunc_t nfunc, 
-                 int   ftype, /* function type. can be ATOM_NFUNC ylor ATOM_RAW_NFUNC */
+                 const ylatomif_t* aif, /* AIF. can be ylaif_sfunc / ylaif_nfunc */
                  const char* desc) {
     yle_t*       e;
     char*        s;
@@ -366,12 +417,9 @@ ylregister_nfunc(unsigned int version,
         return YLErr_cnf_register;
     }
 
-    if(YLANfunc != ftype && YLASfunc != ftype) {
-    }
-    
-    if(YLANfunc == ftype) {
+    if(ylaif_nfunc() == aif) {
         e = ylacreate_nfunc(nfunc, sym);
-    } else if(YLASfunc == ftype) {
+    } else if(ylaif_sfunc() == aif) {
         e = ylacreate_sfunc(nfunc, sym);
     } else {
         yllogE0("Function type should be one of ATOM_NFUNC, ylor ATOM_RAW_NFUNC");
@@ -397,7 +445,7 @@ ylsysv() {
 }
 
 int
-ylchain_size(const yle_t* e) {
+ylelist_size(const yle_t* e) {
     register int i;
     const yle_t* p;
     ylassert(e);
@@ -423,7 +471,7 @@ ylchain_size(const yle_t* e) {
 /*
  * Simple macro used for printing functions(_aprint, _eprint, yleprint)
  */
-#define _fcall(fEXP) do { if( 0 > fEXP ) { goto bail; } } while(0)
+#define _fcall(fEXP) do { if(0 > fEXP) { goto bail; } } while(0)
 
 static int
 _aprint(yldynb_t* b, yle_t* e) {
@@ -483,14 +531,28 @@ _eprint(yldynb_t* b, yle_t* e) {
     return -1;
 }
 
+int
+ylechain_print_internal(const yle_t* e, yldynb_t* b) {
+    if(yleis_atom(e)) {
+        _fcall(_aprint(b, (yle_t*)e));
+    } else {
+        _fcall(ylutstr_append(b, "("));
+        _fcall(_eprint(b, (yle_t*)e));
+        _fcall(ylutstr_append(b, ")"));
+    }
+    return 0;
+
+ bail:
+    return -1;
+}
 
 /**
  * @return: buffer pointer. MAX buffer size is 1KB
  */
 const char*
-yleprint(const yle_t* e) {
+ylechain_print(const yle_t* e) {
 
-#define __DEFAULT_BSZ 4096
+#define __DEFAULT_BSZ         4096
     /*
      * newly allocates or shrinks
      */
@@ -501,25 +563,20 @@ yleprint(const yle_t* e) {
         ylutstr_reset(&_prdynb);
     }
 
-    if(yleis_atom(e)) {
-        _fcall(_aprint(&_prdynb, (yle_t*)e));
-    } else {
-        _fcall(ylutstr_append(&_prdynb, "("));
-        _fcall(_eprint(&_prdynb, (yle_t*)e));
-        _fcall(ylutstr_append(&_prdynb, ")"));
+    if(_detect_cycle(e)) {
+        yllogW0("WARN : Print : CYCLE DETECTED!\n");
+        return "[[WARN : cycle detected!]]";
     }
-
+    _fcall(ylechain_print_internal(e, &_prdynb));
     return ylutstr_string(&_prdynb);
     
  bail:
-    /* Out of memory */
     return "print error: out of memory\n";
 
 #undef __DEFAULT_BSZ
 }
 
 #undef _fcall
-
 
 int
 ylsym_nr_candidates(const char* start_with, unsigned int* max_symlen) {
@@ -576,29 +633,26 @@ ylinit(ylsys_t* sysv) {
         goto bail;
     }
 
-
-    /* init predefined expression */
-    yleset_type(&_predefined_true, YLEAtom | YLASymbol | YLEReachable);
-    yleset_type(&_predefined_nil, YLEAtom | YLAUnknown | YLEReachable);
-    yleset_type(&_predefined_quote, YLEAtom | YLASymbol | YLEReachable);
-
     /* 
      * '_predefined_xxxx' SHOULD NOT be freed!!!! 
      * So, passing data pointer is OK
      */
-    ylaassign_sym(&_predefined_true,   "t");
-    ylaassign_sym(&_predefined_nil,    NULL);
-    ylaassign_sym(&_predefined_quote,  "quote");
+    ylaassign_sym(ylt(),  "t");
+    ylaassign_sym(ylq(),  "quote");
+
+    /* set nil's type as YLAUnknown -- for easier-programming */
+    yleset_type(ylnil(), YLEAtom);
+    ylaif(ylnil()) = &_aif_nil;
 
     /*
      * There predefined exp. should not be freed. So, it's initial reference count is 1.
      */
-    ylercnt(&_predefined_true) = 1;
-    ylercnt(&_predefined_nil) = 1;
-    ylercnt(&_predefined_quote) = 1;
+    ylercnt(ylt()) = 1;
+    ylercnt(ylnil()) = 1;
+    ylercnt(ylq()) = 1;
 
-#define NFUNC(n, s, type, desc)                                         \
-    if(YLOk != ylregister_nfunc(YLDEV_VERSION, s, (ylnfunc_t)YLNFN(n), type, ">> lib: ylisp <<\n" desc)) { goto bail; }
+#define NFUNC(n, s, aif, desc)                                         \
+    if(YLOk != ylregister_nfunc(YLDEV_VERSION, s, (ylnfunc_t)YLNFN(n), aif, ">> lib: ylisp <<\n" desc)) { goto bail; }
 #include "nfunc.in"
 #undef NFUNC
 

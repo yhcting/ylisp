@@ -72,7 +72,7 @@ ylapply(yle_t* f, yle_t* args, yle_t* a);
  * get current evaluation id.
  */
 unsigned int
-ylget_eval_id();
+yleval_id();
 
 /*
  * To show 'eval' stack when interpreting fails

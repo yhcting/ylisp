@@ -125,7 +125,7 @@ YLDEFNF(sh, 1, 1) {
     const char* errmsg = NULL;
 
     /* check input parameter */
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
 
     /* set to invalid value */
     saved_stdout = saved_stderr = -1; 
@@ -240,14 +240,14 @@ YLDEFNF(sh, 1, 1) {
 
 YLDEFNF(sleep, 1, 1) {
     /* check input parameter */
-    ylnfcheck_atype_chain1(e, YLADouble);
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
     sleep((unsigned int)yladbl(ylcar(e)));
     return ylt();
 } YLENDNF(sleep)
 
 YLDEFNF(usleep, 1, 1) {
     /* check input parameter */
-    ylnfcheck_atype_chain1(e, YLADouble);
+    ylnfcheck_atype_chain1(e, ylaif_dbl());
     usleep((unsigned int)yladbl(ylcar(e)));
     return ylt();
 } YLENDNF(usleep)
@@ -255,7 +255,7 @@ YLDEFNF(usleep, 1, 1) {
 YLDEFNF(getenv, 1, 1) {
     char*  env;
     /* check input parameter */
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     env = getenv(ylasym(ylcar(e)).sym);
     if(env) {
         unsigned int    sz = strlen(env);
@@ -271,7 +271,7 @@ YLDEFNF(getenv, 1, 1) {
 YLDEFNF(setenv, 2, 2) {
     char*  env;
     /* check input parameter */
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     if(0 == setenv(ylasym(ylcar(e)).sym, ylasym(ylcadr(e)).sym, 1)) {
         return ylt();
     } else {
@@ -280,7 +280,7 @@ YLDEFNF(setenv, 2, 2) {
 } YLENDNF(setenv)
 
 YLDEFNF(chdir, 1, 1) {
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     if( 0 > chdir(ylasym(ylcar(e)).sym) ) {
         ylnflogW1("Fail to change directory to [ %s ]\n", ylasym(ylcar(e)).sym);
         return ylnil();
@@ -301,7 +301,7 @@ YLDEFNF(fstat, 1, 1) {
     
     struct stat    st;
     yle_t         *r, *key, *v;
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     if(0 > stat(ylasym(ylcar(e)).sym, &st)) {
         ylnflogE1("Cannot get status of file [%s]\n", ylasym(ylcar(e)).sym);
         return ylnil();
@@ -335,7 +335,7 @@ YLDEFNF(fread, 1, 1) {
     char*    buf = NULL;
     yle_t*   r;
 
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     
     buf = _readf(NULL, "fread", ylasym(ylcar(e)).sym, TRUE);
     if(!buf) { goto bail; }
@@ -360,7 +360,7 @@ YLDEFNF(freadb, 1, 1) {
     yle_t*       r;
     unsigned int sz;
 
-    ylnfcheck_atype_chain1(e, YLABinary);
+    ylnfcheck_atype_chain1(e, ylaif_bin());
     
     buf = _readf(&sz, "freadb", ylasym(ylcar(e)).sym, FALSE);
     if(!buf && 0 != sz) { goto bail; }
@@ -387,8 +387,8 @@ YLDEFNF(fwrite, 2, 2) {
     unsigned int sz;
 
     /* parameter check */
-    if( !(ylais_type(ylcar(e), YLASymbol)
-          && (ylais_type(dat, YLASymbol) || ylais_type(dat, YLABinary))) ) {
+    if( !(ylais_type(ylcar(e), ylaif_sym())
+          && (ylais_type(dat, ylaif_sym()) || ylais_type(dat, ylaif_bin()))) ) {
         ylnflogE0("invalid parameter type\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
@@ -399,18 +399,12 @@ YLDEFNF(fwrite, 2, 2) {
         goto bail;
     }
 
-    
-    switch(ylatype(dat)) {
-        case YLASymbol: {
-            sz = strlen(ylasym(dat).sym);
-            rawdata = ylasym(dat).sym;
-        } break;
-        case YLABinary: {
-            sz = ylabin(dat).sz;
-            rawdata = ylabin(dat).d;
-        } break;
-        default:
-            ylassert(0);
+    if( ylaif_sym() == ylaif(dat) ) {
+        sz = strlen(ylasym(dat).sym);
+        rawdata = ylasym(dat).sym;
+    } else { /* Binary case */
+        sz = ylabin(dat).sz;
+        rawdata = ylabin(dat).d;
     }
 
     if(sz != fwrite(rawdata, 1, sz, fh)) {
@@ -432,7 +426,7 @@ YLDEFNF(readdir, 1, 1) {
     yle_t*            re;      /* expression to return */
     const char*       dpath;
 
-    ylnfcheck_atype_chain1(e, YLASymbol);
+    ylnfcheck_atype_chain1(e, ylaif_sym());
     dpath = ylasym(ylcar(e)).sym;
     dip = opendir(dpath);
     if(!dip) { 

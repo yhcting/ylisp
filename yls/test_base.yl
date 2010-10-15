@@ -28,6 +28,13 @@
 (assert (eq 'haha ((eval 'gg2) haha)))
 
 
+; check type checking
+(assert (eq (type 'aa) (type 'bb)))
+(assert (eq (type 7) (type 8)))
+(assert (eq (type '(a b)) (type '(c d))))
+(assert (not (eq (type 7) (type 'ab))))
+(assert (not (eq (type 'ab) (type '(a b)))))
+
 
 (assert
     (eq yy 'ab))
@@ -94,6 +101,15 @@
         (assert (eq x 'd)))
     (assert (eq t 'y))
     (assert (eq x 'f)))
+
+(assert (eq 2 (+ 1 1)))
+(assert (eq 3 (+ 2 1)))
+(assert (eq 1 (- 2 1)))
+(assert (eq 1 (* 1 1)))
+(assert (eq 6 (* 2 3)))
+(assert (eq 0 (* 100 0)))
+(assert (eq 3 (/ 6 2)))
+(assert (eq 8 (/ 8 1)))
     
 (assert (eq 't (> 2 1)))
 (assert (= 't (> 2 1)))
@@ -190,6 +206,7 @@
     (-- f)
     (assert (eq 2 f)))
 
+(assert (eq 'abcdefgh (concat 'ab 'cdef 'gh)))
 
 ; test list handling
 (set 'lst '(a b cd ef (1 2)))
@@ -217,6 +234,15 @@
 (assert (eq 2 (1- 3)))
 (assert (equal (list 2 3 4 5) (mapcar '1+ '(1 2 3 4))))
 (assert (equal (list 't '() 't '()) (mapcar 'not '( '() 't '() 't))))
+
+;
+; test for cycle
+; make cycle!
+(set 't (list '('a 'b) 'c))
+(setcar (cdar t) t)
+(print t '"\n")
+;(set 'rrr (clone t)) ; this should generate interpreting error!
+(unset 't)
 
 (unset 'rrr)
 (unset 'yyy)
