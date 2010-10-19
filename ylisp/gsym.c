@@ -55,14 +55,16 @@ _alloc_value(int sty, yle_t* e) {
     }
     v->ty = sty; v->desc = &_dummy_empty_desc;
     v->e = e;
-    yleref(e); /* e is reference manually! */
     return v;
 }
 
 static inline void
 _free_value(_value_t* v) {
     _free_description(v->desc);
-    yleunref(v->e);
+    /* 
+     * we don't need to free 'v->e' explicitly here!
+     * unlinking from global is enough! 
+     */
     ylfree(v);
 }
 
@@ -75,6 +77,7 @@ ylgsym_init() {
 void
 ylgsym_deinit() {
     yltrie_destroy(_trie);
+    _trie = NULL;
 }
 
 int
@@ -145,7 +148,7 @@ ylgsym_get(int* outty, const char* sym) {
     }
 }
 
-_DEF_VISIT_FUNC(static, _gcmark, ,!yleis_gcmark(e), yleset_gcmark(e), 1, )
+_DEF_VISIT_FUNC(static, _gcmark, ,!yleis_gcmark(e), yleset_gcmark(e))
 
 static int
 _cb_gcmark(void* user, const char* sym, _value_t* v) {
@@ -156,8 +159,10 @@ _cb_gcmark(void* user, const char* sym, _value_t* v) {
 void
 ylgsym_gcmark() {
     /* This is called by 'Scanning GC' */
-    yltrie_walk(_trie, NULL, "", 
-                (int(*)(void*, const char*, void*))&_cb_gcmark);
+    if(_trie) {
+        yltrie_walk(_trie, NULL, "", 
+                    (int(*)(void*, const char*, void*))&_cb_gcmark);
+    }
 }
 
 int

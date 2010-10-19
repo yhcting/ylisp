@@ -117,5 +117,8 @@ ylstk_peek(ylstk_t* s) {
     }
 }
 
+#define stack_foreach(s, p, i)                          \
+    for(i=0, p=s->item[i]; i<s->sz; i++, p=s->item[i])
+
 
 #endif /* ___STACk_h___ */

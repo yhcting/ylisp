@@ -317,14 +317,9 @@ yleval(yle_t* e, yle_t* a) {
      * 'e' and 'a' should be preserved during evaluation.
      * So, add reference count manually!
      * (especially, in case of a, some functions (ex let) may add new assoc. element
-     *  in front of current 'a'. In case of this, without adding reference count,
-     *  current assoc. list may be destroied due to this is also in chain!)
+     *  in front of current 'a'.
      */
-    ylercnt(e)++; ylercnt(a)++;
-    /*
-     * Push(Save) that current memory pool status before evaluation.
-     */
-    ylmp_push();
+    ylmp_push2(e, a);
 
     if( yleis_atom(e) ) { 
         if(ylaif_sym() == ylaif(e)) {
@@ -338,8 +333,7 @@ yleval(yle_t* e, yle_t* a) {
             ylinterpret_undefined(YLErr_eval_undefined);
         }
     } else if( yleis_atom(ylcar(e)) ) {
-        yle_t*   car_e = ylcar(e);
-        yle_t*   p;
+        yle_t*   car_e =ylcar(e);
 
         if(ylaif_sym() == ylaif(car_e) ) {
             r = (yle_t*)_assoc(&vty, car_e, a);
@@ -352,7 +346,10 @@ yleval(yle_t* e, yle_t* a) {
             } else {
                 if(yleis_atom(r)) {
                     if(ylaif_nfunc() == ylaif(r)) {
-                        r = (*(ylanfunc(r).f))(ylevlis(ylcdr(e), a), a);
+                        yle_t* param = ylevlis(ylcdr(e), a);
+                        ylmp_push1(param); /* preserve! */
+                        r = (*(ylanfunc(r).f))(param, a);
+                        ylmp_pop1();
                     } else if(ylaif_sfunc() == ylaif(r)) {
                         /* parameters are not evaluated before being passed! */
                         r = (*(ylanfunc(r).f))(ylcdr(e), a);
@@ -376,6 +373,7 @@ yleval(yle_t* e, yle_t* a) {
             r = yleval(ylcons(ylcaddar(e), ylcdr(e)), ylcons(yllist(ylcadar(e), ylcar(e)), a));
         } else if(_cmp(lambda, ce)) {
             /* eq [caar [e] -> LAMBDA] -> eval [caddar [e]; append [pair [cadar [e]; evlis [cdr [e]; a]]; a]] */
+            /* ylpair and ylappend don't call yleval in it. So, we don't need to preserve base blocks explicitly */
             r = yleval(ylcaddar(e), ylappend(ylpair(ylcadar(e), ylevlis(ylcdr(e), a)), a));
         } else if(_cmp(mlambda, ce)) {
             if( yleis_nil(ylcadar(e)) && !yleis_nil(ylcaddar(e)) ) {
@@ -385,10 +383,13 @@ yleval(yle_t* e, yle_t* a) {
                  */
                 yle_t* we = ylcaddar(e);
                 while(!yleis_nil(ylcdr(we))) { we = ylcdr(we); }
+
                 /* 
                  * Expression itself is preserved at any case.
                  * So, we don't need to care about replacement of expression.
                  * (restoring link is enough!)
+                 *
+                 * original '(cdr we)' is nil. So we don't need to preserved 'we' before eval! 
                  */
                 /* connect body with argument */
                 ylpsetcdr(we, ylcdr(e));
@@ -424,34 +425,18 @@ yleval(yle_t* e, yle_t* a) {
         
         dbg_eval(yllogV2("[%d] eval Out:\n"
                          "    %s\n", evid, ylechain_print(r)););
+        ylmp_pop2();
 
-
-        /*
-         * GC dangling blocks that are newly used during this evaluation.
-         * Exceptions are blocks for return values and association lists.
-         */
-        /*
-         * Returned value should be pretected from GC.
-         * So, refer it manually
-         * To prevent from freeing when reference cnt becomes 0,
-         *  reference count of r is modifed directly!!
-         * Actually, this is very dangerous.
-         * So, BE CAREFUL WHEN MODIFY THIS!
-         */
-        ylercnt(r)++;
-        ylercnt(e)--; ylercnt(a)--;
-
-        ylmp_pop();
-        ylercnt(r)--;
+        /* Returned value should be pretected from GC. */
+        ylmp_push1(r); 
+        ylmp_gc_if_needed();
+        /* Pass responsibility about preserving return value to the caller! */
+        ylmp_pop1();
 
         /* pop evaluation stack -- for debugging */
         ylpop_eval_info();
 
-        dbg_mem(yllogV4("END eval :\n"
-                        "    MP usage : %d\n"
-                        "    refcnt : nil(%d), t(%d), q(%d)\n", 
-                        ylmp_usage(), ylercnt(ylnil()), 
-                        ylercnt(ylt()), ylercnt(ylq())););
+        dbg_mem(yllogV4("END eval:  MP usage => %d\n", ylmp_usage()););
         return r;
     } else {
         yllogE0("NULL return! is it possible!\n");

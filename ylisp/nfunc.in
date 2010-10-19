@@ -142,8 +142,6 @@ NFUNC(interpret_file,         "interpret-file",          ylaif_nfunc(),
 /**********************************************************
  * Functions for managing interpreter internals.
  **********************************************************/
-#ifdef __DBG_MEM
-
 NFUNC(gc,                     "gc",                      ylaif_nfunc(),
     "gc\n"
     "    -Trigger Full-Scanning-GC manually!\n"
@@ -152,10 +150,3 @@ NFUNC(gc,                     "gc",                      ylaif_nfunc(),
     "         This is very sensitive and dangerous function!.\n"
     "         This may corrupt current running interpreting.\n"
     "         So, if you don't know what you are doing, DON'T DO THIS!\n")
-
-#endif /* __DBG_MEM */
-
-NFUNC(memstat,                "memstat",                 ylaif_nfunc(),
-    "memstat\n"
-    "    -Shows memory pool stats.\n")
-

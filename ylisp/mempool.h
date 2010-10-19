@@ -25,16 +25,17 @@
 
 #include "lisp.h"
 
-/*
- * In the memory pool, reference count of memory block is YLEINVALID_REFCNT.
- */
-#define YLEINVALID_REFCNT  (0xffffffff)
-
 extern ylerr_t
 ylmp_init();
 
 extern void
 ylmp_deinit();
+
+/*
+ * Hey! This is EXTREAMLY SENSITIVE and DANGEROUS FUNCTION!
+ */
+extern void
+ylmp_gc();
 
 /*
  * Clean memory block.
@@ -66,42 +67,6 @@ ylmp_clean_block(yle_t* e) {
      */
     yleset_type(e, YLEPair);
     ylpcar(e) = ylpcdr(e) = NULL;
-}
-
-/*
- * Those two are very sensitive and dangerous function!
- * This may corrupt current running interpreting.
- * So, if you don't know what you are doing, DON'T USE THIS!
- */
-
-/* GC when interpreting error occurs */
-extern void
-ylmp_gc();
-
-#ifdef CONFIG_DBG_MEM
-extern void
-yldbg_mp_gc();
-#endif /* CONFIG_DBG_MEM */
-/*
- * @return: current usage
- */
-extern unsigned int
-ylmp_usage();
-
-
-extern void
-ylmp_log_stat(int loglevel);
-
-extern void
-ylmp_print_stat();
-
-/*
- * is this block is free?
- * if true, this block is already in the free block list.
- */
-static inline int
-ylmp_is_free_block(const yle_t* e) {
-    return YLEINVALID_REFCNT == ylercnt(e);
 }
 
 #endif /* ___MEMPOOl_h___ */

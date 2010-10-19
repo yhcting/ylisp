@@ -31,6 +31,11 @@
 #include "ylsfunc.h"
 #include "yldynb.h"
 
+/*
+ * GC Protection required to caller
+ * ASSUMPTION
+ *    'c' and 'a' is already GC-protected.
+ */
 static inline yle_t*
 _evcon(yle_t* c, yle_t* a) {
     /*
@@ -45,6 +50,10 @@ _evcon(yle_t* c, yle_t* a) {
         || yleis_nil(ylcaar(c)) ) {
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
+    /*
+     * 'a' is always preserved. (whole a is passed as an parameter.)
+     * But, we need to preserve 'c' explicitly.
+     */
     return yleis_true(yleval(ylcaar(c), a))? yleval(ylcadar(c), a): _evcon(ylcdr(c), a);
 }
 
@@ -91,6 +100,11 @@ _update_assoc(yle_t** x, yle_t* y) {
     }
 }
 
+/*
+ * GC Protection required to caller
+ * ASSUMPTION
+ *    'e' and '*a' is already GC-protected.
+ */
 static void
 _evarg(yle_t* e, yle_t** a) {
     yle_t*    r;
@@ -102,11 +116,18 @@ _evarg(yle_t* e, yle_t** a) {
         yllogE0("<!let!> incorrect argument syntax\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
+
     /*
      * Expression itself SHOULD NOT be changed.
      * So, yllist(...) is used instead of ylpcar/ylpcdr!
+     *
+     * !IMPORTANT : 
+     *    '*a' should be protected from GC. 
+     *    '*a' is updated. So, old value should be preserved.
      */
+    ylmp_push1(*a);
     _update_assoc(a, yllist(ylcaar(e), yleval(ylcadar(e), *a)));
+    ylmp_pop1();
     _evarg(ylcdr(e), a);
 }
 
@@ -119,11 +140,17 @@ YLDEFNF(f_let, 2, 9999) {
     }
     _evarg(ylcar(e), &a);
     
+    /* 
+     * updated 'a' should be protected from GC 
+     * ('e' is already protected!)
+     */
+    ylmp_push1(a);
     e = ylcdr(e);
     while(!yleis_nil(e)) {
         p = yleval(ylcar(e), a);
         e = ylcdr(e);
     }
+    ylmp_pop1();
     return p;
 } YLENDNF(f_let)
 
@@ -134,19 +161,11 @@ YLDEFNF(f_while, 2, 9999) {
     cond = ylcar(e);
     while( yleis_true(yleval(cond, a)) ) {
         if(cnt < __MAX_LOOP_COUNT) {
-            /*
-             * Due to return value, memory pool may be over-used.
-             * So, try to GC at the end of each loop!
-             * (ylmp_push() / ylmp_pop())
-             */
-            ylmp_push();
             exp = ylcdr(e);
             while(!yleis_nil(exp)) {
                 yleval(ylcar(exp), a);
                 exp = ylcdr(exp);
             }
-            ylmp_pop();
-
         } else {
             ylnflogE1("Loop count exceeded limits(%d)\n", __MAX_LOOP_COUNT);
             ylinterpret_undefined(YLErr_func_fail);

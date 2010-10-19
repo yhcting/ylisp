@@ -238,11 +238,11 @@
 ;
 ; test for cycle
 ; make cycle!
-(set 't (list '('a 'b) 'c))
-(setcar (cdar t) t)
-(print t '"\n")
+;(set 't (list '('a 'b) 'c))
+;(setcar (cdar t) t)
+;(print t '"\n")
 ;(set 'rrr (clone t)) ; this should generate interpreting error!
-(unset 't)
+;(unset 't)
 
 (unset 'rrr)
 (unset 'yyy)

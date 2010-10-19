@@ -103,7 +103,8 @@ yltrie_equal(const yltrie_t* t0, const yltrie_t* t1,
  * @clonev   : return cloned value.
  */
 extern yltrie_t*
-yltrie_clone(const yltrie_t* t, void*(*clonev)(const void*));
+yltrie_clone(const yltrie_t* t, void* user,
+             void*(*clonev)(void*/*user*/, const void*/*src*/));
 
 
 /**
@@ -112,8 +113,8 @@ yltrie_clone(const yltrie_t* t, void*(*clonev)(const void*));
  * @clonev : return cloned value.
  */
 extern int
-yltrie_copy(yltrie_t* dst, const yltrie_t* src,
-            void*(*clonev)(const void*));
+yltrie_copy(yltrie_t* dst, const yltrie_t* src, void* user,
+            void*(*clonev)(void*/*user*/, const void*/*src*/));
 
 /*
  * return value of auto complete

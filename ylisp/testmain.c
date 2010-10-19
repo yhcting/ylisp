@@ -111,7 +111,6 @@ main(int argc, char* argv[]) {
         printf("Fail to interpret...\n");
         return 0;
     }
-    ylmp_gc();
 
     ylfree(strm);
     yldeinit();

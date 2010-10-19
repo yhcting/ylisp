@@ -300,12 +300,9 @@ _eval_exp(yle_t* e) {
 
     dbg_gen(yllogD1(">>>>> Eval exp:\n"
                     "    %s\n", ylechain_print(e)););
-    ylmp_push();
+    ylmp_push1(e);
     ev = yleval(e, ylnil());
-    if( __TOPMOST_EVAL_MPSTACK_SIZE == ylmp_stack_size() ) {
-        ylprint(("\n%s\n", ylechain_print(ev)));
-    }
-    ylmp_pop();
+    ylmp_pop1();
 #undef __TOPMOST_EVAL_MPSTACK_SIZE
 }
 
@@ -325,7 +322,6 @@ _fsas_init_enter(const _fsas_t* fsas, _fsa_t* fsa) {
     fsa->sentinel.u.p.car = fsa->sentinel.u.p.cdr = NULL;
 
     fsa->pe = &fsa->sentinel;
-    ylmp_push();
     dbg_mem(yllogD0("\n+++ START - Interpret +++\n"); 
             ylmp_log_stat(YLLogD););
 }
@@ -339,11 +335,9 @@ _fsas_init_come_back(const _fsas_t* fsas, _fsa_t* fsa) {
     }
     /* unrefer to free dangling block */
     ylpassign(&fsa->sentinel, NULL, NULL);
-    ylmp_pop();
 
     /* prepare for new interpretation */
     fsa->pe = &fsa->sentinel;
-    ylmp_push();
 }
 
 static int
@@ -371,8 +365,6 @@ static void
 _fsas_init_exit(const _fsas_t* fsas, _fsa_t* fsa) {
     dbg_mem(yllogD0("\n+++ END - Interpret +++\n");
             ylmp_log_stat(YLLogD););
-    ylmp_pop();
-
     /* 
      * we need to unref memory blocks that is indicated by sentinel
      * (Usually, both are nil.
@@ -681,83 +673,6 @@ _interp_automata(void* arg) {
 
 /* =====================================
  *
- * GC Triggering Timer (GCTT)
- *     - Full scanning GC is triggered if there is no interpreting request during pre-defined time (Doing expensive operation at the idle moment).
- *
- * =====================================*/
-#define _GCTT_DELAY     1 /* sec */
-#define _GCTT_SIG       SIGRTMIN
-#define _GCTT_CLOCKID   CLOCK_REALTIME
-
-static timer_t         _gcttid;
-
-static void
-__gctt_settime(long sec) {
-    struct itimerspec its;
-
-    /* Start the timer */
-    its.it_value.tv_sec = sec;
-    its.it_value.tv_nsec = 0;
-
-    /* This is one-time shot! */
-    its.it_interval.tv_sec = 0;
-    its.it_interval.tv_nsec = 0;
-
-    
-    if(0 > timer_settime(_gcttid, 0, &its, NULL) ) { ylassert(0); }
-}
-
-static inline void
-_gctt_set_timer() {
-    __gctt_settime(_GCTT_DELAY);
-}
-
-static inline void
-_gctt_unset_timer() {
-    __gctt_settime(0);
-}
-
-static inline void
-_gctt_handler(int sig, siginfo_t* si, void* uc) {
-    _interp_lock();
-    ylmp_gc();
-    _interp_unlock();
-}
-
-static int
-_gctt_create() {
-    struct sigevent      sev;
-    struct itimerspec    its;
-    struct sigaction     sa;
-
-    /* Establish handler for timer signal */
-    sa.sa_flags = SA_SIGINFO;
-    sa.sa_sigaction = _gctt_handler;
-    sigemptyset(&sa.sa_mask);
-    if ( -1 == sigaction(_GCTT_SIG, &sa, NULL) ) {
-        yllogE0("Error gctt : sigaction\n");
-        return -1;
-    }
-
-    /* Create the timer */
-    sev.sigev_notify = SIGEV_SIGNAL;
-    sev.sigev_signo = _GCTT_SIG;
-    sev.sigev_value.sival_ptr = &_gcttid;
-    if ( -1 == timer_create(_GCTT_CLOCKID, &sev, &_gcttid) ) {
-        yllogE0("Error gctt : timer_create\n");
-        return -1;
-    }
-
-    return 0;
-}
-/* Unset locally used preprocess symbols */
-#undef _GCTT_CLOCKID
-#undef _GCTT_SIG
-#undef _GCTT_DELAY
-
-
-/* =====================================
- *
  * Child process handling
  *
  * =====================================*/
@@ -898,7 +813,6 @@ ylinterpret_internal(const char* stream, unsigned int streamsz) {
     ylstk_destroy(fsa.ststk);
 
     dbg_mem(yllogI1("current MP after interpret : %d\n", ylmp_usage()););
-    ylmp_log_stat(YLLogI);
     return YLOk;
 
  bail:
@@ -913,14 +827,12 @@ ylinterpret(const char* stream, unsigned int streamsz) {
         case TRUE: {
             ylerr_t  ret;
             _inteval_lock();
-            _gctt_unset_timer();
 
             ylstk_clean(_thdstk);
             ylstk_clean(_evalstk);
 
             ret = ylinterpret_internal(stream, streamsz);
-            if(YLOk == ret) { _gctt_set_timer(); }
-            else { 
+            if(YLOk != ret) {
                 /* 
                  * evaluation stack should be shown before GC.
                  * (After GC, expression in the stack may be invalid one!)
@@ -931,7 +843,7 @@ ylinterpret(const char* stream, unsigned int streamsz) {
                  * If interpreting is success, next interpreting may be requested 
                  *  in short time with high possibility. In this case, GC SHOULD NOT executed.
                  */
-                ylmp_gc(); 
+                ylmp_clean_stack();
             }
 
             _inteval_unlock();
@@ -979,8 +891,7 @@ ylinterpret_undefined(int reason) {
 
 ylerr_t 
 ylinterp_init() {
-    if( 0 > _gctt_create()
-       || 0 > _init_mutexes() ) { 
+    if( 0 > _init_mutexes() ) { 
         return YLErr_internal;
     }
     _thdstk = ylstk_create(0, NULL);

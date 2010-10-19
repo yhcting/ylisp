@@ -50,14 +50,13 @@ _aif_trie_eq(const yle_t* e0, const yle_t* e1) {
                         (int(*)(const void*, const void*))&_trie_value_cmp);
 }
 
-static int
-_cb_trie_increase_refcnt(void* user, const char* sym, void* v) {
-    yleref(v);
-    return 1; /* keep going */
+static void*
+_cb_clone(void* map, const void* v) {
+    return ylechain_clone(v);
 }
 
 static int
-_aif_trie_copy(yle_t* n, const yle_t* e) {
+_aif_trie_copy(void* map, yle_t* n, const yle_t* e) {
     ylacd(n) = yltrie_create(yltrie_fcb((yltrie_t*)ylacd(e)));
     /*
      * Copy SHOULD BE USED (NOT 'yltrie_clone')
@@ -67,14 +66,7 @@ _aif_trie_copy(yle_t* n, const yle_t* e) {
      *    But, we already alloced mp block and we are using this at 'yltrie_copy'.
      *    So, even if error raised, this newly allocated block is GCed and allocated trie will be freed at 'clean'!
      */
-    yltrie_copy((yltrie_t*)ylacd(n), (yltrie_t*)ylacd(e), (void*(*)(const void*))ylechain_clone);
-
-    /*
-     * we need to add reference count to each trie value!!
-     * Trie just copy with 'ylechain_clone'.
-     * It doesn't increase reference count!
-     */
-    yltrie_walk(ylacd(n), NULL, "", &_cb_trie_increase_refcnt);
+    yltrie_copy((yltrie_t*)ylacd(n), (yltrie_t*)ylacd(e), NULL, _cb_clone);
 
     return 0;
 }
@@ -110,7 +102,8 @@ _aif_trie_visit(yle_t* e, void* user, int(*cb)(void*, yle_t*));
 static int
 _aif_trie_visit_cb(void* user, const char* sym, void* v) {
     struct _trie_walk_user* u = (struct _trie_walk_user*)user;
-    return u->cb(u->user, (yle_t*)v);
+    u->cb(u->user, (yle_t*)v);
+    return 1; /* keep going */
 }
 
 static int
@@ -118,7 +111,8 @@ _aif_trie_visit(yle_t* e, void* user, int(*cb)(void*, yle_t*)) {
     struct _trie_walk_user     stu;
     stu.user = user;
     stu.cb = cb;
-    return yltrie_walk(ylacd(e), &stu, "", &_aif_trie_visit_cb);
+    yltrie_walk(ylacd(e), &stu, "", &_aif_trie_visit_cb);
+    return 0;
 }
 
 static void
@@ -141,11 +135,6 @@ _is_trie_type(const yle_t* e) {
     return &_aif_trie == ylaif(e);
 }
 
-static void
-_element_freecb(yle_t* e) {
-    yleunref(e);
-}
-
 YLDEFNF(trie_create, 0, 1) {
     yltrie_t*  t = NULL;
     yle_t     *w, *r;
@@ -163,7 +152,11 @@ YLDEFNF(trie_create, 0, 1) {
         }
     }
 
-    t = yltrie_create((void(*)(void*))&_element_freecb);
+    /*
+     * Do NOTHING when value isfreed.
+     * UNLINKING is ENOUGH! (so fcb is NULL)
+     */
+    t = yltrie_create(NULL);
     /* 
      * bind to memory block as soon as possible to avoid memory leak.
      * (one of eval. below may fails. 
@@ -171,18 +164,20 @@ YLDEFNF(trie_create, 0, 1) {
      */
     r = ylacreate_cust(&_aif_trie, t);
 
+    /* r should be protected from GC - there is eval below! */
+    ylmp_push1(r);
     if(pcsz > 0) {
         yle_t*  v;
         w = ylcar(e);
         while(!yleis_nil(w)) {
             v = yleval(ylcadar(w), a);
-            yleref(v);
             if(1 == yltrie_insert(t, ylasym(ylcaar(w)).sym, v) ) {
                 ylnflogW1("Trie duplicated intial value : %s\n", ylasym(ylcaar(w)).sym);
             }
             w = ylcdr(w);
         }
     }
+    ylmp_pop1();
 
     return r;
 
@@ -203,7 +198,6 @@ YLDEFNF(trie_insert, 2, 3) {
     t = (yltrie_t*)ylacd(ylcar(e));
     v = (pcsz > 2)? ylcaddr(e): ylnil();
 
-    yleref(v);
     /* unref will be done inside of 'insert' by _element_freecb */
     switch(yltrie_insert(t, ylasym(ylcadr(e)).sym, v)) {
         case -1:
@@ -273,14 +267,8 @@ typedef struct {
 static inline void
 _destroy_arr_data(_earr_t* at) {
     if(at) {
-        if(at->arr) {
-            int i;
-            /* clean */
-            for(i=0; i<at->sz; i++) {
-                if(at->arr[i]) { ylsetref(&at->arr[i], NULL); }
-            }
-            ylfree(at->arr);
-        }
+        /* unlinking is enough! */
+        if(at->arr) { ylfree(at->arr); }
         ylfree(at);
     }
 }
@@ -305,7 +293,7 @@ _aif_arr_eq(const yle_t* e0, const yle_t* e1) {
 }
 
 static int
-_aif_arr_copy(yle_t* n, const yle_t* e) {
+_aif_arr_copy(void* map, yle_t* n, const yle_t* e) {
     _earr_t*    sat = ylacd(e);
     _earr_t*    at = NULL;
     if(sat) {
@@ -319,7 +307,7 @@ _aif_arr_copy(yle_t* n, const yle_t* e) {
         memset(at->arr, 0, sizeof(*at->arr) * at->sz);
         for(i=0; i<sat->sz; i++) {
             if(sat->arr[i]) {
-                ylsetref(&at->arr[i], ylechain_clone(sat->arr[i]));
+                at->arr[i] = ylechain_clone(sat->arr[i]);
             }
         }
     }
@@ -348,12 +336,10 @@ _aif_arr_visit(yle_t* e, void* user, int(*cb)(void*, yle_t*)) {
     if(at) {
         int    i;
         for(i=0; i<at->sz; i++) {
-            if(at->arr[i]) { 
-                if(0 == cb(user, at->arr[i])) { return 0; }
-            }
+            if(at->arr[i]) { cb(user, at->arr[i]); }
         }
     }
-    return 1;
+    return 0;
 }
 
 static void
@@ -397,9 +383,9 @@ _arr_alloc(yle_t* ar, yle_t* e) {
     e = ylcdr(e);
     for(i=0; i<at->sz; i++) {
         if(yleis_nil(e)) {
-            ylsetref(&at->arr[i], ylnil()); /* set to nil - default value */
+            at->arr[i] = ylnil();
         } else {
-            ylsetref(&at->arr[i], ylacreate_cust(&_aif_arr, NULL));
+            at->arr[i] = ylacreate_cust(&_aif_arr, NULL);
             if(0 > _arr_alloc(at->arr[i], e)) { goto oom; }
         }
     }
@@ -503,8 +489,8 @@ YLDEFNF(arr_set, 3, 9999) {
     }
 
     pv = _arr_get(ylcar(e), ylcddr(e));
-    if(pv && *pv) {
-        ylsetref(pv, ylcadr(e));
+    if(pv && *pv) { /* *pv cannot be NULL */
+        *pv = ylcadr(e);
         return ylcadr(e);
     } else { ylinterpret_undefined(YLErr_func_fail); }
 } YLENDNF(arr_set)

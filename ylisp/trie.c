@@ -91,7 +91,7 @@ _alloc_node() {
 static inline void
 _free_node(_node_t* n, void(*fcb)(void*) ) {
     if(n->v) { 
-        if(fcb) { fcb(n->v); } else { ylfree(n->v); }
+        if(fcb) { fcb(n->v); }
     }
     ylfree(n);
 }
@@ -173,7 +173,7 @@ _delete_sym(_node_t* n, const unsigned char* p, void(*fcb)(void*)) {
          * If not, symbol name is not valid one!
          */
         if(n->v) {
-            if(fcb) { fcb(n->v); } else { ylfree(n->v); }
+            if(fcb) { fcb(n->v); }
             n->v = NULL;
             return 1;
         } else {
@@ -248,13 +248,13 @@ _equal_internal(const _node_t* n0, const _node_t* n1,
 }
 
 static _node_t*
-_node_clone(const _node_t* n, void*(*clonev)(const void*)) {
+_node_clone(const _node_t* n, void* user, void*(*clonev)(void*, const void*)) {
     register int i;
     _node_t* r = _alloc_node();
-    if(n->v) { r->v = clonev(n->v); }
+    if(n->v) { r->v = clonev(user, n->v); }
     for(i=0; i<16; i++) {
         if(n->n[i]) {
-            r->n[i] = _node_clone(n->n[i], clonev);
+            r->n[i] = _node_clone(n->n[i], user, clonev);
         }
     }
     return r;
@@ -337,7 +337,6 @@ yltrie_insert(_trie_t* t, const char* sym, void* v) {
     n = _get_node(t, (const unsigned char*)sym, TRUE);
     if(n->v) {
         if(t->fcb) { t->fcb(n->v); }
-        else { ylfree(n->v); }
         n->v = v;
         return 1; /* overwritten */
     } else {
@@ -394,22 +393,22 @@ yltrie_equal(const yltrie_t* t0, const yltrie_t* t1,
 }
 
 int
-yltrie_copy(yltrie_t* dst, const yltrie_t* src,
-            void*(*clonev)(const void*)) {
+yltrie_copy(yltrie_t* dst, const yltrie_t* src, void* user,
+            void*(*clonev)(void*,const void*)) {
     register int i;
     _trie_clean(dst);
     dst->fcb = src->fcb;
     for(i=0; i<16; i++) {
-        if(src->rt.n[i]) { dst->rt.n[i] = _node_clone(src->rt.n[i], clonev); }
+        if(src->rt.n[i]) { dst->rt.n[i] = _node_clone(src->rt.n[i], user, clonev); }
     }
 
 }
 
 yltrie_t*
-yltrie_clone(const yltrie_t* t, void*(*clonev)(const void*)) {
+yltrie_clone(const yltrie_t* t, void* user, void*(*clonev)(void*, const void*)) {
     register int i;
     yltrie_t*    r = yltrie_create(t->fcb);
-    yltrie_copy(r, t, clonev);
+    yltrie_copy(r, t, user, clonev);
     return r;
 }
 

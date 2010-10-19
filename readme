@@ -32,11 +32,13 @@ Design Policy
         - Syntax of S-Expression is incredibly simple, easy-to-understand and clear! But, many lisp dialects break this for more powerful syntax.
           The only exception at YLISP is ['] that repesents 'QUOTE'. Without the exception, YLISP obeys pure S-Expression-based-syntax!.
           (#, : and so on don't have any special meanings.)
-    Make it as easy as possible that developers add new CNF plugins.
+    Make it as easy as possible that developers add new CNF plugins. (Obsolete)
         - To achieve this, reference-count-based-GC becomes main, and scan-and-mark-based-GC becomes sub.
           So, developers don't need to take care of handling memory blocks that they are using, in their own CNF.
           That is, they don't need to consider about GC - protecting memory blocks from GC and release them at the right moment - when they uses memory blocks.
           This can reduce burdens of developers about mis-using memory blocks - ex. leak, unexpected GC.
+    Reference Count is not used anymore!
+        - Scan-based-GC becomes major.
 
 
 How Do I Build It?

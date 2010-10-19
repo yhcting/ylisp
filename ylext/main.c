@@ -91,7 +91,7 @@ main(int argc, char* argv[]) {
     sys.assert = _assert;
     sys.malloc = _malloc;
     sys.free = _free;
-    sys.mpsz = 64*1024;
+    sys.mpsz = 8*1024;
 
     ylinit(&sys);
 
@@ -107,8 +107,6 @@ main(int argc, char* argv[]) {
     }
 
     /* to check memory status */
-    ylmp_gc();
-
     __LNF__libylext__nfunc__DeINIT__();
     yldeinit();
 

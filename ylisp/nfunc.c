@@ -271,26 +271,10 @@ YLDEFNF(interpret_file, 1, 1) {
 /**********************************************************
  * Functions for managing interpreter internals.
  **********************************************************/
-#ifdef CONFIG_DBG_MEM
-
 YLDEFNF(gc, 0, 0) {
-    ylprint(("\n=========== Before ============\n"));
-    ylmp_print_stat();
-
-    yldbg_mp_gc(); /* start full scan */
-
-    ylprint(("\n=========== After ============\n"));
-    ylmp_print_stat();
+    ylmp_gc();
     return ylt();
 } YLENDNF(gc)
-
-#endif /* CONFIG_DBG_MEM */
-
-YLDEFNF(memstat, 0, 0) {
-    ylmp_print_stat();
-    return ylt();
-} YLENDNF(memstat)
-
 
 ylerr_t
 ylnfunc_init() {

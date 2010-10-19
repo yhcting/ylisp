@@ -65,6 +65,9 @@ extern void    ylinterp_deinit();
 extern void
 yleclean(yle_t* e);
 
+/*
+ * GC Protection required to caller
+ */
 yle_t*
 ylapply(yle_t* f, yle_t* args, yle_t* a);
 

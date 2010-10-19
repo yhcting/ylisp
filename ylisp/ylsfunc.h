@@ -70,6 +70,16 @@ extern yle_t*
 ylmset(yle_t* x, yle_t* y, yle_t* a, const char* desc);
 
 
+/**
+ * In this function, GC may be triggered!
+ * So, when use this function,
+ *  caller SHOULD PRESERVE base blocks that should be protected from GC!
+ *  by using 'ylmp_pushN(...)'.
+ * This function is SENSITIVE AND DANGEROUS.
+ * Take your attention for using this function!
+ *
+ * GC Protection required to caller
+ */
 extern yle_t*
 yleval(yle_t* e, yle_t* a);
 
@@ -275,18 +285,22 @@ ylsublis(yle_t* x, yle_t* y) {
                 ylcons(ylsublis(x, ylcar(y)), ylsublis(x, ylcdr(y)));
 }
 
+/*
+ * GC Protection required to caller.
+ */
 static inline yle_t*
 ylevlis(yle_t* m, yle_t* a) {
     if(yleis_nil(m)) { return ylnil(); }
     else { 
+        yle_t* r; /* return value */
         yle_t* p = yleval(ylcar(m), a);
-        return ylcons(p, ylevlis(ylcdr(m), a));
+        /* p should be preserved from GC */
+        ylmp_push1(p);
+        r = ylcons(p, ylevlis(ylcdr(m), a));
+        /* Now p is not base block anymore */
+        ylmp_pop1();
+        return r;
     }
-    /*
-    -- in below case, arguments are evaluated in reverse order...
-       (Is this C-compiler dependent?? - too complicated 'inline' may be cause of this...)
-    return yleis_nil(m)? ylnil(): ylcons(yleval(ylcar(m), a), ylevlis(ylcdr(m), a));
-    */
 }
 
 

@@ -76,7 +76,7 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
 
 #define _DEFAIF_COPY_START(sUFFIX)                                      \
     static int                                                          \
-    _aif_##sUFFIX##_copy(yle_t* n, const yle_t* e) {                    \
+    _aif_##sUFFIX##_copy(void* map, yle_t* n, const yle_t* e) {         \
             do
 
 #define _DEFAIF_COPY_END while(0); return 0; }
@@ -292,23 +292,6 @@ _DEFAIF_VAR(nil);
 #undef _DEFAIF_VAR
 
 
-static int
-_detect_cycle(const yle_t* e) {
-    /*
-     * Assume : YLEMark bit of all memory block is clear.
-     * (see mempool.c : ylmp_block & ylmp_init)
-     */
-    int bcycle;
-    bcycle = !ylechain_set_mark(NULL, (yle_t*)e);
-    ylechain_clear_mark(NULL, (yle_t*)e); /* restore */
-    return bcycle;
-}
-
-
-/**
- * ylcons requires GC. So, code becomes complicated.
- */
-
 void
 yleclean(yle_t* e) {
     if(yleis_atom(e)) {
@@ -322,25 +305,9 @@ yleclean(yle_t* e) {
          * If there is interpreting error before M is initialized, M is GCed.
          * In this case, car and cdr of M can be NULL!.
          * But, case that only one of car and cdr is NULL, is unexpected!
+         * This is just 'SANITY CHECK'
          */
         ylassert( (ylpcar(e) && ylpcdr(e)) || (!ylpcar(e) && !ylpcdr(e)) );
-
-        if(ylpcar(e)) {
-            ylassert( ylercnt(ylpcar(e)) && ylercnt(ylpcdr(e)) );
-
-            /*
-             * cdr and car may be already collected by GC.
-             * So, we need to check it!
-             *
-             * In normal case, car/cdr block cannot be 'free block'
-             * But, there is one special execptional case - Scanning GC.
-             * Scanning GC collect blocks without caring about reference count.
-             * Therefore, during Scanning GC, having free-car/cdr-block is possible.
-             * So, we need to check it firstly.
-             */
-            if( !ylmp_is_free_block(ylpcar(e)) ) { yleunref(ylpcar(e)); }
-            if( !ylmp_is_free_block(ylpcdr(e)) ) { yleunref(ylpcdr(e)); }
-        }
     }
     /*
      * And after cleaning, we need to be in clean-state.
@@ -360,19 +327,11 @@ _eclone(const yle_t* e) {
 
     n = ylmp_block();
     memcpy(n, e, sizeof(yle_t));
-    ylercnt(n) = 0; /* this is not referenced yet */
     if(yleis_atom(e)) {
-        if( ylaif(e)->copy && (0 > ylaif(e)->copy(n, e)) ) {
+        if( ylaif(e)->copy && (0 > ylaif(e)->copy(NULL, n, e)) ) {
             yllogE0("There is an error at COPYING atom\n");
             ylinterpret_undefined(YLErr_eval_undefined);
         }
-    } else {
-        /* 
-         * we should increase reference count of each car/cdr.
-         * exp, is cloned. So, one more exp refers car/cdr.
-         */
-        yleref(ylpcar(n));
-        yleref(ylpcdr(n));
     }
     return n;
 }
@@ -392,13 +351,7 @@ _echain_clone(const yle_t* e) {
 
 yle_t*
 ylechain_clone(const yle_t* e) {
-    if(_detect_cycle(e)) {
-        yllogE0("Clone Fails : CYCLE DETECTED!\n");
-        ylinterpret_undefined(YLErr_unexpected_cyclic_reference);
-        return NULL; /* to make compiler happy */
-    } else {
-        return _echain_clone(e);
-    }
+    return _echain_clone(e);
 }
 
 ylerr_t
@@ -563,10 +516,6 @@ ylechain_print(const yle_t* e) {
         ylutstr_reset(&_prdynb);
     }
 
-    if(_detect_cycle(e)) {
-        yllogW0("WARN : Print : CYCLE DETECTED!\n");
-        return "[[WARN : cycle detected!]]";
-    }
     _fcall(ylechain_print_internal(e, &_prdynb));
     return ylutstr_string(&_prdynb);
     
@@ -643,13 +592,6 @@ ylinit(ylsys_t* sysv) {
     /* set nil's type as YLAUnknown -- for easier-programming */
     yleset_type(ylnil(), YLEAtom);
     ylaif(ylnil()) = &_aif_nil;
-
-    /*
-     * There predefined exp. should not be freed. So, it's initial reference count is 1.
-     */
-    ylercnt(ylt()) = 1;
-    ylercnt(ylnil()) = 1;
-    ylercnt(ylq()) = 1;
 
 #define NFUNC(n, s, aif, desc)                                         \
     if(YLOk != ylregister_nfunc(YLDEV_VERSION, s, (ylnfunc_t)YLNFN(n), aif, ">> lib: ylisp <<\n" desc)) { goto bail; }
