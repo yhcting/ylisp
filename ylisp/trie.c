@@ -56,7 +56,7 @@
 #include "yltrie.h"
 #include "yldev.h"
 
-#define _MAX_SYM_LEN  1024
+#define _MAX_KEY_LEN  1024
 
 /* use 4 bit trie node */
 typedef struct _node {
@@ -122,10 +122,10 @@ _delete_empty_leaf(_node_t* n) {
 }
 
 /*
- * @return : see '_delete_sym(...)'
+ * @return : see '_delete_key(...)'
  */
 static inline int
-_delete_empty_char_leaf(_node_t* n, char c) {
+_delete_empty_byte_leaf(_node_t* n, unsigned char c) {
     register int  fi = c>>4;
     register int  bi = c&0x0f;
     if(_delete_empty_leaf(n->n[fi]->n[bi])) {
@@ -153,13 +153,14 @@ _delete_empty_char_leaf(_node_t* n, char c) {
  *     -1: cannot find node(symbol is not in trie)
  */
 static int
-_delete_sym(_node_t* n, const unsigned char* p, void(*fcb)(void*)) {
-    register int  fi = *p>>4;
-    register int  bi = *p&0x0f;
-    if(*p) {
+_delete_key(_node_t* n, const unsigned char* p,
+            unsigned int sz, void(*fcb)(void*)) {
+    register int         fi = *p>>4;
+    register int         bi = *p&0x0f;
+    if(sz>0) {
         if(n->n[fi] && n->n[fi]->n[bi]) { /* check that there is front & back node */
-            switch(_delete_sym(n->n[fi]->n[bi], p+1, fcb)) {
-                case 1:    return _delete_empty_char_leaf(n, *p);
+            switch(_delete_key(n->n[fi]->n[bi], p+1, sz-1, fcb)) {
+                case 1:    return _delete_empty_byte_leaf(n, *p);
                 case 0:    return 0;
             }
         }
@@ -167,7 +168,7 @@ _delete_sym(_node_t* n, const unsigned char* p, void(*fcb)(void*)) {
         return -1;
     } else {
         /* 
-         * End of string.
+         * End of stream.
          * We need to check this node has valid data.
          * If yes, delete value!
          * If not, symbol name is not valid one!
@@ -203,20 +204,23 @@ _delete_sym(_node_t* n, const unsigned char* p, void(*fcb)(void*)) {
  * @return: back node of last character of symbol. If fails to get, NULL is returned.
  */
 static _node_t*
-_get_node(_trie_t* t, const unsigned char* sym, int bcreate) {
+_get_node(_trie_t* t, 
+          const unsigned char* key, unsigned int sz,
+          int bcreate) {
     register _node_t*             n = &t->rt;
-    register const unsigned char* p = sym;
+    register const unsigned char* p = key;
+    register const unsigned char* pend = p+sz;
     register int                  fi, bi; /* front index */
 
     if(bcreate) {
-        while(*p) {
+        while(p<pend) {
             _move_down_node(*p, n, fi, bi, 
                             n = n->n[fi] = _alloc_node(),
                             n = n->n[bi] = _alloc_node());
             p++;
         }
     } else {
-        while(*p) {
+        while(p<pend) {
             _move_down_node(*p, n, fi, bi, 
                             return NULL, return NULL);
             p++;
@@ -265,16 +269,17 @@ _node_clone(const _node_t* n, void* user, void*(*clonev)(void*, const void*)) {
  */
 static int
 _walk_internal(void* user, _node_t* n,
-               int(cb)(void* user, const char* sym, void* v),
+               int(cb)(void*, const unsigned char*, unsigned int,void*),
                unsigned char* buf, unsigned int bsz, /* bsz: excluding space for trailing 0 */
                unsigned int bitoffset) {
     register unsigned int i;
 
-    if(n->v) { 
-        /* round-up base on 8. And add trailing 0 */
-        if(buf) { buf[bitoffset>>3] = 0 ; }
+    if(n->v) {
+        /* value should exists at byte-based-node */
+        ylassert(0 == bitoffset%8);
+        /* if(buf) { buf[bitoffset>>3] = 0 ; } */
         /* keep going? */
-        if(!cb(user, (char*)buf, n->v)) { return 0; }
+        if(!cb(user, buf, bitoffset/8, n->v)) { return 0; }
     }
 
     for(i=0; i<16; i++) {
@@ -299,42 +304,44 @@ _walk_internal(void* user, _node_t* n,
 }
 
 void**
-yltrie_getref(yltrie_t* t, const char* sym) {
+yltrie_getref(yltrie_t* t,
+              const unsigned char* key, unsigned int sz) {
     _node_t* n;
-    ylassert(sym);
-    if(0 == *sym) { return NULL; } /* 0 length string */
-    n = _get_node(t, sym, FALSE);
+    ylassert(key);
+    if(0 == sz) { return NULL; } /* 0 length string */
+    n = _get_node(t, key, sz, FALSE);
     return n? &n->v: NULL;
 }
 
 void*
-yltrie_get(_trie_t* t, const char* sym) {
-    void** pv = yltrie_getref(t, sym);
+yltrie_get(_trie_t* t, const unsigned char* key, unsigned int sz) {
+    void** pv = yltrie_getref(t, key, sz);
     return pv? *pv: NULL;
 }
 
 int
-yltrie_walk(_trie_t* t, void* user, const char* from,
+yltrie_walk(_trie_t* t, void* user, 
+            const unsigned char* from, unsigned int fromsz,
             /* return 1 for keep going, 0 for stop and don't do anymore */
-            int(cb)(void* user, const char* sym, void* v)) {
-    char        buf[_MAX_SYM_LEN + 1];
-    _node_t*    n = _get_node(t, from, FALSE);
+            int(cb)(void*, const unsigned char*, unsigned int, void*)) {
+    char        buf[_MAX_KEY_LEN + 1];
+    _node_t*    n = _get_node(t, from, fromsz, FALSE);
 
     ylassert(t && from);
     if(n) {
-        return _walk_internal(user, n, cb, (unsigned char*)buf, _MAX_SYM_LEN, 0); 
+        return _walk_internal(user, n, cb, (unsigned char*)buf, _MAX_KEY_LEN, 0); 
     } else { return -1; }
 }
 
 int
-yltrie_insert(_trie_t* t, const char* sym, void* v) {
+yltrie_insert(_trie_t* t, const unsigned char* key, unsigned int sz, void* v) {
     _node_t*  n;
 
-    ylassert(t && sym);
-    if(0 == *sym) { return -1; } /* 0 length symbol */
-    if(!v || (strlen(sym) >= _MAX_SYM_LEN) ) { return -1; /* error case */ }
+    ylassert(t && key);
+    if(0 == sz) { return -1; } /* 0 length symbol */
+    if(!v || (sz >= _MAX_KEY_LEN) ) { return -1; /* error case */ }
 
-    n = _get_node(t, (const unsigned char*)sym, TRUE);
+    n = _get_node(t, key, sz, TRUE);
     if(n->v) {
         if(t->fcb) { t->fcb(n->v); }
         n->v = v;
@@ -373,10 +380,10 @@ yltrie_destroy(yltrie_t* t) {
 
 
 int
-yltrie_delete(_trie_t* t, const char* sym) {
-    ylassert(t && sym);
-    switch(_delete_sym(&t->rt, sym, t->fcb)) {
-        case 1:    _delete_empty_char_leaf(&t->rt, *sym); return 0;
+yltrie_delete(_trie_t* t, const unsigned char* key, unsigned int sz) {
+    ylassert(t && key);
+    switch(_delete_key(&t->rt, key, sz, t->fcb)) {
+        case 1:
         case 0:    return 0;
         default:   return -1;
     }
@@ -414,8 +421,8 @@ yltrie_clone(const yltrie_t* t, void* user, void*(*clonev)(void*, const void*)) 
 
 int
 yltrie_auto_complete(_trie_t* t, 
-                     const char* start_with, 
-                     char* buf, unsigned int bufsz) {
+                     const unsigned char* start_with, unsigned int sz,
+                     unsigned char* buf, unsigned int bufsz) {
     int                   ret = -1;
     register _node_t*     n;
     register unsigned int i;
@@ -425,7 +432,7 @@ yltrie_auto_complete(_trie_t* t,
     ylassert(t && start_with && buf);
 
     /* move to prefix */
-    n = _get_node(t, start_with, FALSE);
+    n = _get_node(t, start_with, sz, FALSE);
     if(!n) { goto bail; }
 
     /* find more possbile prefix */

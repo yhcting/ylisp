@@ -61,6 +61,7 @@ NFUNC(f_mset,                 "f-mset",                  ylaif_nfunc(),
     "f-mset <symbol> <exp> (<desc>)\n"
     "    -Set macro. Syntax is same with 'set'. But this is for setting macro\n"
     "     Evaluating <symbol> is same with evaluating <exp>.\n"
+    "     'mset' circular expression may crash interpreter when it used!"
     "    @symbol[Symbol]: symbol name.\n"
     "    @exp:            lisp expression.\n"
     "    @desc[Symbol]:   description of this symbol.\n"
@@ -71,16 +72,22 @@ NFUNC(f_mset,                 "f-mset",                  ylaif_nfunc(),
     "        (f-mset 'rrr 'ttt)\n"
     "        (f-mset 'ttt '(car (list yy x y)))\n"
     "        (f-mset 'yy '(car '(ab cd)))\n"
-    "        ;(eq zzz 'ab) => t\n")
+    "        ;(equal zzz 'ab) => t\n")
 
 NFUNC(eq,                     "eq",                      ylaif_nfunc(),
-    "eq <atom1> <atom2>: [t/nil]\n"
-    "    -Compare two atoms.\n"
-    "    @return: t if two atoms are same. nil otherwise.\n"
+    "eq <exp1> <exp2>: [t/nil]\n"
+    "    -Compare memory address of two expression.\n"
+    "    @return: t if memory address of two objects are same. nil otherwise.\n")
+
+NFUNC(equal,                  "equal",                   ylaif_nfunc(),
+    "equal <exp1> <exp2>: [t/nil]\n"
+    "    -Compare two exps.\n"
+    "     Compare circular expression crash interpreter!"
+    "    @return: t if two exps are same. nil otherwise.\n"
     "    *ex\n"
-    "        (eq 'abc 'abc); => t\n"
-    "        (eq 'ab 'a); => nil\n"
-    "        (eq '(a b) 'c); => nil\n");
+    "        (equal 'abc 'abc); => t\n"
+    "        (equal 'ab 'a); => nil\n"
+    "        (equal '(a b) 'c); => nil\n")
 
 NFUNC(set,                    "set",                     ylaif_nfunc(),
     "set <symbol> <exp> (<desc>)\n"

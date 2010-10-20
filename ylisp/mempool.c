@@ -23,14 +23,6 @@
 #include "mempool.h"
 #include "stack.h"
 
-/*
- * Full scan is trigerred when memory usage is over than _FULLSCAN_TRIGGER_POINT
- *   and current interpreting stack in empty (topmost interpreting stack).
- * (100 - _FULL_SCAN_TRIGGER_POINT)% is spare-buffer to run command till out from interpreting stack.
- */
-#define _GC_TRIGGER_THRESHOLD       80  /* percent */
-
-
 typedef struct {
     unsigned int i;     /**< index of free block pointer */
     yle_t        e;
@@ -181,7 +173,7 @@ _gc() {
 
 void
 ylmp_gc_if_needed() {
-    if(_usage_ratio() >= _GC_TRIGGER_THRESHOLD) {
+    if(_usage_ratio() >= ylgctp()) {
         _gc();
     }
 }

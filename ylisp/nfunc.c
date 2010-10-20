@@ -77,8 +77,13 @@ YLDEFNF(f_mset, 2, 3) {
 
 /* eq [car [e]; EQ] -> [eval [cadr [e]; a] = eval [caddr [e]; a]] */
 YLDEFNF(eq, 2, 2) {
-    return (yle_t*)yleq(ylcar(e), ylcadr(e));
+    /* compare memory address */
+    return (ylcar(e)==ylcadr(e))? ylt(): ylnil();
 } YLENDNF(eq)
+
+YLDEFNF(equal, 2, 2) {
+    return (yle_t*)yleq(ylcar(e), ylcadr(e));
+} YLENDNF(equal)
 
 YLDEFNF(set, 2, 3) {
     if(pcsz > 2) {

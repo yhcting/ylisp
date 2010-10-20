@@ -3,18 +3,18 @@
 
 ; Test syntax parsor
 (set 'x '\")
-(assert (eq x '\"))
+(assert (equal x '\"))
 (set 'x (quote \"))
-(assert (eq x '\"))
+(assert (equal x '\"))
 
 
 (set 'rrr 'ttt)
 (assert 
-    (eq rrr 'ttt))
+    (equal rrr 'ttt))
 
 (mset zzz rrr)
 (assert
-    (eq zzz 'ttt))
+    (equal zzz 'ttt))
 
 (mset rrr ttt)
 (mset ttt (car (list yy '(x y))))
@@ -23,23 +23,23 @@
 ;special expansion of ylisp
 (set 'gg1 'quote)
 ; ((eval 'gg1) haha) -> (quote haha) -> haha
-(assert (eq 'haha ((eval 'gg1) haha)))
+(assert (equal 'haha ((eval 'gg1) haha)))
 (set 'gg2 '(eval 'gg1))
-(assert (eq 'haha ((eval 'gg2) haha)))
+(assert (equal 'haha ((eval 'gg2) haha)))
 
 
 ; check type checking
-(assert (eq (type 'aa) (type 'bb)))
-(assert (eq (type 7) (type 8)))
-(assert (eq (type '(a b)) (type '(c d))))
-(assert (not (eq (type 7) (type 'ab))))
-(assert (not (eq (type 'ab) (type '(a b)))))
+(assert (equal (type 'aa) (type 'bb)))
+(assert (equal (type 7) (type 8)))
+(assert (equal (type '(a b)) (type '(c d))))
+(assert (not (equal (type 7) (type 'ab))))
+(assert (not (equal (type 'ab) (type '(a b)))))
 
 
 (assert
-    (eq yy 'ab))
+    (equal yy 'ab))
 (assert
-    (eq zzz 'ab))
+    (equal zzz 'ab))
 
 (assert (equal '(x a b) '(x a b)))
 (assert (equal '(x a) (cons 'x (cons 'a '()))))
@@ -52,13 +52,13 @@
     (equal '(a b)
         (ee (a b) (c d))))
 
-(assert (eq 't (and (eq 8 8) (eq 7 7))))
-(assert (eq '() (and (eq 1 2) (assert '()))))
-(assert (eq 't (or (eq 1 1) (eq 2 4))))
-(assert (eq '() (or (eq 1 2) (eq 1 3) (eq 2 3))))
+(assert (equal 't (and (equal 8 8) (equal 7 7))))
+(assert (equal '() (and (equal 1 2) (assert '()))))
+(assert (equal 't (or (equal 1 1) (equal 2 4))))
+(assert (equal '() (or (equal 1 2) (equal 1 3) (equal 2 3))))
 
-(assert (eq '() (not (eq 1 1))))
-(assert (eq 't (not (eq 1 2))))
+(assert (equal '() (not (equal 1 1))))
+(assert (equal 't (not (equal 1 2))))
 
 (assert (equal
     '(a (x a) c)
@@ -68,9 +68,9 @@
     '(a b c d e)
     (append '(a b) '(c d e))))
 
-(assert (eq 't
+(assert (equal 't
     (among 'x '(a b x c d))))
-(assert (eq '()
+(assert (equal '()
     (among 'x '(a b c d e))))
 
 (assert (equal
@@ -95,23 +95,23 @@
     (set 'x 'f)
     (set 't 'y)
     (let ((x 'c)(t 'z))
-        (assert (eq x 'c))
-        (assert (eq y 'b))
+        (assert (equal x 'c))
+        (assert (equal y 'b))
         (set 'x 'd)
-        (assert (eq x 'd)))
-    (assert (eq t 'y))
-    (assert (eq x 'f)))
+        (assert (equal x 'd)))
+    (assert (equal t 'y))
+    (assert (equal x 'f)))
 
-(assert (eq 2 (+ 1 1)))
-(assert (eq 3 (+ 2 1)))
-(assert (eq 1 (- 2 1)))
-(assert (eq 1 (* 1 1)))
-(assert (eq 6 (* 2 3)))
-(assert (eq 0 (* 100 0)))
-(assert (eq 3 (/ 6 2)))
-(assert (eq 8 (/ 8 1)))
+(assert (equal 2 (+ 1 1)))
+(assert (equal 3 (+ 2 1)))
+(assert (equal 1 (- 2 1)))
+(assert (equal 1 (* 1 1)))
+(assert (equal 6 (* 2 3)))
+(assert (equal 0 (* 100 0)))
+(assert (equal 3 (/ 6 2)))
+(assert (equal 8 (/ 8 1)))
     
-(assert (eq 't (> 2 1)))
+(assert (equal 't (> 2 1)))
 (assert (= 't (> 2 1)))
 (assert (= '() (< 2 1)))
 (assert (= '() (< 1 1)))
@@ -127,12 +127,12 @@
 (log '"v" '"this is verbose log" '"OK?\n")
 (log '"d" '"this is dev log")
 
-(assert (eq 'a (to-string 'a)))
-(assert (eq '"(x y)" (to-string '(x y))))
+(assert (equal 'a (to-string 'a)))
+(assert (equal '"(x y)" (to-string '(x y))))
 
-(assert (eq 0x1 (& 0x1 0x3 0x7 0xf 0xff)))
-(assert (eq 0xff (| 0x1 0x2 0x4 0x8 0x10 0x20 0x40 0x80)))
-(assert (eq 0x3 (^ 0x1 0x2 0x4 0x8 0x4 0x8)))
+(assert (equal 0x1 (& 0x1 0x3 0x7 0xf 0xff)))
+(assert (equal 0xff (| 0x1 0x2 0x4 0x8 0x10 0x20 0x40 0x80)))
+(assert (equal 0x3 (^ 0x1 0x2 0x4 0x8 0x4 0x8)))
 
 (set 'i 0)
 (set 's 0)
@@ -140,14 +140,14 @@
     (progn
         (set 's (+ s i))
         (set 'i (+ i 1))))
-(assert (eq s 55))
+(assert (equal s 55))
 
 (let ((i 0) (s 0))
     (while (< i 11)
         (set 's (+ s i))
         (set 'i (+ i 1)))
     (set 'sum s))
-(assert (eq sum 55))
+(assert (equal sum 55))
 
 (let ((i 0) (s 0))
     (while (< i 11)
@@ -163,12 +163,12 @@
         (print j))
     (set 'i (- i 1)))
 
-(assert (eq 3 (% 7 4)))
-(assert (eq 0 (% 3 3)))
+(assert (equal 3 (% 7 4)))
+(assert (equal 0 (% 3 3)))
 
-(assert (eq '() (caar 'a)))
-(assert (eq '() (caar '(a))))
-(assert (eq 'a (caar '((a b) c))))
+(assert (equal '() (caar 'a)))
+(assert (equal '() (caar '(a))))
+(assert (equal 'a (caar '((a b) c))))
 (assert (equal '(a) (caar '(((a) b) c))))
 
 (assert (equal '(a b) (caaar '((((a b) c))))))
@@ -179,48 +179,43 @@
 (setcar (cdr yyy) '(a b))
 (assert (equal ttt '(x (a b) (1 2))))
 (set 'ttt '(x y (1 2)))
-(set 'yyy (clone ttt))
-(setcar (cdr yyy) '(a b))
-(assert (equal ttt '(x y (1 2))))
-(assert (equal yyy '(x (a b) (1 2))))
-
-(assert (eq 5 (min 5 9)))
-(assert (eq 5 (max 5 4)))
+(assert (equal 5 (min 5 9)))
+(assert (equal 5 (max 5 4)))
 
 (set 'f 1234)
 (let ( (f '()) )
      (mset f +)
-     (assert (eq 7 (f 3 4))))
-(assert (eq 1234 f))
+     (assert (equal 7 (f 3 4))))
+(assert (equal 1234 f))
 
 
 (let ( (f 0) )
     (++ f)
-    (assert (eq 1 f))
+    (assert (equal 1 f))
     (++ f)
-    (assert (eq 2 f)))
+    (assert (equal 2 f)))
 
 (let ( (f 4) )
     (-- f)
-    (assert (eq 3 f))
+    (assert (equal 3 f))
     (-- f)
-    (assert (eq 2 f)))
+    (assert (equal 2 f)))
 
-(assert (eq 'abcdefgh (concat 'ab 'cdef 'gh)))
+(assert (equal 'abcdefgh (concat 'ab 'cdef 'gh)))
 
 ; test list handling
 (set 'lst '(a b cd ef (1 2)))
 
-(assert (eq 'a (first lst)))
+(assert (equal 'a (first lst)))
 (assert (equal '(b cd ef (1 2)) (rest lst)))
 
-(assert (eq 5 (length lst)))
-(assert (eq 0 (length '())))
+(assert (equal 5 (length lst)))
+(assert (equal 0 (length '())))
 
-(assert (eq 'a (nth 0 lst)))
-(assert (eq 'cd (nth 2 lst)))
-(assert (eq '() (nth -1 lst)))
-(assert (eq '() (nth 100 lst)))
+(assert (equal 'a (nth 0 lst)))
+(assert (equal 'cd (nth 2 lst)))
+(assert (equal '() (nth -1 lst)))
+(assert (equal '() (nth 100 lst)))
 (assert (equal '(1 2) (nth 4 lst)))
 
 (set 'lst '(0 1 2 3 4))
@@ -229,20 +224,19 @@
 (assert (member '4 lst))
 (assert (not (member '100 lst)))
 
-(assert (eq 3 (1+ 2)))
-(assert (not (eq 3 (1+ 1))))
-(assert (eq 2 (1- 3)))
+(assert (equal 3 (1+ 2)))
+(assert (not (equal 3 (1+ 1))))
+(assert (equal 2 (1- 3)))
 (assert (equal (list 2 3 4 5) (mapcar '1+ '(1 2 3 4))))
 (assert (equal (list 't '() 't '()) (mapcar 'not '( '() 't '() 't))))
 
 ;
 ; test for cycle
 ; make cycle!
-;(set 't (list '('a 'b) 'c))
-;(setcar (cdar t) t)
-;(print t '"\n")
-;(set 'rrr (clone t)) ; this should generate interpreting error!
-;(unset 't)
+(set 't (list '('a 'b) 'c))
+(setcar (cdar t) t)
+(print t '"\n") ; ylisp should be able to print circular list!
+(unset 't)
 
 (unset 'rrr)
 (unset 'yyy)

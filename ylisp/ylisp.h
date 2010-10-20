@@ -120,6 +120,12 @@ typedef struct {
 
     /* interpreter memory pool size*/
     unsigned int  mpsz;
+
+    /*
+     * GC Trigger point. Percent.
+     * '80' means "GC triggered when memory pool is used over 80%
+     */
+    int           gctp; /* Garbage Collection Trigger Pointer */
 } ylsys_t; /* system parameter  */
 
 /* 

@@ -47,7 +47,7 @@ yltrie_destroy(yltrie_t*);
  *    1: overwritten
  */
 extern int
-yltrie_insert(yltrie_t*, const char* sym, void* v);
+yltrie_insert(yltrie_t*, const unsigned char* key, unsigned int sz, void* v);
 
 /**
  * @return: 
@@ -55,7 +55,7 @@ yltrie_insert(yltrie_t*, const char* sym, void* v);
  *    0 : deleted.
  */
 extern int
-yltrie_delete(yltrie_t*, const char* sym);
+yltrie_delete(yltrie_t*, const unsigned char* key, unsigned int sz);
 
 /*
  * get fcb
@@ -67,7 +67,7 @@ extern void(*yltrie_fcb(const yltrie_t* t))(void*);
  * @return     : NULL if @sym is not in trie.
  */
 extern void*
-yltrie_get(yltrie_t*, const char* sym);
+yltrie_get(yltrie_t*, const unsigned char* key, unsigned int sz);
 
 /**
  * get reference of value.
@@ -76,7 +76,7 @@ yltrie_get(yltrie_t*, const char* sym);
  * (Especially to avoid duplicated 'Trie-Seaching')
  */
 extern void**
-yltrie_getref(yltrie_t*, const char* sym);
+yltrie_getref(yltrie_t*, const unsigned char* key, unsigned int sz);
 
 /**
  * walking order is dictionary order of symbol.
@@ -86,9 +86,11 @@ yltrie_getref(yltrie_t*, const char* sym);
  *   -1 : fail. (ex. @from is invalid prefix of symbol.)
  */
 extern int
-yltrie_walk(yltrie_t*, void* user, const char* from,
+yltrie_walk(yltrie_t*, void* user, const unsigned char* from, unsigned int fromsz,
             /* return : b_keepgoing => return 1 for keep going, 0 for stop and don't do anymore*/
-            int(cb)(void* user, const char* sym, void* v));
+            int(cb)(void*/*user*/,
+                    const unsigned char*/*key*/, unsigned int/*sz*/,
+                    void*/*value*/));
 
 /**
  * @cmp    : compare function of trie data. this should return 1 if value is same, otherwise 0.
@@ -133,8 +135,8 @@ enum {
  */
 extern int
 yltrie_auto_complete(yltrie_t* t, 
-                     const char* start_with, 
-                     char* buf, unsigned int bufsz);
+                     const unsigned char* start_with, unsigned int sz,
+                     unsigned char* buf, unsigned int bufsz);
 
 
 #endif /* ___YLTRIe_h___ */

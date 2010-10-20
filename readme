@@ -53,7 +53,7 @@ How Do I Run Demo?
 ------------------
     Build it by type 'sh build.sh'. Enter yljfe. type './yljfe'.
     For running test scripts in 'yls' directly at the start of 'yljfe'.
-    Type './yljfe (../yls/yljfe_initrc.yl)'
+    Type './yljfe (../yls/test.yl)'
     Simple introduction of yljfe.
         Text panel is edit area. You can type ylisp code in it.
         Press Ctrl-R to run edited ylisp code.
@@ -106,6 +106,8 @@ Directory/File Structure
     ylbase:
         Plugin for native function extension. Very basic and fundamental functions are implemented here.
         Without any special reason, this plugin should be loaded at the begining.
+    ylext
+        Plugin for extended features (array, trie, structure)
     ylmath/ylstring/ylsystem
         Plugin for native function extension. Followings are the list of library name and register functions.
         libylbase.so
@@ -141,7 +143,6 @@ Creating CNF
 Adding new-type-atom(henceforth NTA)
 ------------------------------------
     * Following symbols at 'yldev.h' are related with this.
-        - YLACustom       : base value for customized NTA
         - ylatomif_t      : interface for handling NTA
         - yle_t.u.a.u.cd  : data pointer for NTA
         - ylacd()         : macro to access yle_t.u.a.u.cd
@@ -213,16 +214,17 @@ GC(Garbage collection)
 ----------------------
     Memory pool is used. 
         - fixed-size-memory-pool is used. We may use dynamically-growing-memory-pool.
-    Reference count and 'Scanning and Marking', are used.
-        - every memory block has reference count.
-        - nodes which are reachable from global trie are marked.
+    'Scanning and Marking', are used for GC.
+        - Blocks that are reachable from global symbol space or registerred base blocks, are protected from GC.
     GC is triggered.
-        - Newly allocated dangling memory blocks - blocks whose reference count is zero - are freed except for those referred by return value.
-        - If memory pool usage exceeded predefined threshold and interpreting request is done, than Full-Scanning-GC(FSGC) is triggered to collect dangling cyclic-cross-referred-blocks. 
-          Why FSGC can be done only after interpreting request is done? Because, at that moment, interpret state depends only on global symbols. So, we can assume lots of things - this make GC easier!
-          Actually, there are two options. one is using FSGC as an main GC method. the other is current implemented way. In terms of efficient memory usage, the former is better. But, to implement this, we should be careful when use memory block and returned value. And this makes it more difficult to implement CNF plugin. So, at the cost of a little inefficient memory usage, we can get interpreter design for easy-to-extend-CNF.
-          (In my opinion, reference-based-GC can cover most cases. So, we don't need to worry about memory inefficiency too much)
-        - When there is no interpreting request for pre-defined duration, FSGC is triggered.
+        - If memory pool usage exceeded predefined threshold, GC is triggered. 
+        - GC is started only at the end of 'evaluation step'.
+            + This is to reduce complexity regarding. protecting blocks from GC.
+              (Actually, using this policy can drop complexity dramatically and reasonable enough in terms of efficient memory block usage.)
+            + In CNF, if 'eval' is called in it, memory blocks allocated before in CNF should be protected from GC by calling 'ylmp_pushN(...)' function. 
+              And after end of 'eval' registered base blocks should be released by calling 'ylmp_popN()'.
+        - When there is no interpreting request for pre-defined duration, GC is triggered.
+          (Do expensive job when idle!)
 
 
 Force stop
@@ -279,8 +281,6 @@ Things to think of
                   It's big loss at usability's point of view!
 
 
-
-
 =================================
 * Others
 =================================
@@ -288,8 +288,6 @@ TODO
 ----
     * Codes of memory pool (mempool.[ch]) is not satisfactory. Refactoring is required.
       (Any other simpler/better way?)
-    * The way to print element recursivly well. (especially for array and trie..etc)
-      => printing mechanism should be improved to support this.
 
 
 Known Bugs

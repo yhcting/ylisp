@@ -30,8 +30,8 @@
 #define CONFIG_LOG
 #define CONFIG_ASSERT
 
-#define CONFIG_DBG_GEN       /* general debugging - usually required */
-#define CONFIG_DBG_EVAL      /* to debug evaluation */
+/* #define CONFIG_DBG_GEN     */  /* general debugging - usually required */
+/* #define CONFIG_DBG_EVAL    */  /* to debug evaluation */
 /* #define CONFIG_DBG_MEM     */  /* to debug memory pool and GC */
 /* #define CONFIG_DBG_INTEVAL */  /* to debug interrupting evaluation */
 

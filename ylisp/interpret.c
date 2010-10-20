@@ -670,6 +670,89 @@ _interp_automata(void* arg) {
     }
 }
 
+/* =====================================
+ *
+ * GC Triggering Timer (GCTT)
+ *     - Full scanning GC is triggered if there is no interpreting request during pre-defined time (Doing expensive operation at the idle moment).
+ *
+ * =====================================*/
+#define _GCTT_DELAY     1 /* sec */
+#define _GCTT_SIG       SIGRTMIN
+#define _GCTT_CLOCKID   CLOCK_REALTIME
+
+static timer_t         _gcttid;
+
+static void
+__gctt_settime(long sec) {
+    struct itimerspec its;
+
+    /* Start the timer */
+    its.it_value.tv_sec = sec;
+    its.it_value.tv_nsec = 0;
+
+    /* This is one-time shot! */
+    its.it_interval.tv_sec = 0;
+    its.it_interval.tv_nsec = 0;
+
+    
+    if(0 > timer_settime(_gcttid, 0, &its, NULL) ) { ylassert(0); }
+}
+
+static inline void
+_gctt_set_timer() {
+    __gctt_settime(_GCTT_DELAY);
+}
+
+static inline void
+_gctt_unset_timer() {
+    __gctt_settime(0);
+}
+
+static inline void
+_gctt_handler(int sig, siginfo_t* si, void* uc) {
+    _interp_lock();
+    ylmp_gc();
+    _interp_unlock();
+}
+
+static int
+_gctt_create() {
+    struct sigevent      sev;
+    struct itimerspec    its;
+    struct sigaction     sa;
+
+    /* Establish handler for timer signal */
+    sa.sa_flags = SA_SIGINFO;
+    sa.sa_sigaction = _gctt_handler;
+    sigemptyset(&sa.sa_mask);
+    if ( -1 == sigaction(_GCTT_SIG, &sa, NULL) ) {
+        yllogE0("Error gctt : sigaction\n");
+        return -1;
+    }
+
+    /* Create the timer */
+    sev.sigev_notify = SIGEV_SIGNAL;
+    sev.sigev_signo = _GCTT_SIG;
+    sev.sigev_value.sival_ptr = &_gcttid;
+    if ( -1 == timer_create(_GCTT_CLOCKID, &sev, &_gcttid) ) {
+        yllogE0("Error gctt : timer_create\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+void
+_gctt_delete() {
+    timer_delete(_gcttid);
+}
+
+/* Unset locally used preprocess symbols */
+#undef _GCTT_CLOCKID
+#undef _GCTT_SIG
+#undef _GCTT_DELAY
+
+
 
 /* =====================================
  *
@@ -832,7 +915,8 @@ ylinterpret(const char* stream, unsigned int streamsz) {
             ylstk_clean(_evalstk);
 
             ret = ylinterpret_internal(stream, streamsz);
-            if(YLOk != ret) {
+            if(YLOk == ret) { _gctt_set_timer(); }
+            else {
                 /* 
                  * evaluation stack should be shown before GC.
                  * (After GC, expression in the stack may be invalid one!)
@@ -844,6 +928,10 @@ ylinterpret(const char* stream, unsigned int streamsz) {
                  *  in short time with high possibility. In this case, GC SHOULD NOT executed.
                  */
                 ylmp_clean_stack();
+                /*
+                 * Interpreting fails. So, let's clean garbage!
+                 */
+                ylmp_gc();
             }
 
             _inteval_unlock();
@@ -891,7 +979,8 @@ ylinterpret_undefined(int reason) {
 
 ylerr_t 
 ylinterp_init() {
-    if( 0 > _init_mutexes() ) { 
+    if( 0 > _gctt_create()
+       || 0 > _init_mutexes() ) { 
         return YLErr_internal;
     }
     _thdstk = ylstk_create(0, NULL);
@@ -901,6 +990,7 @@ ylinterp_init() {
 
 void
 ylinterp_deinit() {
+    _gctt_delete();
     ylstk_destroy(_thdstk);
     ylstk_destroy(_evalstk);
 }

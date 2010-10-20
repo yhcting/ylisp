@@ -82,8 +82,9 @@ ylgsym_deinit() {
 
 int
 ylgsym_insert(const char* sym, int sty, yle_t* e) {
-    _value_t* v = _alloc_value(sty, e);
-    _value_t* ov = yltrie_get(_trie, sym);
+    _value_t*     v = _alloc_value(sty, e);
+    unsigned int  slen = strlen(sym);
+    _value_t*     ov = yltrie_get(_trie, sym, slen);
     if(ov) {
         /* 
          * in case of overwritten, description should be preserved. 
@@ -98,17 +99,17 @@ ylgsym_insert(const char* sym, int sty, yle_t* e) {
         /* to prevent from freeing inside trie! - HACK */
         ov->desc = &_dummy_empty_desc;
     }
-    return yltrie_insert(_trie, sym, (void*)v);
+    return yltrie_insert(_trie, sym, slen, (void*)v);
 }
 
 int
 ylgsym_delete(const char* sym) {
-    return yltrie_delete(_trie, sym);
+    return yltrie_delete(_trie, sym, strlen(sym));
 }
 
 int
 ylgsym_set_description(const char* sym, const char* description) {
-    _value_t* v = yltrie_get(_trie, sym);
+    _value_t* v = yltrie_get(_trie, sym, strlen(sym));
     if(v) {
         unsigned int sz;
         char*        desc;
@@ -133,13 +134,13 @@ ylgsym_set_description(const char* sym, const char* description) {
 
 const char*
 ylgsym_get_description(const char* sym) {
-    _value_t* v = yltrie_get(_trie, sym);
+    _value_t* v = yltrie_get(_trie, sym, strlen(sym));
     return v? v->desc: NULL;
 }
 
 yle_t*
 ylgsym_get(int* outty, const char* sym) {
-    _value_t* v = yltrie_get(_trie, sym);
+    _value_t* v = yltrie_get(_trie, sym, strlen(sym));
     if(v) {
         if(outty) { *outty = v->ty; }
         return v->e;
@@ -151,7 +152,9 @@ ylgsym_get(int* outty, const char* sym) {
 _DEF_VISIT_FUNC(static, _gcmark, ,!yleis_gcmark(e), yleset_gcmark(e))
 
 static int
-_cb_gcmark(void* user, const char* sym, _value_t* v) {
+_cb_gcmark(void* user,
+           const unsigned char* key, unsigned int sz,
+           _value_t* v) {
     if(v->e) { _gcmark(NULL, v->e); }
     return 1;
 }
@@ -160,15 +163,16 @@ void
 ylgsym_gcmark() {
     /* This is called by 'Scanning GC' */
     if(_trie) {
-        yltrie_walk(_trie, NULL, "", 
-                    (int(*)(void*, const char*, void*))&_cb_gcmark);
+        yltrie_walk(_trie, NULL, "", 0,
+                    (int(*)(void*, const unsigned char*,
+                            unsigned int, void*))&_cb_gcmark);
     }
 }
 
 int
 ylgsym_auto_complete(const char* start_with, 
                      char* buf, unsigned int bufsz) {
-    return yltrie_auto_complete(_trie, start_with, buf, bufsz);
+    return yltrie_auto_complete(_trie, start_with, strlen(start_with), buf, bufsz);
 }
 
 typedef struct {
@@ -177,11 +181,11 @@ typedef struct {
 } _candidates_sz_t;
 
 static int
-_cb_nr_candidates(void* user, const char* sym, _value_t* v) {
+_cb_nr_candidates(void* user, const unsigned char* key,
+                  unsigned int sz,_value_t* v) {
     _candidates_sz_t* st = (_candidates_sz_t*)user;
-    unsigned int len = strlen(sym);
     st->cnt++;
-    if(st->maxlen < len) { st->maxlen = len; }
+    if(st->maxlen < sz) { st->maxlen = sz; }
     return 1;
 }
 
@@ -191,8 +195,9 @@ ylgsym_nr_candidates(const char* start_with,
     _candidates_sz_t   st;
     st.cnt = st.maxlen = 0;
 
-    if(0 > yltrie_walk(_trie, &st, start_with, 
-                       (int(*)(void*, const char*, void*))&_cb_nr_candidates)) { 
+    if(0 > yltrie_walk(_trie, &st, start_with, strlen(start_with),
+                       (int(*)(void*, const unsigned char*,
+                               unsigned int, void*))&_cb_nr_candidates)) { 
         return 0;
     }
 
@@ -208,10 +213,12 @@ typedef struct {
 
 
 static int
-_cb_candidates(void* user, const char* sym, _value_t* v) {
+_cb_candidates(void* user, const unsigned char* key,
+               unsigned int sz, _value_t* v) {
     _candidates_t* st = (_candidates_t*)user;
     if(st->i >= st->ppbsz) { return 0; } /* we should stop here! */
-    strcpy(st->ppbuf[st->i], sym);
+    memcpy(st->ppbuf[st->i], key, sz);
+    st->ppbuf[st->i][sz] = 0; /* add trailing 0 */
     st->i++;
     return 1; /* keep going */
 }
@@ -225,8 +232,9 @@ ylgsym_candidates(const char* start_with, char** ppbuf,
     st.ppbsz = ppbsz; 
     st.i = 0;
 
-    if(0 > yltrie_walk(_trie, &st, start_with, 
-                       (int(*)(void*, const char*, void*))&_cb_candidates)) {
+    if(0 > yltrie_walk(_trie, &st, start_with, strlen(start_with),
+                       (int(*)(void*, const unsigned char*,
+                               unsigned int, void*))&_cb_candidates)) {
         return -1;
     }
     return st.i;

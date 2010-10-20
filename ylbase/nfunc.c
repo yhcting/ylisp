@@ -58,7 +58,7 @@ _evcon(yle_t* c, yle_t* a) {
 }
 
 YLDEFNF(f_cond, 1, 9999) {
-    /* yleq [ylcar [e]; COND] -> evcon [ylcdr [e]; a]; */
+    /* eq [car [e]; COND] -> evcon [cdr [e]; a]; */
     return _evcon(e, a);
 } YLENDNF(f_cond)
 
@@ -199,6 +199,7 @@ YLDEFNF(type, 1, 1) {
 #undef __SZ
 } YLENDNF(type)
 
+#if 0 /* Keep it for future use! */
 YLDEFNF(clone, 1, 1) {
     if(yleis_nil(e)) {
         ylnflogE0("nil cannot be cloned!!\n");
@@ -206,6 +207,7 @@ YLDEFNF(clone, 1, 1) {
     }
     return ylechain_clone(ylcar(e));
 } YLENDNF(clone)
+#endif /* Keep it for future use! */
 
 /* eq [car [e]; CAR] -> car [eval [cadr [e]; a]] */
 YLDEFNF(car, 1, 1) {

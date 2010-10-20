@@ -90,6 +90,7 @@ main(int argc, char* argv[]) {
     sys.malloc = _malloc;
     sys.free = _free;
     sys.mpsz = 8*1024;
+    sys.gctp = 80;
 
     ylinit(&sys);
 

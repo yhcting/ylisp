@@ -26,6 +26,7 @@
 #include "gsym.h"
 #include "mempool.h"
 #include "lisp.h"
+#include "yltrie.h"
 
 
 /*=======================
@@ -82,9 +83,9 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
 #define _DEFAIF_COPY_END while(0); return 0; }
 
 #define _DEFAIF_TO_STRING_START(sUFFIX)                                 \
-    static const char*                                                  \
-    _aif_##sUFFIX##_to_string(const yle_t* e) {                         \
-        do
+    static int                                                          \
+    _aif_##sUFFIX##_to_string(const yle_t* e, char* b, unsigned int sz) { \
+    do
 
 #define _DEFAIF_TO_STRING_END while(0); ylassert(0); }
 
@@ -94,10 +95,6 @@ const yle_t* const ylg_predefined_quote  = &_predefined_quote;
         do
 
 #define _DEFAIF_CLEAN_END while(0); }
-
-
-#define _MAX_ATOM_PR_BUFSZ   256
-static char _atom_prbuf[_MAX_ATOM_PR_BUFSZ];
 
 /* --- aif sym --- */
 _DEFAIF_EQ_START(sym) {
@@ -110,6 +107,7 @@ _DEFAIF_EQ_START(sym) {
     }
 } _DEFAIF_EQ_END
 
+#if 0 /* Keep it for future use! */
 _DEFAIF_COPY_START(sym) {
     /* deep clone */
     ylasym(n).sym = ylmalloc(strlen(ylasym(e).sym)+1);
@@ -119,9 +117,13 @@ _DEFAIF_COPY_START(sym) {
     }
     strcpy(ylasym(n).sym, ylasym(e).sym);
 } _DEFAIF_COPY_END
+#endif /* Keep it for future use! */
 
 _DEFAIF_TO_STRING_START(sym) {
-    return ylasym(e).sym;
+    int slen = strlen(ylasym(e).sym);
+    if(slen > sz) { return -1; }
+    memcpy(b, ylasym(e).sym, slen);
+    return slen;
 } _DEFAIF_TO_STRING_END
 
 _DEFAIF_CLEAN_START(sym) {
@@ -135,18 +137,16 @@ _DEFAIF_EQ_START(nfunc) {
     else { return 0; }
 } _DEFAIF_EQ_END
 
+#if 0 /* Keep it for future use! */
 _DEFAIF_COPY_START(nfunc) {
     /* nothing to do */
 } _DEFAIF_COPY_END
+#endif /* Keep it for future use! */
 
 _DEFAIF_TO_STRING_START(nfunc) {
-    if(_MAX_ATOM_PR_BUFSZ <= snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, 
-                                      "<!%s!>", ylanfunc(e).name)) {
-        /* atom pr buf is too small.. */
-        yllogE1("Atom print buffer size is not enough!: Current [%d]\n", _MAX_ATOM_PR_BUFSZ);
-        ylassert(0);
-    }
-    return _atom_prbuf;
+    int bw = snprintf(b, sz, "<!%s!>", ylanfunc(e).name);
+    if(bw >= sz)  { return -1; }  /* buffer size is not enough */
+    return bw;
 } _DEFAIF_TO_STRING_END
 
 _DEFAIF_CLEAN_START(nfunc) {
@@ -159,18 +159,14 @@ _DEFAIF_EQ_START(sfunc) {
     else { return 0; }
 } _DEFAIF_EQ_END
 
+#if 0 /* Keep it for future use! */
 _DEFAIF_COPY_START(sfunc) {
     /* nothing to do */
 } _DEFAIF_COPY_END
+#endif /* Keep it for future use! */
 
 _DEFAIF_TO_STRING_START(sfunc) {
-    if(_MAX_ATOM_PR_BUFSZ <= snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, 
-                                      "<!%s!>", ylanfunc(e).name)) {
-        /* atom pr buf is too small.. */
-        yllogE1("Atom print buffer size is not enough!: Current [%d]\n", _MAX_ATOM_PR_BUFSZ);
-        ylassert(0);
-    }
-    return _atom_prbuf;
+    return _aif_nfunc_to_string(e, b, sz);
 } _DEFAIF_TO_STRING_END
 
 _DEFAIF_CLEAN_START(sfunc) {
@@ -186,23 +182,21 @@ _DEFAIF_EQ_START(dbl) {
     return (yladbl(e0) == yladbl(e1))? 1: 0;
 } _DEFAIF_EQ_END
 
+#if 0 /* Keep it for future use! */
 _DEFAIF_COPY_START(dbl) {
     /* nothing to do */
 } _DEFAIF_COPY_END
+#endif /* Keep it for future use! */
 
 _DEFAIF_TO_STRING_START(dbl) {
-    int cnt;
+    int bw;
     if((double)((int)yladbl(e)) == yladbl(e)) {
-        cnt = snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, "%d", (int)(yladbl(e)));
+        bw = snprintf(b, sz, "%d", (int)(yladbl(e)));
     } else {
-        cnt = snprintf(_atom_prbuf, _MAX_ATOM_PR_BUFSZ, "%f", yladbl(e));
+        bw = snprintf(b, sz, "%f", yladbl(e));
     }
-    if(_MAX_ATOM_PR_BUFSZ <= cnt) {
-        /* atom pr buf is too small.. */
-        yllogE1("Atom print buffer size is not enough!: Current [%d]\n", _MAX_ATOM_PR_BUFSZ);
-        ylassert(0);
-    }
-    return _atom_prbuf;
+    if(bw >= sz) { return -1; } /* not enough buffer */
+    return bw;
 } _DEFAIF_TO_STRING_END
 
 _DEFAIF_CLEAN_START(dbl) {
@@ -219,6 +213,7 @@ _DEFAIF_EQ_START(bin) {
     }
 } _DEFAIF_EQ_END
 
+#if 0 /* Keep it for future use! */
 _DEFAIF_COPY_START(bin) {
     /* deep clone */
     ylabin(n).d = ylmalloc(ylabin(e).sz);
@@ -228,9 +223,13 @@ _DEFAIF_COPY_START(bin) {
     }
     memcpy(ylabin(n).d, ylabin(e).d, ylabin(e).sz);
 } _DEFAIF_COPY_END
+#endif /* Keep it for future use! */
 
 _DEFAIF_TO_STRING_START(bin) {
-    return ">>BIN DATA<<";
+#define S ">>BIN<<"
+    if(sizeof(S) > sz) { return -1; }
+    else { memcpy(b, S, sizeof(S)-1); return sizeof(S)-1; }
+#undef S
 } _DEFAIF_TO_STRING_END
 
 _DEFAIF_CLEAN_START(bin) {
@@ -242,13 +241,18 @@ _DEFAIF_EQ_START(nil) {
     return (e0 == e1 && e0 == ylnil())? 1: 0;
 } _DEFAIF_EQ_END
 
+#if 0 /* Keep it for future use! */
 _DEFAIF_COPY_START(nil) {
     yllogE0("NIL is NOT ALLOWED TO COPY\n");
     ylinterpret_undefined(YLErr_eval_undefined);
 } _DEFAIF_COPY_END
+#endif /* Keep it for future use! */
 
 _DEFAIF_TO_STRING_START(nil) {
-    return "NIL";
+#define S "NIL"
+    if(sizeof(S) > sz) { return -1; }
+    else { memcpy(b, S, sizeof(S)-1); return sizeof(S)-1; }
+#undef S
 } _DEFAIF_TO_STRING_END
 
 _DEFAIF_CLEAN_START(nil) {
@@ -274,7 +278,7 @@ _DEFAIF_CLEAN_START(nil) {
 #define _DEFAIF_VAR(sUFFIX)                                             \
     static const ylatomif_t _aif_##sUFFIX = {                           \
         &_aif_##sUFFIX##_eq,                                            \
-        &_aif_##sUFFIX##_copy,                                          \
+        NULL,                                                           \
         &_aif_##sUFFIX##_to_string,                                     \
         NULL,                                                           \
         &_aif_##sUFFIX##_clean                                          \
@@ -316,44 +320,6 @@ yleclean(yle_t* e) {
     ylmp_clean_block(e);
 }
 
-static yle_t*
-_eclone(const yle_t* e) {
-    yle_t* n; /* new one */
-
-    ylassert(e);
-
-    /* handle special case "nil" */
-    if(yleis_nil(e)) { return ylnil(); }
-
-    n = ylmp_block();
-    memcpy(n, e, sizeof(yle_t));
-    if(yleis_atom(e)) {
-        if( ylaif(e)->copy && (0 > ylaif(e)->copy(NULL, n, e)) ) {
-            yllogE0("There is an error at COPYING atom\n");
-            ylinterpret_undefined(YLErr_eval_undefined);
-        }
-    }
-    return n;
-}
-
-static yle_t*
-_echain_clone(const yle_t* e) {
-    yle_t* n;
-    if(yleis_atom(e)) {
-        n = _eclone(e);
-    } else {
-        n = _eclone(e);
-        ylpsetcar(n, _echain_clone(ylpcar(e)));
-        ylpsetcdr(n, _echain_clone(ylpcdr(e)));
-    }
-    return n;
-}
-
-yle_t*
-ylechain_clone(const yle_t* e) {
-    return _echain_clone(e);
-}
-
 ylerr_t
 ylregister_nfunc(unsigned int version,
                  const char* sym, ylnfunc_t nfunc, 
@@ -388,7 +354,7 @@ ylregister_nfunc(unsigned int version,
 
 void
 ylunregister_nfunc(const char* sym) {
-    yltrie_delete(sym);
+    ylgsym_delete(sym);
 }
 
 
@@ -430,7 +396,16 @@ static int
 _aprint(yldynb_t* b, yle_t* e) {
     int  cw; /* character written */
     if(ylaif(e)->to_string) {
-        _fcall(ylutstr_append(b, "%s", (*ylaif(e)->to_string)(e)));
+        while(1) {
+            cw = ylaif(e)->to_string(e, ylutstr_ptr(b), yldynb_freesz(b));
+            if( cw >= 0) {
+                b->sz += cw;
+                b->b[b->sz-1] = 0; /* add trailing 0 */
+                break; /* success */
+            } else {
+                if(0 > yldynb_expand(b)) { goto bail; }
+            }
+        }
     } else {
         yllogW0("There is an atom that doesn't support/allow PRINT!\n");
         /* !X! is special notation to represet 'it's not printable' */
@@ -443,41 +418,73 @@ _aprint(yldynb_t* b, yle_t* e) {
 }
 
 static int
-_eprint(yldynb_t* b, yle_t* e) {
+_eprint(yldynb_t* b, yle_t* e, yltrie_t* map) {
     if(yleis_atom(e)) {
         _fcall(_aprint(b, e));
     } else {
+        yle_t* car_e = ylcar(e);
+        yle_t* cdr_e = ylcdr(e);
+        
         /*
          * When cdr/car can be NULL? Free block in memory pool has NULL car/cdr value.
          * Tring to print garbage expr. may lead to the case of printing free block.
          * To handle this exceptional case, NULL car/cdr should be treated well.
          */
-        if(ylcar(e)) {
-            if(!yleis_atom(ylcar(e))) {
-                _fcall(ylutstr_append(b, "("));
-                _fcall(_eprint(b, ylcar(e)));
-                _fcall(ylutstr_append(b, ")"));
+        if(car_e) {
+            if(!yleis_atom(car_e)) {
+                if(1 == yltrie_insert(map, (unsigned char*)&car_e,
+                                      sizeof(yle_t*), ylnil())) {
+                    /* Overwritten! cycle detected ! */
+                    _fcall(ylutstr_append(b, "!CYCLE DETECTED!"));
+                    /*
+                     * car_e already exists in map.
+                     * So, it should not be deleted from map
+                     */
+                    car_e = NULL;
+                } else {
+                    _fcall(ylutstr_append(b, "("));
+                    _fcall(_eprint(b, car_e, map));
+                    _fcall(ylutstr_append(b, ")"));
+                }
             } else {
-                _fcall(_aprint(b, ylcar(e)));
+                _fcall(_aprint(b, car_e));
             }
         } else {
             _fcall(ylutstr_append(b, "NULL "));
         }
 
-        if(ylcdr(e)) {
-            if( yleis_atom(ylcdr(e)) ) {
-                if(!yleis_nil(ylcdr(e))) {
+        if(cdr_e) {
+            if( yleis_atom(cdr_e) ) {
+                if(!yleis_nil(cdr_e)) {
                     _fcall(ylutstr_append(b, "."));
-                    _fcall(_aprint(b, ylcdr(e)));
+                    _fcall(_aprint(b, cdr_e));
                 }
             } else {
-                _fcall(ylutstr_append(b, " "));
-                _fcall(_eprint(b, ylcdr(e)));
+                if(1 == yltrie_insert(map, (unsigned char*)&cdr_e,
+                                      sizeof(yle_t*), ylnil())) {
+                    /* Overwritten! cycle detected ! */
+                    _fcall(ylutstr_append(b, "!CYCLE DETECTED!"));
+                    /*
+                     * car_e already exists in map.
+                     * So, it should not be deleted from map
+                     */
+                    cdr_e = NULL;
+                } else {
+                    _fcall(ylutstr_append(b, " "));
+                    _fcall(_eprint(b, cdr_e, map));
+                }
             }
         } else {
             _fcall(ylutstr_append(b, "NULL"));
         }
+
+        /*
+         * At upper node, car/cdr of this node are not considered to detect cycle.
+         */
+        if(car_e) { yltrie_delete(map, (unsigned char*)&car_e, sizeof(yle_t*)); }
+        if(cdr_e) { yltrie_delete(map, (unsigned char*)&cdr_e, sizeof(yle_t*)); }
     }
+
     return 0;
 
  bail:
@@ -485,12 +492,12 @@ _eprint(yldynb_t* b, yle_t* e) {
 }
 
 int
-ylechain_print_internal(const yle_t* e, yldynb_t* b) {
+ylechain_print_internal(const yle_t* e, yldynb_t* b, yltrie_t* map) {
     if(yleis_atom(e)) {
         _fcall(_aprint(b, (yle_t*)e));
     } else {
         _fcall(ylutstr_append(b, "("));
-        _fcall(_eprint(b, (yle_t*)e));
+        _fcall(_eprint(b, (yle_t*)e, map));
         _fcall(ylutstr_append(b, ")"));
     }
     return 0;
@@ -500,15 +507,19 @@ ylechain_print_internal(const yle_t* e, yldynb_t* b) {
 }
 
 /**
+ * We need to detect cycle in case of print!...
+ * Print is used for debugging perforce too.
+ * So, it should handle circular list....
+ * And we don't need to worry about performance too much for printing.
  * @return: buffer pointer. MAX buffer size is 1KB
  */
 const char*
 ylechain_print(const yle_t* e) {
-
 #define __DEFAULT_BSZ         4096
-    /*
-     * newly allocates or shrinks
-     */
+    /* Trie for address map */
+    yltrie_t*  map = yltrie_create(NULL);
+
+    /* new allocates or shrinks */
     if(!_prdynb.b || ylutstr_len(&_prdynb) > __DEFAULT_BSZ) {
         yldynb_clean(&_prdynb);
         _fcall(ylutstr_init(&_prdynb, __DEFAULT_BSZ));
@@ -516,10 +527,13 @@ ylechain_print(const yle_t* e) {
         ylutstr_reset(&_prdynb);
     }
 
-    _fcall(ylechain_print_internal(e, &_prdynb));
+    _fcall(ylechain_print_internal(e, &_prdynb, map));
+
+    yltrie_destroy(map);
     return ylutstr_string(&_prdynb);
     
  bail:
+    yltrie_destroy(map);
     return "print error: out of memory\n";
 
 #undef __DEFAULT_BSZ
@@ -568,7 +582,8 @@ ylinit(ylsys_t* sysv) {
     /* Check system parameter! */
     if(!(sysv && sysv->print
          && sysv->assert && sysv->malloc 
-         && sysv->free )) { 
+         && sysv->free
+         && sysv->gctp > 0 && sysv->gctp < 100)) { 
         goto bail;
     }
     

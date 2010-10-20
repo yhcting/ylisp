@@ -62,9 +62,11 @@ NFUNC(type,           "type",            ylaif_nfunc(),
     "        To get type value of 'Double'\n"
     "        (type 7)\n")
 
+#if 0 /* Keep it for future use! */
 NFUNC(clone,          "clone",           ylaif_nfunc(),
     "clone <exp> : [exp]\n"
     "    -return cloned exp (deep copied one).\n")
+#endif /* Keep it for future use! */
 
 NFUNC(car,            "car",             ylaif_nfunc(),
     "car <exp>\n")

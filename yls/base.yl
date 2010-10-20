@@ -16,7 +16,7 @@
         (mset rrr ttt)
         (mset ttt (car (list yy x y)))
         (mset yy (car '(ab cd)))
-        ;(eq zzz 'ab) => t
+        ;(equal zzz 'ab) => t
 ")
 
 (mset defun 
@@ -325,22 +325,9 @@
     -replace <arg> with <param> in <exp>
      subst[(X.A);B;((A.B).C)] = ((A.(X.A)).C)
 "
-    (cond ((atom e) (cond ((eq e aRG) pARAM) ('t e)))
+    (cond ((atom e) (cond ((equal e aRG) pARAM) ('t e)))
         ('t (cons (subst pARAM aRG (car e)) 
             (subst pARAM aRG (cdr e))))))
-
-; compare two expression
-; equal [x; y] = [atom [x] AND atom [y] AND eq [x; y]]
-;                OR [NOT atom [x] AND NOT atom [y] AND equal [car [x]; car [y]]
-;                AND equal [cdr [x]; cdr [y]]]
-(defun equal (e1 e2)
-"equal <exp1> <exp2> : [t/nil]
-    -compare two expression. both - atom and exp - can be compared
-"
-    (cond ((and (atom e1) (atom e2)) (eq e1 e2))
-        ((and (not (atom e1)) (not (atom e2)))
-            (and (equal (car e1) (car e2)) (equal (cdr e1) (cdr e2))))
-        ('t '())))
 
 ; append [x; y] = [null[x] -> y; T -> cons [car [x]; append [cdr [x]; y]]] 
 (defun append (base e)
@@ -400,7 +387,7 @@
 "
     (cond ((< n 0) '())
           ((null L) '())
-          ((eq 0 n) (first L))
+          ((equal 0 n) (first L))
           ('t (nth (- n 1) (rest L)))))
 
 (defun last (L)
@@ -442,7 +429,7 @@
 "= <exp1> <exp2>
     -alias of eq
 "
-    (eq x y))
+    (equal x y))
 
 ; not equal
 (defun <> (x y)

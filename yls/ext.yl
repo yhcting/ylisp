@@ -27,7 +27,7 @@
      This returns original value if fail, otherwise newly updated pair.
     @pair: Pair --> ((x X)(y Y)...)
 "
-    (cond (   (eq PAIR '())
+    (cond (   (equal PAIR '())
               (cons (list key value) '()))
           (   't
               (progn

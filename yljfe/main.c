@@ -62,7 +62,7 @@ _print(const char* format, ...) {
     ret = vprintf(format, args);
     va_end (args);
     /* we want to print its string immediately */
-    /* fflush(stdout); */
+    fflush(stdout);
     return ret;
 }
 
@@ -319,6 +319,7 @@ main(int argc, char* argv[]) {
         sys.malloc    = malloc;
         sys.free      = free;
         sys.mpsz      = 128*1024; /* memory pool size */
+        sys.gctp = 80;
 
         if(YLOk != ylinit(&sys)) {
             printf("Error: Fail to initialize ylisp\n");

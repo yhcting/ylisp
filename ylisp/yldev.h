@@ -110,12 +110,19 @@ typedef struct {
      *    map of [orignal block - cloned block]
      *    Usually Trie is used as a data structure. (Hash is also good choice)
      * @return : <0 if error.
+     *
+     * !!! NOT USED : RESERVED FOR FUTURE !!!
      */
-    int           (*copy)(void* map, struct yle*, const struct yle*);
+    int           (*copy)(void*/*map*/, struct yle*, const struct yle*);
     /*
-     * @return : static buffer. NULL if fails (ex. OOM)
+     * @sz : exclude space for trailing 0.
+     *       That is this is one-byte-smaller than real-buffer-size.
+     *       It's caller's responsibility to pass ''sz' less than 1 byte of real one.
+     * @return :
+     *    bytes written to buffer if success. -1 if fails (ex. Not enough buffer size)
+     *    
      */
-    const char*   (*to_string)(const struct yle*);
+    int           (*to_string)(const struct yle*, char*/*buf*/, unsigned int/*sz*/);
     /*
      * To visit referenced element of given atom.
      * (This may used to implement special atom type - ex. array, struture, class etc. if required)
@@ -272,6 +279,7 @@ typedef struct yle {
 
 #define ylprint(x)      do { ylsysv()->print x; } while(0)
 #define ylmpsz(x)       (ylsysv()->mpsz)
+#define ylgctp(x)       (ylsysv()->gctp)
 /* 
  * ! Predefined atoms !
  * To improve performance, we may use global variable instead of function.
@@ -685,12 +693,6 @@ ylchild_proc_unset();
  * ylexxx
  *    function accesses only given element.
  * -------------------------------*/
-
-/*
- * clone given 'yle_t*' element and it's chain too.
- */
-extern yle_t*
-ylechain_clone(const yle_t* e);
 
 extern int
 ylelist_size(const yle_t* e);

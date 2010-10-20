@@ -1,12 +1,12 @@
 (print '"====== Start Testing 'system' =======\n")
 (sys.sh 'ls)
-(assert (eq '"abcd
+(assert (equal '"abcd
 " (sys.sh '"echo abcd")))
 (assert (sys.setenv 'EnvTest 'hahaha))
-(assert (eq 'hahaha (sys.getenv 'EnvTest)))
-(assert (eq '"01234567890123456789012345678901234567890123456789
+(assert (equal 'hahaha (sys.getenv 'EnvTest)))
+(assert (equal '"01234567890123456789012345678901234567890123456789
 "            (sys.sh '"echo 01234567890123456789012345678901234567890123456789")))
-(assert (eq '"abcde
+(assert (equal '"abcde
 "            (sys.sh '"echo abcde")))
 (let ( (i 3) )
      (while (< 0 i)

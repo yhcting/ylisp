@@ -92,10 +92,9 @@ main(int argc, char* argv[]) {
     sys.malloc = _malloc;
     sys.free = _free;
     sys.mpsz = 8*1024;
+    sys.gctp = 80;
 
     ylinit(&sys);
-
-    __LNF__libylext__nfunc__INIT__();
 
 #define NFUNC(n, s, type, desc)  \
     if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, desc)) { return; }
@@ -107,7 +106,6 @@ main(int argc, char* argv[]) {
     }
 
     /* to check memory status */
-    __LNF__libylext__nfunc__DeINIT__();
     yldeinit();
 
     assert(0 == get_mblk_size());
@@ -129,8 +127,6 @@ extern void __LNF__libylext__nfunc__DeINIT__();
 
 void
 ylcnf_onload() {
-    __LNF__libylext__nfunc__INIT__();
-
     /* return if fail to register */
 #define NFUNC(n, s, type, desc)  \
     if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylext <<\n" desc)) { return; }
@@ -144,7 +140,5 @@ ylcnf_onunload() {
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc.in"
 #undef NFUNC
-
-    __LNF__libylext__nfunc__DeINIT__();
 }
 #endif /* __YLDBG__ */

@@ -39,12 +39,35 @@ static unsigned int _eval_id = 0;
 unsigned int
 yleval_id() { return _eval_id; }
 
+
+/* -------------------------------
+ * Utility Functions
+ * -------------------------------*/
+
+/*
+ * Copy only pair information.
+ * (This doesn't clone atom!)
+ * It doesn't detect cycle due to performance reason.
+ */
+yle_t*
+_list_clone(yle_t* e) {
+    if(yleis_atom(e)) { return e; } /* nothing to clone */
+    else {
+        return ylcons(_list_clone(ylpcar(e)), _list_clone(ylpcdr(e)));
+    }
+}
+
+
+
 /*=================================
  * Recursive S-functions - START
  *=================================*/
-
+/*
+ * It doesn't detect cycle due to performance reason.
+ */
 const yle_t*
 yleq(const yle_t* e1, const yle_t* e2) {
+    if(e1 == e2) { return ylt(); } /* trivial case (even if e1 and e2 are pair-type.*/
     if(yleis_atom(e1) && yleis_atom(e2)) {
         if( ylaif(e1)->eq == ylaif(e2)->eq ) {
             if(ylaif(e1)->eq) {
@@ -56,14 +79,12 @@ yleq(const yle_t* e1, const yle_t* e2) {
         } else {
             return ylnil();
         }
-    } else {
-        /* 
-         * actually, 'yleq' is only defined only for ylatom-comparison.
-         * But for easy-exception-handling,
-         *    this returns ylnil() in case of ylnot-ylatom-exp.
-         */
-        return ylnil();
-    }
+    } else if(!yleis_atom(e1) && !yleis_atom(e2)) {
+        return ( yleis_nil(yleq(ylcar(e1), ylcar(e2))) 
+                 || yleis_nil(yleq(ylcdr(e1), ylcdr(e2))) )?
+            ylnil(): ylt();
+
+    } else { return ylnil(); }
 }
 
 /*=================================
@@ -249,16 +270,22 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
      *    But, concept is "Replace it with pre-defined expression!"
      *        - in this context, pre-defined expression SHOULD NOT be changed at any cases.
      *    So, we should use cloned one!
+     *
+     * !! IMPORTANT NOTE !!
+     *    Current implementation DOESN"T clone any ATOM DATA! (see '_list_clone')
+     *    So, chaning atom directly affects to global macro!!!
+     *    (This is NOT BUG. It's implementation CONCEPT!)
+     *
      */
     if(r) { 
         /* Found! in local association list */
         ylassert(ylais_type(ylcar(r), ylaif_sym()));
         *ovty = ylasym(ylcar(r)).ty;
-        return ylasymis_macro(*ovty)? ylechain_clone(ylcadr(r)): ylcadr(r);
+        return ylasymis_macro(*ovty)? _list_clone(ylcadr(r)): ylcadr(r);
     } else {
         r = (yle_t*)ylgsym_get(ovty, ylasym(x).sym);
         if(r) { 
-            return ylasymis_macro(*ovty)? ylechain_clone(r): r;
+            return ylasymis_macro(*ovty)? _list_clone(r): r;
         } else {
             /* 
              * check whether this represents number or not
@@ -403,7 +430,7 @@ yleval(yle_t* e, yle_t* a) {
                  *     To reserve original expression, we need to use cloned one. 
                  *  --> Now expression is preserved!
                  */
-                yle_t* exp = ylechain_clone(ylcaddar(e));
+                yle_t* exp = _list_clone(ylcaddar(e));
                 if(0 > _mreplace(exp, ylappend(ylpair(ylcadar(e), ylcdr(e)), ylnil()))) {
                     yllogE0("Fail to mreplace!!\n");
                     ylinterpret_undefined(YLErr_eval_undefined);

@@ -22,6 +22,8 @@
 
 #include <stdlib.h>
 #include <memory.h>
+#include <string.h>
+#include <stdio.h>
 
 /* enable logging & debugging */
 #define CONFIG_ASSERT
@@ -30,10 +32,6 @@
 #include "ylsfunc.h"
 #include "yltrie.h"
 #include "ylut.h"
-
-#define _DEFAULT_PRBUF_SZ  256
-
-static yldynb_t _prstr;
 
 /* --------------------------------------
  * Define new type - trie START
@@ -50,6 +48,7 @@ _aif_trie_eq(const yle_t* e0, const yle_t* e1) {
                         (int(*)(const void*, const void*))&_trie_value_cmp);
 }
 
+#if 0 /* Keep it for future use! */
 static void*
 _cb_clone(void* map, const void* v) {
     return ylechain_clone(v);
@@ -70,24 +69,39 @@ _aif_trie_copy(void* map, yle_t* n, const yle_t* e) {
 
     return 0;
 }
+#endif /* Keep it for future use! */
 
 static int
-_cb_trie_print_walk(void* user, const char* sym, void* v) {
-    yldynb_t* b = user;
-    ylutstr_append(b, "%s ", sym);
+_cb_trie_print_walk(void* user, const unsigned char* key,
+                    unsigned int sz, void* v) {
+    /* HACK for dynamic buffer */
+    yldynb_t* b = user; /* this is string buffer */
+    /* remove trailing 0 of string buffer */
+    ylassert(b->sz > 0);
+    b->sz--;
+    yldynb_append(b, key, sz);
+    yldynb_append(b, " ", sizeof(" ")); /* add space and trailing 0 to make buffer string */
     /* keep going */
     return 1;
 }
 
-static const char*
-_aif_trie_to_string(const yle_t* e) {
+static int
+_aif_trie_to_string(const yle_t* e, char* b, unsigned int sz) {
+    yldynb_t  dyb;
     yltrie_t* t = (yltrie_t*)ylacd(e);
-    yldynb_shrink(&_prstr, _DEFAULT_PRBUF_SZ);
-    ylutstr_reset(&_prstr);
-    ylutstr_append(&_prstr, "[");
-    yltrie_walk(t, &_prstr, "", &_cb_trie_print_walk);
-    ylutstr_append(&_prstr, "]");
-    return ylutstr_string(&_prstr);
+    int       bw, ret = 0;
+
+    if(0 > ylutstr_init(&dyb, 1024)) { ylassert(0); }
+    ylutstr_append(&dyb, "[");
+    yltrie_walk(t, &dyb, "", 0, &_cb_trie_print_walk);
+    ylutstr_append(&dyb, "]");
+
+    bw = ylutstr_len(&dyb);
+    if(sz < bw) { bw = -1; }
+    else { memcpy(b, ylutstr_string(&dyb), bw); }
+    yldynb_clean(&dyb);
+
+    return bw;
 }
 
 
@@ -100,7 +114,8 @@ static int
 _aif_trie_visit(yle_t* e, void* user, int(*cb)(void*, yle_t*));
 
 static int
-_aif_trie_visit_cb(void* user, const char* sym, void* v) {
+_aif_trie_visit_cb(void* user, const unsigned char* key,
+                   unsigned int sz, void* v) {
     struct _trie_walk_user* u = (struct _trie_walk_user*)user;
     u->cb(u->user, (yle_t*)v);
     return 1; /* keep going */
@@ -111,7 +126,7 @@ _aif_trie_visit(yle_t* e, void* user, int(*cb)(void*, yle_t*)) {
     struct _trie_walk_user     stu;
     stu.user = user;
     stu.cb = cb;
-    yltrie_walk(ylacd(e), &stu, "", &_aif_trie_visit_cb);
+    yltrie_walk(ylacd(e), &stu, "", 0, &_aif_trie_visit_cb);
     return 0;
 }
 
@@ -123,7 +138,7 @@ _aif_trie_clean(yle_t* e) {
 
 static ylatomif_t _aif_trie = {
     &_aif_trie_eq,
-    &_aif_trie_copy,
+    NULL,
     &_aif_trie_to_string,
     &_aif_trie_visit,
     &_aif_trie_clean
@@ -171,7 +186,8 @@ YLDEFNF(trie_create, 0, 1) {
         w = ylcar(e);
         while(!yleis_nil(w)) {
             v = yleval(ylcadar(w), a);
-            if(1 == yltrie_insert(t, ylasym(ylcaar(w)).sym, v) ) {
+            if(1 == yltrie_insert(t, ylasym(ylcaar(w)).sym,
+                                  strlen(ylasym(ylcaar(w)).sym), v) ) {
                 ylnflogW1("Trie duplicated intial value : %s\n", ylasym(ylcaar(w)).sym);
             }
             w = ylcdr(w);
@@ -199,7 +215,8 @@ YLDEFNF(trie_insert, 2, 3) {
     v = (pcsz > 2)? ylcaddr(e): ylnil();
 
     /* unref will be done inside of 'insert' by _element_freecb */
-    switch(yltrie_insert(t, ylasym(ylcadr(e)).sym, v)) {
+    switch(yltrie_insert(t, ylasym(ylcadr(e)).sym, 
+                         strlen(ylasym(ylcadr(e)).sym), v)) {
         case -1:
             ylnflogE1("Fail to insert to trie : %s\n", ylasym(ylcadr(e)).sym);
             ylinterpret_undefined(YLErr_func_fail);
@@ -221,7 +238,7 @@ YLDEFNF(trie_del, 2, 2) {
     }
 
     t = (yltrie_t*)ylacd(ylcar(e));
-    if(0 > yltrie_delete(t, ylasym(ylcadr(e)).sym)) {
+    if(0 > yltrie_delete(t, ylasym(ylcadr(e)).sym, strlen(ylasym(ylcadr(e)).sym))) {
         /* invalid slot name */
         ylnflogW1("invalid slot name : %s\n", ylasym(ylcadr(e)).sym);
         return ylnil();
@@ -240,7 +257,7 @@ YLDEFNF(trie_get, 2, 2) {
     }
 
     t = (yltrie_t*)ylacd(ylcar(e));
-    v = yltrie_get(t, ylasym(ylcadr(e)).sym);
+    v = yltrie_get(t, ylasym(ylcadr(e)).sym, strlen(ylasym(ylcadr(e)).sym));
     if(v) { return (yle_t*)v; }
     else { 
         /* invalid slot name */
@@ -292,6 +309,7 @@ _aif_arr_eq(const yle_t* e0, const yle_t* e1) {
     }
 }
 
+#if 0 /* Keep it for future use! */
 static int
 _aif_arr_copy(void* map, yle_t* n, const yle_t* e) {
     _earr_t*    sat = ylacd(e);
@@ -318,16 +336,20 @@ _aif_arr_copy(void* map, yle_t* n, const yle_t* e) {
     _destroy_arr_data(at);
     return -1;
 }
+#endif /* Keep it for future use! */
 
-
-static const char*
-_aif_arr_to_string(const yle_t* e) {
+static int
+_aif_arr_to_string(const yle_t* e, char* b, unsigned int sz) {
     /*
      * recursive printing by using 'ylechain_print' is impossible...
      * (ylechain_print uses static buffer.. and this function may be re-enterred by recursive printing!
      * atom should print it's own data... not containing reference!
      */
-    return ">> ARRAY <<";
+    _earr_t* at = ylacd(e);
+    int      bw;
+    bw = snprintf(b, sz, ">>ARR:%d<<", at->sz);
+    if(bw >= sz) { return -1; } /* not enough buffer */
+    return bw;
 }
 
 static int
@@ -350,7 +372,7 @@ _aif_arr_clean(yle_t* e) {
 
 static ylatomif_t _aif_arr = {
     &_aif_arr_eq,
-    &_aif_arr_copy,
+    NULL,
     &_aif_arr_to_string,
     &_aif_arr_visit,
     &_aif_arr_clean
@@ -497,13 +519,3 @@ YLDEFNF(arr_set, 3, 9999) {
 
 
 /* -------------------------------------- */
-
-void
-__LNF__libylext__nfunc__INIT__() {
-    ylutstr_init(&_prstr, _DEFAULT_PRBUF_SZ);
-}
-
-void
-__LNF__libylext__nfunc__DeINIT__() {
-    yldynb_clean(&_prstr);
-}
