@@ -37,7 +37,7 @@ static int _mblk = 0;
 
 static const char* _exp = 
     "(interpret-file '../yls/base.yl)\n"
-    "(interpret-file '../yls/test_base.yl)\n"
+    "(interpret-file '../test/test_base.yl)\n"
     ;
 
 

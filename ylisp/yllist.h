@@ -30,6 +30,7 @@
 #ifndef ___YLLISt_h___
 #define ___YLLISt_h___
 
+#include "yldef.h"
 
 /*
  * Define primitive operation of linked list!

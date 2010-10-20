@@ -68,32 +68,32 @@ yleclean(yle_t* e);
 /*
  * GC Protection required to caller
  */
-yle_t*
+extern yle_t*
 ylapply(yle_t* f, yle_t* args, yle_t* a);
 
 /*
  * get current evaluation id.
  */
-unsigned int
+extern unsigned int
 yleval_id();
 
 /*
  * To show 'eval' stack when interpreting fails
  */
-void
+extern void
 ylpush_eval_info(const yle_t* e);
 
-void
+extern void
 ylpop_eval_info();
 
 /*
  * only for internel use - for 'interpret-file' command!
  * (To know whether interpreting started by user request or by batch script)
  */
-ylerr_t
+extern ylerr_t
 ylinterpret_internal(const char* stream, unsigned int streamsz);
 
-void
+extern void
 ylinteval_lock();
 
 void

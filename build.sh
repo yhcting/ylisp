@@ -79,4 +79,8 @@ check_exit_status
 make release
 check_exit_status
 
+cd ../test
+make clean
+make
+
 cd ..

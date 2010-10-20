@@ -1,5 +1,6 @@
 (print '"====== Start Testing 'system' =======\n")
 (sys.sh 'ls)
+(print (sys.sh '"echo abcd"))
 (assert (equal '"abcd
 " (sys.sh '"echo abcd")))
 (assert (sys.setenv 'EnvTest 'hahaha))

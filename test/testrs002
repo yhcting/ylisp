@@ -1,0 +1,38 @@
+;************************************************
+; CHECK BASIC ERROR CASES
+;************************************************
+
+; not-interned symbol
+FAIL
+yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+
+=================================================
+
+; invalid funtion (nil)
+FAIL
+('() 'haha)
+
+=================================================
+
+; invalid parameter 
+FAIL
+(+ 'a 'b)
+
+=================================================
+
+; invalid parameter 
+FAIL
+(- 'a 'b)
+
+
+=================================================
+
+; invalid parameter 
+FAIL
+(car 'a)
+
+=================================================
+
+; Wrong usage of 'let'
+FAIL
+(let ( (a '()) ('a '()) ) a)

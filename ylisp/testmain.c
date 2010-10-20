@@ -35,7 +35,7 @@
 static int _mblk = 0;
 
 static const char* _exp = 
-    "(interpret-file '../yls/test.yl)\n"
+    "(interpret-file '../test/test.yl)\n"
     /*
     "'xxxx\n"
     "(set 'x '(a b c))\n"
@@ -87,8 +87,6 @@ extern void ylmp_gc();
 int
 main(int argc, char* argv[]) {
     ylsys_t          sys;
-    unsigned char*   strm;
-    unsigned int     strmsz;
 
     /* ylset system parameter */
     sys.log = _log;
@@ -101,19 +99,11 @@ main(int argc, char* argv[]) {
 
     ylinit(&sys);
 
-#if 1
-    strm = (unsigned char*)ylutfile_read(&strmsz, "../yls/test.yl", FALSE);
-#else
-    strm = _exp;
-    strmsz = strlen(_exp);
-#endif
-
-    if(YLOk != ylinterpret(strm, strmsz)) {
+    if(YLOk != ylinterpret(_exp, strlen(_exp))) {
         printf("Fail to interpret...\n");
         return 0;
     }
 
-    ylfree(strm);
     yldeinit();
     printf("MBLK : %d\n", get_mblk_size());
 

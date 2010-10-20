@@ -39,7 +39,7 @@ static const char* _exp =
     "(load-cnf '../lib/libylbase.so)\n"
     "(interpret-file '../yls/base.yl)\n"
     "(interpret-file '../yls/string.yl)\n"
-    "(interpret-file '../yls/test_string.yl)\n"
+    "(interpret-file '../test/test_string.yl)\n"
     ;
 
 void*

@@ -1,0 +1,38 @@
+;************************************************
+; SUCCESSFUL CASES (CHECK LOGICAL CORRECTNESS)
+;************************************************
+
+; Load initial scripts firstly!
+
+OK
+(interpret-file '../yls/init.yl)
+
+=================================================
+
+OK
+(interpret-file 'test_base.yl)
+
+=================================================
+
+OK
+(interpret-file 'test_math.yl)
+
+=================================================
+
+OK
+(interpret-file 'test_string.yl)
+
+=================================================
+
+OK
+(interpret-file 'test_util.yl)
+
+=================================================
+
+OK
+(interpret-file 'test_system.yl)
+
+=================================================
+
+OK
+(interpret-file 'test_ext.yl)

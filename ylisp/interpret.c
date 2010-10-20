@@ -906,6 +906,8 @@ ylinterpret_internal(const char* stream, unsigned int streamsz) {
 
 ylerr_t
 ylinterpret(const char* stream, unsigned int streamsz) {
+    _gctt_unset_timer();
+
     switch(_interp_trylock()) {
         case TRUE: {
             ylerr_t  ret;
