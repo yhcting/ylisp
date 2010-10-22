@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -30,13 +30,12 @@
 
 
 /*=======================
- * Local varaible 
+ * Local varaible
  *=======================*/
 static ylsys_t* _sysv = NULL;
-static ylerr_t  _err  = YLOk;
 
-/* 
- * print buffer. This is used in ylechain_print 
+/*
+ * print buffer. This is used in ylechain_print
  * (DO NOT USE THIS ELSEWHERE)
  */
 static yldynb_t _prdynb = {0, 0, NULL};
@@ -55,7 +54,7 @@ const yle_t* const ylg_predefined_nil    = &_predefined_nil;
 const yle_t* const ylg_predefined_quote  = &_predefined_quote;
 
 /*=======================
- * Global functions 
+ * Global functions
  *=======================*/
 
 
@@ -209,7 +208,7 @@ _DEFAIF_EQ_START(bin) {
        && (0 == memcmp(ylabin(e0).d, ylabin(e1).d, ylabin(e0).sz)) ) {
         return 1;
     } else {
-        return 0; 
+        return 0;
     }
 } _DEFAIF_EQ_END
 
@@ -304,7 +303,7 @@ yleclean(yle_t* e) {
     } else {
         /*
          * Let'a think of memory block M that is taken from pool, but not initialized.
-         * Value of M is invald. But, All cleaned memory block has NULL car and cdr value. 
+         * Value of M is invald. But, All cleaned memory block has NULL car and cdr value.
          * (see bottom of this funcion and ylmp_block().)
          * If there is interpreting error before M is initialized, M is GCed.
          * In this case, car and cdr of M can be NULL!.
@@ -322,15 +321,14 @@ yleclean(yle_t* e) {
 
 ylerr_t
 ylregister_nfunc(unsigned int version,
-                 const char* sym, ylnfunc_t nfunc, 
+                 const char* sym, ylnfunc_t nfunc,
                  const ylatomif_t* aif, /* AIF. can be ylaif_sfunc / ylaif_nfunc */
                  const char* desc) {
     yle_t*       e;
-    char*        s;
-    
+
     if(yldev_ver_major(version) < yldev_ver_major(YLDEV_VERSION)) {
         yllogE4("Version of CNF library is lower than ylisp!!\n"
-              "  ylisp[%d.%d], cnf[%d.%d]\n", 
+              "  ylisp[%d.%d], cnf[%d.%d]\n",
               yldev_ver_major(YLDEV_VERSION), yldev_ver_minor(YLDEV_VERSION),
               yldev_ver_major(version), yldev_ver_minor(version));
         return YLErr_cnf_register;
@@ -397,7 +395,7 @@ _aprint(yldynb_t* b, yle_t* e) {
     int  cw; /* character written */
     if(ylaif(e)->to_string) {
         while(1) {
-            cw = ylaif(e)->to_string(e, ylutstr_ptr(b), yldynb_freesz(b));
+            cw = ylaif(e)->to_string(e, (char*)ylutstr_ptr(b), yldynb_freesz(b));
             if( cw >= 0) {
                 b->sz += cw;
                 b->b[b->sz-1] = 0; /* add trailing 0 */
@@ -424,7 +422,7 @@ _eprint(yldynb_t* b, yle_t* e, yltrie_t* map) {
     } else {
         yle_t* car_e = ylcar(e);
         yle_t* cdr_e = ylcdr(e);
-        
+
         /*
          * When cdr/car can be NULL? Free block in memory pool has NULL car/cdr value.
          * Tring to print garbage expr. may lead to the case of printing free block.
@@ -530,8 +528,8 @@ ylechain_print(const yle_t* e) {
     _fcall(ylechain_print_internal(e, &_prdynb, map));
 
     yltrie_destroy(map);
-    return ylutstr_string(&_prdynb);
-    
+    return (const char*)ylutstr_string(&_prdynb);
+
  bail:
     yltrie_destroy(map);
     return "print error: out of memory\n";
@@ -550,7 +548,7 @@ ylsym_nr_candidates(const char* start_with, unsigned int* max_symlen) {
  * @return: <0: error. Otherwise number of candidates found.
  */
 int
-ylsym_candidates(const char* start_with, 
+ylsym_candidates(const char* start_with,
                  char** ppbuf,       /* in/out */
                  unsigned int ppbsz, /* size of ppbuf - regarding 'ppbuf[i]' */
                  unsigned int pbsz) {/* size of pbuf - regarding 'ppbuf[0][x]' */
@@ -576,29 +574,26 @@ ylsym_auto_complete(const char* start_with, char* buf, unsigned int bufsz) {
 /* this SHOULD BE called first */
 ylerr_t
 ylinit(ylsys_t* sysv) {
-    ylerr_t      ret = YLOk;
-    register int i;
-
     /* Check system parameter! */
     if(!(sysv && sysv->print
-         && sysv->assert && sysv->malloc 
+         && sysv->assert && sysv->malloc
          && sysv->free
-         && sysv->gctp > 0 && sysv->gctp < 100)) { 
+         && sysv->gctp > 0 && sysv->gctp < 100)) {
         goto bail;
     }
-    
+
     _sysv = sysv;
 
     if( YLOk != ylsfunc_init()
         || YLOk != ylgsym_init()
         || YLOk != ylnfunc_init()
-        || YLOk != ylmp_init() 
+        || YLOk != ylmp_init()
         || YLOk != ylinterp_init()) {
         goto bail;
     }
 
-    /* 
-     * '_predefined_xxxx' SHOULD NOT be freed!!!! 
+    /*
+     * '_predefined_xxxx' SHOULD NOT be freed!!!!
      * So, passing data pointer is OK
      */
     ylaassign_sym(ylt(),  "t");
@@ -616,7 +611,7 @@ ylinit(ylsys_t* sysv) {
     return YLOk;
 
  bail:
-    return YLErr_init; 
+    return YLErr_init;
 }
 
 void

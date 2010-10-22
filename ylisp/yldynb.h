@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -38,11 +38,11 @@ typedef struct {
 } yldynb_t;
 
 /*
- * To avoid including <memory.h> 
+ * To avoid including <memory.h>
  * (If this walkaround makes headaches, just includes it!)
  *
  * NOTE!
- * Actually 'memcpy' is defined as 
+ * Actually 'memcpy' is defined as
  *     extern void * memcpy ( void * destination, const void * source, size_t num );
  * In general, "size_t != unsigned int", but, in some cases, it isn't.
  * In this non-general cases, compiler will complain about this!

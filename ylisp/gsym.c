@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -46,12 +46,12 @@ _free_description(char* desc) {
 static inline _value_t*
 _alloc_value(int sty, yle_t* e) {
     _value_t* v = ylmalloc(sizeof(_value_t));
-    if(!v) { 
-        /* 
+    if(!v) {
+        /*
          * if allocing such a small size of memory fails, we can't do anything!
          * Just ASSERT IT!
          */
-        ylassert(0); 
+        ylassert(0);
     }
     v->ty = sty; v->desc = &_dummy_empty_desc;
     v->e = e;
@@ -61,9 +61,9 @@ _alloc_value(int sty, yle_t* e) {
 static inline void
 _free_value(_value_t* v) {
     _free_description(v->desc);
-    /* 
+    /*
      * we don't need to free 'v->e' explicitly here!
-     * unlinking from global is enough! 
+     * unlinking from global is enough!
      */
     ylfree(v);
 }
@@ -84,32 +84,32 @@ int
 ylgsym_insert(const char* sym, int sty, yle_t* e) {
     _value_t*     v = _alloc_value(sty, e);
     unsigned int  slen = strlen(sym);
-    _value_t*     ov = yltrie_get(_trie, sym, slen);
+    _value_t*     ov = yltrie_get(_trie, (unsigned char*)sym, slen);
     if(ov) {
-        /* 
-         * in case of overwritten, description should be preserved. 
+        /*
+         * in case of overwritten, description should be preserved.
          * If this twice-search is bottle-neck of performance,
          *  we can reduce overhead by setting value directly to the existing 'ov'.
-         * By doing this, we can recduce cost 
+         * By doing this, we can recduce cost
          * by saving 1-trie-seach and 1-freeing-trie-node.
-         * (But in my opinion, it's not big deal! 
+         * (But in my opinion, it's not big deal!
          *  We whould better not to write hard-to-read-code.)
          */
         v->desc = ov->desc;
         /* to prevent from freeing inside trie! - HACK */
         ov->desc = &_dummy_empty_desc;
     }
-    return yltrie_insert(_trie, sym, slen, (void*)v);
+    return yltrie_insert(_trie, (unsigned char*)sym, slen, (void*)v);
 }
 
 int
 ylgsym_delete(const char* sym) {
-    return yltrie_delete(_trie, sym, strlen(sym));
+    return yltrie_delete(_trie, (unsigned char*)sym, strlen(sym));
 }
 
 int
 ylgsym_set_description(const char* sym, const char* description) {
-    _value_t* v = yltrie_get(_trie, sym, strlen(sym));
+    _value_t* v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
     if(v) {
         unsigned int sz;
         char*        desc;
@@ -134,13 +134,13 @@ ylgsym_set_description(const char* sym, const char* description) {
 
 const char*
 ylgsym_get_description(const char* sym) {
-    _value_t* v = yltrie_get(_trie, sym, strlen(sym));
+    _value_t* v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
     return v? v->desc: NULL;
 }
 
 yle_t*
 ylgsym_get(int* outty, const char* sym) {
-    _value_t* v = yltrie_get(_trie, sym, strlen(sym));
+    _value_t* v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
     if(v) {
         if(outty) { *outty = v->ty; }
         return v->e;
@@ -163,16 +163,18 @@ void
 ylgsym_gcmark() {
     /* This is called by 'Scanning GC' */
     if(_trie) {
-        yltrie_walk(_trie, NULL, "", 0,
+        yltrie_walk(_trie, NULL, (unsigned char*)"", 0,
                     (int(*)(void*, const unsigned char*,
                             unsigned int, void*))&_cb_gcmark);
     }
 }
 
 int
-ylgsym_auto_complete(const char* start_with, 
+ylgsym_auto_complete(const char* start_with,
                      char* buf, unsigned int bufsz) {
-    return yltrie_auto_complete(_trie, start_with, strlen(start_with), buf, bufsz);
+    return yltrie_auto_complete(_trie, (unsigned char*)start_with,
+                                (unsigned int)strlen(start_with),
+                                (unsigned char*)buf, bufsz);
 }
 
 typedef struct {
@@ -195,9 +197,10 @@ ylgsym_nr_candidates(const char* start_with,
     _candidates_sz_t   st;
     st.cnt = st.maxlen = 0;
 
-    if(0 > yltrie_walk(_trie, &st, start_with, strlen(start_with),
+    if(0 > yltrie_walk(_trie, &st, (unsigned char*)start_with,
+                       (unsigned int)strlen(start_with),
                        (int(*)(void*, const unsigned char*,
-                               unsigned int, void*))&_cb_nr_candidates)) { 
+                               unsigned int, void*))&_cb_nr_candidates)) {
         return 0;
     }
 
@@ -228,11 +231,12 @@ ylgsym_candidates(const char* start_with, char** ppbuf,
                   unsigned int ppbsz,
                   unsigned int pbsz) {
     _candidates_t  st;
-    st.ppbuf = ppbuf; 
-    st.ppbsz = ppbsz; 
+    st.ppbuf = ppbuf;
+    st.ppbsz = ppbsz;
     st.i = 0;
 
-    if(0 > yltrie_walk(_trie, &st, start_with, strlen(start_with),
+    if(0 > yltrie_walk(_trie, &st, (unsigned char*)start_with,
+                       (unsigned int)strlen(start_with),
                        (int(*)(void*, const unsigned char*,
                                unsigned int, void*))&_cb_candidates)) {
         return -1;

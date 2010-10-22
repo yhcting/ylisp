@@ -14,20 +14,20 @@ FAIL
 
 =================================================
 
-; invalid parameter 
+; invalid parameter
 FAIL
 (+ 'a 'b)
 
 =================================================
 
-; invalid parameter 
+; invalid parameter
 FAIL
 (- 'a 'b)
 
 
 =================================================
 
-; invalid parameter 
+; invalid parameter
 FAIL
 (car 'a)
 

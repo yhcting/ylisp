@@ -97,12 +97,12 @@ main(int argc, char* argv[]) {
     ylinit(&sys);
 
 #define NFUNC(n, s, type, desc)  \
-    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, desc)) { return; }
+    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, desc)) { return 0; }
 #   include "nfunc.in"
 #undef NFUNC
 
-    if(YLOk != ylinterpret(_exp, strlen(_exp))) {
-        return;
+    if(YLOk != ylinterpret((unsigned char*)_exp, (unsigned int)strlen(_exp))) {
+        return 0;
     }
 
     /* to check memory status */
@@ -112,6 +112,8 @@ main(int argc, char* argv[]) {
 
     printf("---------------------------\n"
            "Test Success\n");
+
+    return 0;
 }
 
 #else /* __YLDBG__ */
@@ -132,7 +134,6 @@ ylcnf_onload() {
     if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylext <<\n" desc)) { return; }
 #   include "nfunc.in"
 #undef NFUNC
-
 }
 
 void

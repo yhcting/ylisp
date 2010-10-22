@@ -67,8 +67,8 @@
 ; Test Array
 ;=============================
 (set 'i 0)
-(set 'j 0) 
-(set 'k 0) 
+(set 'j 0)
+(set 'k 0)
 
 ;-- set & unset
 (set 'ar0 (arr-create 10))
@@ -109,6 +109,8 @@
 (assert (equal 1050 (arr-get ar0 1 1 50)))
 (arr-set ar0 11 1 1)
 (assert (equal 11 (arr-get ar0 1 1)))
+(aset ar0 101 1 1)
+(assert (equal 101 (aref ar0 1 1)))
 
 ;-- Equal
 (set 'ar0 (arr-create 10 10))

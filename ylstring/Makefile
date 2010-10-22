@@ -14,11 +14,11 @@ EXTLIB=$(addprefix $(EXTLIB_DIR),$(addsuffix .a,$(addprefix lib,$(EXT_LIBRARY)))
 
 SOURCES= main.c nfunc.c nfunc_re.c
 
-OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES))) 
+OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES)))
 DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 
 # Flags for shared object
-CFLAGS+= -fPIC -g
+CFLAGS+= -fPIC -Wall -g
 # temp block... no lib to link
 #LDFLAGS+=-static
 LDFLAGS+= -rdynamic -ldl -lrt -lpthread -L/usr/local/lib -lpcre
@@ -50,11 +50,11 @@ DEPS_MAGIC := $(shell mkdir $(DEPDIR) $(OUTDIR) > /dev/null 2>&1 || :)
 # simply ignore file which doesn't exist. (At first these files don't exist..)
 -include $(DEP_FILES)
 
-$(OUTDIR)%.o: %.c 
+$(OUTDIR)%.o: %.c
 	@echo '$(C_COMPILE) -o $@ -c $<'; \
 	$(C_COMPILE) $(C_DEPENDENCIES) -o $@ -c $<
 
-# Is 'chmod' really only way to change mode of output so file?? Any elegant way???? 
+# Is 'chmod' really only way to change mode of output so file?? Any elegant way????
 $(LIB): $(OBJ)
 	@echo '$(SO_LINK) $@ $^'; \
 	$(SO_LINK) -shared -Wl,-soname,$@ -o $@ $^
@@ -66,7 +66,7 @@ $(TARGET): $(OBJ) $(EXTLIB)
 	$(C_LINK) -o  $@ $^
 
 
-tags: 
+tags:
 
 
 clean:

@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -76,7 +76,7 @@ ylstk_destroy(ylstk_t* s) {
 
 
 static inline unsigned int
-ylstk_size(ylstk_t* s) { 
+ylstk_size(ylstk_t* s) {
     return s->sz;
 }
 
@@ -101,20 +101,22 @@ static inline void*
 ylstk_pop(ylstk_t* s) {
     if(s->sz) {
         return s->item[--s->sz];
-    } else { 
+    } else {
         yllogE0("Internal Error in Stack. Try to pop on empty stack!\n");
         ylinterpret_undefined(YLErr_internal);
     }
+    return NULL; /* to make compiler happy */
 }
 
 static inline void*
 ylstk_peek(ylstk_t* s) {
     if(s->sz) {
         return s->item[s->sz-1];
-    } else { 
+    } else {
         yllogE0("Internal Error in Stack. Try to peek on empty stack!\n");
         ylinterpret_undefined(YLErr_internal);
     }
+    return NULL; /* to make compiler happy */
 }
 
 #define stack_foreach(s, p, i)                          \

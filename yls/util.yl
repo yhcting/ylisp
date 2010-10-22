@@ -14,7 +14,7 @@
         (while (not (null (cdr I)))
             (set 'J L)
             (while (not (null (cdr J)))
-                (cond 
+                (cond
                     ( (equal '() (cmp (car J) (cadr J)))
                         (progn
                             (set 'etmp (car J))

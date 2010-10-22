@@ -3,11 +3,11 @@ import java.awt.event.KeyEvent;
 import javax.swing.JTextArea;
 
 class YLJEditArea extends JTextArea {
-    
+
     YLJEditArea() {
         super(1, 1);
     }
-    
+
     /**
      * Assume.
      *   last added char is right parenthesis!
@@ -32,10 +32,10 @@ class YLJEditArea extends JTextArea {
         }
         return -1;
     }
-    
+
     protected void processKeyEvent(KeyEvent e) {
         if(')' == e.getKeyChar()
-                && KeyEvent.KEY_TYPED == e.getID()) { 
+                && KeyEvent.KEY_TYPED == e.getID()) {
             int    pos = getCaretPosition();
             int    m = _findMatchingLeftParenth(pos);
             if(m >= 0) {

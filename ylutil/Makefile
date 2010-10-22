@@ -14,11 +14,11 @@ EXTLIB=$(addprefix $(EXTLIB_DIR),$(addsuffix .a,$(addprefix lib,$(EXT_LIBRARY)))
 
 SOURCES= main.c nfunc.c
 
-OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES))) 
+OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES)))
 DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 
 # Flags for shared object
-CFLAGS+= -fPIC -g
+CFLAGS+= -fPIC -Wall -g
 # temp block... no lib to link
 #LDFLAGS+=-L$(EXTLIB_DIR) -l$(EXT_LIBRARY)
 LDFLAGS+=-rdynamic -ldl -lrt -lpthread
@@ -48,14 +48,14 @@ DEPS_MAGIC := $(shell mkdir $(DEPDIR) $(OUTDIR) > /dev/null 2>&1 || :)
 # simply ignore file which doesn't exist. (At first these files don't exist..)
 -include $(DEP_FILES)
 
-$(OUTDIR)%.o: %.c 
+$(OUTDIR)%.o: %.c
 	@echo '$(C_COMPILE) -o $@ -c $<'; \
 	$(C_COMPILE) $(C_DEPENDENCIES) -o $@ -c $<
 
 $(LIB): $(OBJ)
 	@echo '$(SO_LINK) $@ $^'; \
 	$(SO_LINK) -shared -Wl,-soname,$@ -o $@ $^
-	#Is this really only way to change mode?? Any elegant way???? 
+	#Is this really only way to change mode?? Any elegant way????
 	chmod 0644 $@
 	cp $@ ../lib/
 	#cp $(PUB_HEADER) ../include
@@ -65,7 +65,7 @@ $(TARGET): $(OBJ) $(EXTLIB)
 	$(C_LINK) -o  $@ $^
 
 
-tags: 
+tags:
 
 
 clean:

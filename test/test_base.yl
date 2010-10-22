@@ -9,7 +9,7 @@
 
 
 (set 'rrr 'ttt)
-(assert 
+(assert
     (equal rrr 'ttt))
 
 (mset zzz rrr)
@@ -44,7 +44,7 @@
 (assert (equal '(x a b) '(x a b)))
 (assert (equal '(x a) (cons 'x (cons 'a '()))))
 
-(defmacro ee (x y) 
+(defmacro ee (x y)
     "test macro"
     (car '(x y)))
 
@@ -110,7 +110,7 @@
 (assert (equal 0 (* 100 0)))
 (assert (equal 3 (/ 6 2)))
 (assert (equal 8 (/ 8 1)))
-    
+
 (assert (equal 't (> 2 1)))
 (assert (= 't (> 2 1)))
 (assert (= '() (< 2 1)))
@@ -136,7 +136,7 @@
 
 (set 'i 0)
 (set 's 0)
-(while (< i 11) 
+(while (< i 11)
     (progn
         (set 's (+ s i))
         (set 'i (+ i 1))))

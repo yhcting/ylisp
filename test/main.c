@@ -7,12 +7,19 @@
 #include <fcntl.h>
 #include <memory.h>
 #include <malloc.h>
-#include <assert.h>
 #include <stdarg.h>
+
+#define CONFIG_LOG
+#define CONFIG_ASSERT
 
 #include "ylisp.h"
 #include "yllist.h"
 #include "ylut.h"
+
+/*
+ * due to 'assert' macro, put "assert.h" at bottom of include list.
+ */
+#include <assert.h>
 
 #define _LOGLV YLLogW
 
@@ -63,7 +70,7 @@ _trim(char* s) {
         while(p>=s && _is_ws(*p)) { p--; }
         assert(p>=s && p>=ns);
         sz = p-ns+1;
-    }    
+    }
 
     r = malloc(sz+1);
     r[sz] = 0;/*trailing 0*/
@@ -120,7 +127,7 @@ _read_section(FILE* f, int* bOK, yldynb_t* b) {
             else { return 0; }
         }
         tln = _trim(ln);
-         /* 
+         /*
           * Following two type line is ignored.
           *    - white space line
           *    - line starts with ';' (leading WS is ignored)
@@ -155,9 +162,10 @@ _testrs_files(unsigned int* nr/*out*/) {
     unsigned int      i;
 
     yllist_init_link(&hd);
-    
+
     dip = opendir(".");
-    while(dit = readdir(dip)) {
+    /* '!!' to make compiler be happy. */
+    while(!!(dit = readdir(dip))) {
         if(DT_REG == dit->d_type &&
            0 == memcmp(dit->d_name, _RSPREF, sizeof(_RSPREF)-1)) {
             p = dit->d_name + sizeof(_RSPREF) - 1;
@@ -298,4 +306,5 @@ main(int argc, char* argv[]) {
            "!!!!!   Test Success - GOOD JOB   !!!!!\n"
            "=======================================\n"
            "\n\n\n");
+    return 0;
 }

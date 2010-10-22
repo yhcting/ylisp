@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -42,8 +42,8 @@ static char*
 _alloc_str(const char* str) {
     char*        p;
     p = ylmalloc(strlen(str)+1);
-    /* 
-     * This function is used for small-length string. 
+    /*
+     * This function is used for small-length string.
      * So, let's skip handling allocation-failure.
      */
     if(p) { strcpy(p, str); }
@@ -52,14 +52,13 @@ _alloc_str(const char* str) {
 }
 
 /*
- * @outsz: 
+ * @outsz:
  *    in case of fail: 0 means OK, otherwise error!
  */
 static void*
 _readf(unsigned int* outsz, const char* func, const char* fpath, int btext) {
     char*        buf = NULL;
     unsigned int sz;
-    FILE*        fh;
 
     if(outsz) { *outsz = 1; } /* 1 means, 'not 0' */
     buf = ylutfile_read(&sz, fpath, btext);
@@ -122,20 +121,19 @@ YLDEFNF(sh, 1, 1) {
     int         saved_stdout, saved_stderr;
     FILE*       ofh = NULL;
     char*       buf = NULL;
-    const char* errmsg = NULL;
 
     /* check input parameter */
     ylnfcheck_atype_chain1(e, ylaif_sym());
 
     /* set to invalid value */
-    saved_stdout = saved_stderr = -1; 
+    saved_stdout = saved_stderr = -1;
 
     /* save stdout/stderr to restore later*/
     saved_stdout = dup(STDOUT_FILENO);
     saved_stderr = dup(STDERR_FILENO);
-    if(saved_stdout < 0 || saved_stderr < 0) { 
+    if(saved_stdout < 0 || saved_stderr < 0) {
         ylnflogE0("Fail to save stdout/stderr\n");
-        goto bail; 
+        goto bail;
     }
 
     if( NULL == (ofh = fopen(__outf_name, "w")) ) {
@@ -152,17 +150,17 @@ YLDEFNF(sh, 1, 1) {
     if(0 > dup2(fileno(ofh), STDOUT_FILENO)) { ylnflogE0("Fail to dup stdout\n"); goto bail; }
 
 
-    /* 
-     * Now, we are ready to redirect 
+    /*
+     * Now, we are ready to redirect
      * It's time to execute command (fork)
      */
-    { /* Just scope */    
+    { /* Just scope */
         pid_t       cpid; /* child process id */
 
         cpid = fork();
-        if(-1 == cpid) { 
-            ylnflogE0("Fail to fork!\n"); 
-            goto bail; 
+        if(-1 == cpid) {
+            ylnflogE0("Fail to fork!\n");
+            goto bail;
         }
 
         if(cpid) { /* parent */
@@ -182,7 +180,6 @@ YLDEFNF(sh, 1, 1) {
         }
 
     } /* Just scope */
-    /* 
 
     /* flush result */
     /*
@@ -223,15 +220,16 @@ YLDEFNF(sh, 1, 1) {
     } else {
         yle_t* r = ylacreate_sym(buf);
         /* buffer is already assigned to expression. So, this SHOULD NOT be freed */
-        buf = NULL; 
+        buf = NULL;
         __cleanup_process();
         return r;
-    }        
+    }
 
  bail:
     __restore_redirection();
     __cleanup_process();
     ylinterpret_undefined(YLErr_func_fail);
+    return NULL; /* to make compiler be happy. */
 
 #undef __cleanup_process
 #undef __outf_name
@@ -269,7 +267,6 @@ YLDEFNF(getenv, 1, 1) {
 } YLENDNF(getenv)
 
 YLDEFNF(setenv, 2, 2) {
-    char*  env;
     /* check input parameter */
     ylnfcheck_atype_chain1(e, ylaif_sym());
     if(0 == setenv(ylasym(ylcar(e)).sym, ylasym(ylcadr(e)).sym, 1)) {
@@ -298,7 +295,7 @@ YLDEFNF(getcwd, 0, 0) {
 
 YLDEFNF(fstat, 1, 1) {
     /* Not tested yet! */
-    
+
     struct stat    st;
     yle_t         *r, *key, *v;
     ylnfcheck_atype_chain1(e, ylaif_sym());
@@ -321,7 +318,7 @@ YLDEFNF(fstat, 1, 1) {
     }
     /* make r as '((key v)) */
     r = ylcons(yllist(key, v), ylnil());
-    
+
     /* make 'size' pair */
     key = ylacreate_sym(_alloc_str("size"));
     v = ylacreate_dbl((double)st.st_size);
@@ -331,50 +328,44 @@ YLDEFNF(fstat, 1, 1) {
 
 
 YLDEFNF(fread, 1, 1) {
-    FILE*    fh = NULL;
     char*    buf = NULL;
     yle_t*   r;
 
     ylnfcheck_atype_chain1(e, ylaif_sym());
-    
+
     buf = _readf(NULL, "fread", ylasym(ylcar(e)).sym, TRUE);
     if(!buf) { goto bail; }
 
     r = ylacreate_sym(buf);
     buf = NULL; /* to prevent from free */
 
-    if(fh) { fclose(fh); }
     if(buf) { ylfree(buf); }
     return r;
 
  bail:
-    if(fh) { fclose(fh); }
     if(buf) { ylfree(buf); }
 
     return ylnil();
 } YLENDNF(fread)
 
 YLDEFNF(freadb, 1, 1) {
-    FILE*        fh = NULL;
     char*        buf = NULL;
     yle_t*       r;
     unsigned int sz;
 
     ylnfcheck_atype_chain1(e, ylaif_bin());
-    
+
     buf = _readf(&sz, "freadb", ylasym(ylcar(e)).sym, FALSE);
     if(!buf && 0 != sz) { goto bail; }
 
     r = ylacreate_bin(buf, sz);
     buf = NULL; /* to prevent from free */
 
-    if(fh) { fclose(fh); }
     if(buf) { ylfree(buf); }
 
     return r;
 
  bail:
-    if(fh) { fclose(fh); }
     if(buf) { ylfree(buf); }
 
     return ylnil();
@@ -392,7 +383,7 @@ YLDEFNF(fwrite, 2, 2) {
         ylnflogE0("invalid parameter type\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
-       
+
     fh = fopen(ylasym(ylcar(e)).sym, "w");
     if(!fh) {
         ylnflogW1("Cannot open file [%s]\n", ylasym(ylcar(e)).sym);
@@ -411,7 +402,7 @@ YLDEFNF(fwrite, 2, 2) {
         ylnflogW1("Fail to write file [%s]\n", ylasym(ylcar(e)).sym);
         goto bail;
     }
-    
+
     if(fh) { fclose(fh); }
     return ylt();
 
@@ -429,22 +420,23 @@ YLDEFNF(readdir, 1, 1) {
     ylnfcheck_atype_chain1(e, ylaif_sym());
     dpath = ylasym(ylcar(e)).sym;
     dip = opendir(dpath);
-    if(!dip) { 
+    if(!dip) {
         ylnflogW1("Fail to open directory [%s]\n", dpath);
-        goto bail; 
+        goto bail;
     }
- 
+
     { /* just scope */
         struct dirent*    dit;
         yle_t*            sentinel;
         unsigned int      len;
         char*             fname;
         yle_t            *ne, *t;  /* new exp / tail */
-        
+
         /* initialize sentinel */
         sentinel = ylcons(ylnil(), ylnil());
         t = sentinel;
-        while(dit = readdir(dip)) {
+        /* '!!' to make compiler be happy */
+        while(!!(dit = readdir(dip))) {
             /* ignore '.', '..' in the directory */
             if(0 == strcmp(".", dit->d_name)
                || 0 == strcmp("..", dit->d_name)) { continue; }
@@ -459,12 +451,12 @@ YLDEFNF(readdir, 1, 1) {
         }
         re = ylcdr(sentinel);
     }
-    
+
     closedir(dip);
     return re;
-    
+
  bail:
     if(dip) { closedir(dip); }
     return ylnil();
-    
+
 } YLENDNF(readdir)

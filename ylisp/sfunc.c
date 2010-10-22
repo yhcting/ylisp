@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 #include "gsym.h"
 #include "lisp.h"
 
@@ -80,7 +81,7 @@ yleq(const yle_t* e1, const yle_t* e2) {
             return ylnil();
         }
     } else if(!yleis_atom(e1) && !yleis_atom(e2)) {
-        return ( yleis_nil(yleq(ylcar(e1), ylcar(e2))) 
+        return ( yleis_nil(yleq(ylcar(e1), ylcar(e2)))
                  || yleis_nil(yleq(ylcdr(e1), ylcdr(e2))) )?
             ylnil(): ylt();
 
@@ -103,7 +104,7 @@ yleq(const yle_t* e1, const yle_t* e2) {
  */
 static inline yle_t*
 _list_find(yle_t* x, yle_t* y) {
-    if( yleis_atom(y) || yleis_atom(ylcar(y)) ) { 
+    if( yleis_atom(y) || yleis_atom(ylcar(y)) ) {
         /* check that y is empty list or not. NIL also atom! */
         return NULL;
     } else {
@@ -132,12 +133,12 @@ _set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
     if( !ylais_type(s, ylaif_sym())
         || ylnil() == s) {
         yllogE0("Only symbol can be set!\n");
-        ylinterpret_undefined(YLErr_eval_undefined); 
+        ylinterpret_undefined(YLErr_eval_undefined);
     }
 
-    if(0 == *ylasym(s).sym) { 
+    if(0 == *ylasym(s).sym) {
         yllogE0("empty symbol cannot be set!\n");
-        ylinterpret_undefined(YLErr_eval_undefined); 
+        ylinterpret_undefined(YLErr_eval_undefined);
     }
 
     ylassert(ylasym(s).sym);
@@ -145,9 +146,9 @@ _set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
     if(r) {
         /* found it */
         ylassert(!yleis_atom(r));
-        if(yleis_atom(ylcdr(r))) { 
+        if(yleis_atom(ylcdr(r))) {
             yllogE0("unexpected set operation!\n");
-            ylinterpret_undefined(YLErr_eval_undefined); 
+            ylinterpret_undefined(YLErr_eval_undefined);
         } else  {
             ylassert(ylais_type(ylcar(r), ylaif_sym()));
             if(bmac) { ylasymset_macro(ylasym(ylcar(r)).ty); }
@@ -160,7 +161,7 @@ _set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
         if(bmac) { ylgsym_insert(ylasym(s).sym, ylasymset_macro(ylasym(s).ty), val); }
         else { ylgsym_insert(ylasym(s).sym, ylasymclear_macro(ylasym(s).ty), val); }
         if(desc) {
-            if(desc[0]) { 
+            if(desc[0]) {
                 /* strlen(desc) > 0 */
                 ylgsym_set_description(ylasym(s).sym, desc);
             } else {
@@ -189,7 +190,7 @@ ylis_set(const char* sym) {
 }
 
 /*
- * assumption : 
+ * assumption :
  *    form of 'a' is ((u1 v1) (u2 v2) ...)
  *    e : not atom!
  */
@@ -197,9 +198,9 @@ static inline int
 _mreplace(yle_t* e, yle_t* a) {
     int     r = 0;
     /* @e SHOULD NOT be an atom! */
-    if(!e || yleis_atom(e) || !a) { 
+    if(!e || yleis_atom(e) || !a) {
         yllogE0("Wrong syntax of mlambda!\n");
-        return -1; 
+        return -1;
     }
 
     dbg_eval(yllogV1("---- macro replace -------\n"
@@ -242,7 +243,7 @@ _mreplace(yle_t* e, yle_t* a) {
 /**
  * y is a yllist of the form ((u1 v1) ... (uN vN)) yland x is one of u's then
  * assoc [x; y] = yleq [ylcaar [y]; x] -> ylcadr [y]; T -> assoc [x; ylcdr[y]]
- * 
+ *
  * < additional constraints : x is atomic >
  */
 const yle_t*
@@ -250,7 +251,7 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
     yle_t* r;
     if( !ylais_type(x, ylaif_sym()) ) {
         yllogE0("Only symbol can be associated!\n");
-        ylinterpret_undefined(YLErr_eval_undefined); 
+        ylinterpret_undefined(YLErr_eval_undefined);
     }
 
     /*
@@ -260,7 +261,7 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
      */
     r = _list_find(x, y);
 
-    /* 
+    /*
      * !! IMPORTANT NOTE !!
      *    This SHOULD NOT BE THE ONE IN GLOBAL SPACE!!
      *    Expression should be preserved!
@@ -277,17 +278,17 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
      *    (This is NOT BUG. It's implementation CONCEPT!)
      *
      */
-    if(r) { 
+    if(r) {
         /* Found! in local association list */
         ylassert(ylais_type(ylcar(r), ylaif_sym()));
         *ovty = ylasym(ylcar(r)).ty;
         return ylasymis_macro(*ovty)? _list_clone(ylcadr(r)): ylcadr(r);
     } else {
         r = (yle_t*)ylgsym_get(ovty, ylasym(x).sym);
-        if(r) { 
+        if(r) {
             return ylasymis_macro(*ovty)? _list_clone(r): r;
         } else {
-            /* 
+            /*
              * check whether this represents number or not
              * (string that representing number associated to 'double' type value )
              */
@@ -305,6 +306,7 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
             ylinterpret_undefined(YLErr_eval_undefined);
         }
     }
+    return NULL; /* to make compiler happy */
 }
 
 /*=================================
@@ -322,7 +324,9 @@ yleval(yle_t* e, yle_t* a) {
 
     yle_t*       r = NULL;
     int          vty;
+#ifdef CONFIG_DBG_EVAL
     unsigned int evid = _eval_id++; /* evaluation id for debugging */
+#endif /* CONFIG_DBG_EVAL */
 
     /* This is right place to interrupt evaluation! */
     ylinteval_unlock();
@@ -336,10 +340,10 @@ yleval(yle_t* e, yle_t* a) {
     dbg_eval(yllogV1("    =>%s\n", ylechain_print(a)););
     dbg_mem(yllogV4("START eval:\n"
                     "    MP usage : %d\n"
-                    "    refcnt : nil(%d), t(%d), q(%d)\n", 
-                    ylmp_usage(), ylercnt(ylnil()), 
+                    "    refcnt : nil(%d), t(%d), q(%d)\n",
+                    ylmp_usage(), ylercnt(ylnil()),
                     ylercnt(ylt()), ylercnt(ylq())););
-    
+
     /*
      * 'e' and 'a' should be preserved during evaluation.
      * So, add reference count manually!
@@ -348,7 +352,7 @@ yleval(yle_t* e, yle_t* a) {
      */
     ylmp_push2(e, a);
 
-    if( yleis_atom(e) ) { 
+    if( yleis_atom(e) ) {
         if(ylaif_sym() == ylaif(e)) {
             r = (yle_t*)_assoc(&vty, e, a);
             if(ylasymis_macro(vty)) {
@@ -365,7 +369,7 @@ yleval(yle_t* e, yle_t* a) {
         if(ylaif_sym() == ylaif(car_e) ) {
             r = (yle_t*)_assoc(&vty, car_e, a);
             if(ylasymis_macro(vty)) {
-                /* 
+                /*
                  * This is macro symbol! replace target expression with symbol.
                  * And evaluate it with replaced value!
                  */
@@ -388,7 +392,7 @@ yleval(yle_t* e, yle_t* a) {
                     yllogE0("ERROR to evaluate. First element should be an atom that represets function!\n");
                     ylinterpret_undefined(YLErr_eval_undefined);
                 }
-            } 
+            }
         } else {
             yllogE0("ERROR to evaluate. Only symbol and list can be evaluated!\n");
             ylinterpret_undefined(YLErr_eval_undefined);
@@ -404,19 +408,19 @@ yleval(yle_t* e, yle_t* a) {
             r = yleval(ylcaddar(e), ylappend(ylpair(ylcadar(e), ylevlis(ylcdr(e), a)), a));
         } else if(_cmp(mlambda, ce)) {
             if( yleis_nil(ylcadar(e)) && !yleis_nil(ylcaddar(e)) ) {
-                /* 
+                /*
                  * !!! Special usage of mlambda !!!
                  * If parameter is nil, than, arguments are appended to the body!
                  */
                 yle_t* we = ylcaddar(e);
                 while(!yleis_nil(ylcdr(we))) { we = ylcdr(we); }
 
-                /* 
+                /*
                  * Expression itself is preserved at any case.
                  * So, we don't need to care about replacement of expression.
                  * (restoring link is enough!)
                  *
-                 * original '(cdr we)' is nil. So we don't need to preserved 'we' before eval! 
+                 * original '(cdr we)' is nil. So we don't need to preserved 'we' before eval!
                  */
                 /* connect body with argument */
                 ylpsetcdr(we, ylcdr(e));
@@ -424,10 +428,10 @@ yleval(yle_t* e, yle_t* a) {
                 /* restore to original value - nil */
                 ylpsetcdr(we, ylnil());
             } else {
-                /* 
+                /*
                  * NOTE!!
                  *     expression itself may be changed in '_mreplace'.
-                 *     To reserve original expression, we need to use cloned one. 
+                 *     To reserve original expression, we need to use cloned one.
                  *  --> Now expression is preserved!
                  */
                 yle_t* exp = _list_clone(ylcaddar(e));
@@ -437,9 +441,8 @@ yleval(yle_t* e, yle_t* a) {
                 } else {
                     r = yleval(exp, a);
                 }
-            }            
+            }
         } else {
-            yle_t *p1, *p2;
             /* my extention */
             r = yleval(ylcons(yleval(ylcar(e), a), ylcdr(e)), a);
             /* ylinterpret_undefined(YLErr_eval_undefined); */
@@ -449,13 +452,13 @@ yleval(yle_t* e, yle_t* a) {
 #undef _cmp
 
     if(r) {
-        
+
         dbg_eval(yllogV2("[%d] eval Out:\n"
                          "    %s\n", evid, ylechain_print(r)););
         ylmp_pop2();
 
         /* Returned value should be pretected from GC. */
-        ylmp_push1(r); 
+        ylmp_push1(r);
         ylmp_gc_if_needed();
         /* Pass responsibility about preserving return value to the caller! */
         ylmp_pop1();
@@ -469,6 +472,7 @@ yleval(yle_t* e, yle_t* a) {
         yllogE0("NULL return! is it possible!\n");
         ylinterpret_undefined(YLErr_eval_undefined);
     }
+    return NULL; /* to make compiler happy */
 }
 
 

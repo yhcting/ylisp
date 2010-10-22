@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -29,9 +29,13 @@
 #include <stdarg.h>
 #include <string.h>
 #include <malloc.h>
-#include <assert.h>
 #include <memory.h>
+#include <unistd.h>
 #include "jni.h"
+
+#define CONFIG_LOG
+#define CONFIG_ASSERT
+
 #include "ylisp.h"
 
 /*
@@ -40,6 +44,8 @@
  * (Using 'ylut.h' is not essential!)
  */
 #include "ylut.h"
+
+#include <assert.h>
 
 #define _INIT_OUTBUFSZ        4*1024 /* normal page size */
 
@@ -93,7 +99,7 @@ yldynb_t dynb = {0, 0, NULL};
  * Method:    nativeInterpret
  * Signature: (Ljava/lang/String;)Z
  */
-static jboolean JNICALL 
+static jboolean JNICALL
 _jni_Main_nativeInterpret
 (JNIEnv* jenv, jobject jobj, jstring jstr) {
     jboolean       jret = JNI_TRUE;
@@ -102,7 +108,8 @@ _jni_Main_nativeInterpret
     stream = (*jenv)->GetStringUTFChars(jenv, jstr, NULL);
 
     ylutstr_reset(&dynb);
-    if( YLOk != ylinterpret(stream, strlen(stream)) ) {
+    if( YLOk != ylinterpret((unsigned char*)stream,
+                            (unsigned int)strlen(stream)) ) {
         jret = JNI_FALSE;
     }
 
@@ -116,7 +123,7 @@ _jni_Main_nativeInterpret
  * Method:    nativeInterrupt
  * Signature: ()Z
  */
-static jboolean JNICALL 
+static jboolean JNICALL
 _jni_Main_nativeForceStop
 (JNIEnv* jenv, jobject jobj) {
     jboolean       jret = JNI_TRUE;
@@ -129,11 +136,11 @@ _jni_Main_nativeForceStop
  * Method:    nativeGetLastInterpretMessage
  * Signature: ()Ljava/lang/String;
  */
-static jstring JNICALL 
+static jstring JNICALL
 _jni_Main_nativeGetLastNativeMessage
 (JNIEnv* jenv, jobject jobj) {
     jstring jret;
-    jret = ((*jenv)->NewStringUTF(jenv, ylutstr_string(&dynb)));
+    jret = ((*jenv)->NewStringUTF(jenv, (char*)ylutstr_string(&dynb)));
     if(!jret) {
         _print("Not enough Java memory to get native message!\n"
                "Native message size : %d\n", ylutstr_len(&dynb));
@@ -156,7 +163,7 @@ _jni_Main_nativeGetLastNativeMessage
  * Method:    nativeSetLogLevel
  * Signature: (I)V
  */
-static void JNICALL 
+static void JNICALL
 _jni_Main_nativeSetLogLevel
 (JNIEnv* jenv, jobject jobj, jint lv) {
     if(lv < YLLogV) { lv = YLLogV; }
@@ -169,7 +176,7 @@ _jni_Main_nativeSetLogLevel
  * Method:    nativeAutoComplete
  * Signature: (Ljava/lang/String;)I
  */
-static jint JNICALL 
+static jint JNICALL
 _jni_Main_nativeAutoComplete
 (JNIEnv* jenv, jobject jobj, jstring jprefix) {
     int         ret;
@@ -178,9 +185,9 @@ _jni_Main_nativeAutoComplete
     prefix = (*jenv)->GetStringUTFChars(jenv, jprefix, NULL);
 
     ylutstr_reset(&dynb);
-    ret = ylsym_auto_complete(prefix, ylutstr_ptr(&dynb), yldynb_freesz(&dynb));
+    ret = ylsym_auto_complete(prefix, (char*)ylutstr_ptr(&dynb), yldynb_freesz(&dynb));
     /* we need to assess directly..here... due to limitation of API */
-    dynb.sz += strlen(ylutstr_string(&dynb));
+    dynb.sz += strlen((char*)ylutstr_string(&dynb));
 
     switch(ret) {
         case 0: {
@@ -194,7 +201,7 @@ _jni_Main_nativeAutoComplete
                 num = ylsym_nr_candidates(prefix, &maxlen);
                 assert(num > 1);
                 pp = malloc(sizeof(char*)*num);
-                if(!pp) { 
+                if(!pp) {
                     _print("Fail to alloc memory : %d\n", num);
                     assert(0);
                 }
@@ -233,7 +240,7 @@ _jni_Main_nativeAutoComplete
     }
 
     (*jenv)->ReleaseStringUTFChars(jenv, jprefix, prefix);
-    
+
     return ret;
 }
 
@@ -246,10 +253,10 @@ _register_natives(JNIEnv* jenv) {
 
     /* Natives */
     const JNINativeMethod jninms[] = {
-        { "nativeInterpret", 
+        { "nativeInterpret",
           "(Ljava/lang/String;)Z",
           (void*)_jni_Main_nativeInterpret },
-        { "nativeForceStop", 
+        { "nativeForceStop",
           "()Z",
           (void*)_jni_Main_nativeForceStop },
         { "nativeGetLastNativeMessage",
@@ -265,8 +272,8 @@ _register_natives(JNIEnv* jenv) {
 
     jclass cls = (*jenv)->FindClass(jenv, "Main");
     if(!cls) { return -1; }
-    
-    if( 0 > (*jenv)->RegisterNatives(jenv, cls, jninms, 
+
+    if( 0 > (*jenv)->RegisterNatives(jenv, cls, jninms,
                                  sizeof(jninms)/sizeof(jninms[0])) ) {
         return -1;
     }
@@ -274,7 +281,7 @@ _register_natives(JNIEnv* jenv) {
 }
 
 
-static JNIEnv* 
+static JNIEnv*
 _create_jvm(JavaVM** jvm) {
     JNIEnv*             jenv;
     JavaVMInitArgs      jvmargs;
@@ -304,6 +311,7 @@ _start_java(JavaVM* jvm, JNIEnv* jenv) {
     jmid_main = (*jenv)->GetStaticMethodID(jenv, jcls_main, "main", "([Ljava/lang/String;)V");
     if(!jmid_main) { return -1; }
     (*jenv)->CallStaticVoidMethod(jenv, jcls_main, jmid_main, NULL);
+    return 0; /* to make compiler be happy */
 }
 
 
@@ -312,7 +320,7 @@ main(int argc, char* argv[]) {
     /* initialize ylisp */
     { /* just scope */
         ylsys_t     sys;
-    
+
         sys.print     = _print;
         sys.log       = _log;
         sys.assert    = _assert;

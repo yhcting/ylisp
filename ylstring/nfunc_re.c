@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -99,7 +99,7 @@ YLDEFNF(re_match, 3, 3) {
     }
 
     rc = pcre_exec(re, NULL, subject, strlen(subject), 0, 0, ovect, _OVECCNT);
-    
+
     /* set head as sentinel */
     hd = tl = ylmp_block();
     ylpassign(hd, ylnil(), ylnil());
@@ -220,5 +220,5 @@ YLDEFNF(re_replace, 4, 4) {
  bail:
     if(subject) { ylfree(subject); }
     ylinterpret_undefined(interp_err);
-    
+    return NULL; /* to make compiler be happy. */
 } YLENDNF(re_replace)

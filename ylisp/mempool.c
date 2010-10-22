@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -22,6 +22,7 @@
 
 #include "mempool.h"
 #include "stack.h"
+#include "gsym.h"
 
 typedef struct {
     unsigned int i;     /**< index of free block pointer */
@@ -77,6 +78,7 @@ ylmp_block() {
     if(_m.fbi <= 0) {
         yllogE1("Not enough Memory Pool.. Current size is %d\n", ylmpsz());
         ylassert(0);
+        return NULL; /* to make compiler happy */
     } else {
         yle_t*  e;
         --_m.fbi;
@@ -116,7 +118,7 @@ static void
 _clean_block(yle_t* e) {
     ylassert(e != ylnil() && e != ylt() && e != ylq());
     yleclean(e);
-    
+
     /* swap free block pointer */
     { /* Just scope */
         _blk_t* b1 = container_of(e, _blk_t, e);
@@ -139,7 +141,7 @@ _DEF_VISIT_FUNC(static, _gcmark, ,!yleis_gcmark(e), yleset_gcmark(e))
 static void
 _gc() {
     unsigned int  cnt, ratio_sv;
-    int           i; 
+    int           i;
     yle_t*        e;
 
     /* clear all GC mark */
@@ -167,7 +169,7 @@ _gc() {
     yllogI4("GC Triggered (%d\% -> %d\%) :\n"
             "%d blocks collected\n"
             "bbs stack size : %d\n",
-            ratio_sv, _usage_ratio(), 
+            ratio_sv, _usage_ratio(),
             cnt, ylstk_size(_bbs));
 }
 

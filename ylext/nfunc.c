@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -37,14 +37,14 @@
  * Define new type - trie START
  * --------------------------------------*/
 
-static int 
+static int
 _trie_value_cmp(const yle_t* e0, const yle_t* e1) {
     return yleis_nil(yleq(e0, e1))? 0: 1;
 }
 
 static int
 _aif_trie_eq(const yle_t* e0, const yle_t* e1) {
-    return yltrie_equal((yltrie_t*)ylacd(e0), (yltrie_t*)ylacd(e1), 
+    return yltrie_equal((yltrie_t*)ylacd(e0), (yltrie_t*)ylacd(e1),
                         (int(*)(const void*, const void*))&_trie_value_cmp);
 }
 
@@ -80,7 +80,7 @@ _cb_trie_print_walk(void* user, const unsigned char* key,
     ylassert(b->sz > 0);
     b->sz--;
     yldynb_append(b, key, sz);
-    yldynb_append(b, " ", sizeof(" ")); /* add space and trailing 0 to make buffer string */
+    yldynb_append(b, (unsigned char*)" ", sizeof(" ")); /* add space and trailing 0 to make buffer string */
     /* keep going */
     return 1;
 }
@@ -89,11 +89,11 @@ static int
 _aif_trie_to_string(const yle_t* e, char* b, unsigned int sz) {
     yldynb_t  dyb;
     yltrie_t* t = (yltrie_t*)ylacd(e);
-    int       bw, ret = 0;
+    int       bw = 0;
 
     if(0 > ylutstr_init(&dyb, 1024)) { ylassert(0); }
     ylutstr_append(&dyb, "[");
-    yltrie_walk(t, &dyb, "", 0, &_cb_trie_print_walk);
+    yltrie_walk(t, &dyb, (unsigned char*)"", 0, &_cb_trie_print_walk);
     ylutstr_append(&dyb, "]");
 
     bw = ylutstr_len(&dyb);
@@ -126,7 +126,7 @@ _aif_trie_visit(yle_t* e, void* user, int(*cb)(void*, yle_t*)) {
     struct _trie_walk_user     stu;
     stu.user = user;
     stu.cb = cb;
-    yltrie_walk(ylacd(e), &stu, "", 0, &_aif_trie_visit_cb);
+    yltrie_walk(ylacd(e), &stu, (unsigned char*)"", 0, &_aif_trie_visit_cb);
     return 0;
 }
 
@@ -172,9 +172,9 @@ YLDEFNF(trie_create, 0, 1) {
      * UNLINKING is ENOUGH! (so fcb is NULL)
      */
     t = yltrie_create(NULL);
-    /* 
+    /*
      * bind to memory block as soon as possible to avoid memory leak.
-     * (one of eval. below may fails. 
+     * (one of eval. below may fails.
      *  Then trie 't' becomes dangling, if it is not binded to mem block)
      */
     r = ylacreate_cust(&_aif_trie, t);
@@ -186,8 +186,8 @@ YLDEFNF(trie_create, 0, 1) {
         w = ylcar(e);
         while(!yleis_nil(w)) {
             v = yleval(ylcadar(w), a);
-            if(1 == yltrie_insert(t, ylasym(ylcaar(w)).sym,
-                                  strlen(ylasym(ylcaar(w)).sym), v) ) {
+            if(1 == yltrie_insert(t, (unsigned char*)ylasym(ylcaar(w)).sym,
+                                  (unsigned int)strlen(ylasym(ylcaar(w)).sym), v) ) {
                 ylnflogW1("Trie duplicated intial value : %s\n", ylasym(ylcaar(w)).sym);
             }
             w = ylcdr(w);
@@ -200,6 +200,7 @@ YLDEFNF(trie_create, 0, 1) {
  invalid_param:
     ylnflogE0("invalid parameter type\n");
     ylinterpret_undefined(YLErr_func_invalid_param);
+    return NULL; /* to make compiler be happy */
 } YLENDNF(trie_create)
 
 YLDEFNF(trie_insert, 2, 3) {
@@ -215,8 +216,8 @@ YLDEFNF(trie_insert, 2, 3) {
     v = (pcsz > 2)? ylcaddr(e): ylnil();
 
     /* unref will be done inside of 'insert' by _element_freecb */
-    switch(yltrie_insert(t, ylasym(ylcadr(e)).sym, 
-                         strlen(ylasym(ylcadr(e)).sym), v)) {
+    switch(yltrie_insert(t, (unsigned char*)ylasym(ylcadr(e)).sym,
+                         (unsigned int)strlen(ylasym(ylcadr(e)).sym), v)) {
         case -1:
             ylnflogE1("Fail to insert to trie : %s\n", ylasym(ylcadr(e)).sym);
             ylinterpret_undefined(YLErr_func_fail);
@@ -225,12 +226,12 @@ YLDEFNF(trie_insert, 2, 3) {
         case 0: return ylnil(); /* newly inserted */
         default:
             ylassert(0); /* This should not happen! */
+            return NULL; /* to make compiler be happy */
     }
 } YLENDNF(trie_insert)
 
 YLDEFNF(trie_del, 2, 2) {
     yltrie_t*   t;
-    yle_t*      v;
     if(!(_is_trie_type(ylcar(e))
          && ylais_type(ylcadr(e), ylaif_sym()))) {
         ylnflogE0("invalid parameter type\n");
@@ -238,7 +239,8 @@ YLDEFNF(trie_del, 2, 2) {
     }
 
     t = (yltrie_t*)ylacd(ylcar(e));
-    if(0 > yltrie_delete(t, ylasym(ylcadr(e)).sym, strlen(ylasym(ylcadr(e)).sym))) {
+    if(0 > yltrie_delete(t, (unsigned char*)ylasym(ylcadr(e)).sym,
+                         (unsigned int)strlen(ylasym(ylcadr(e)).sym))) {
         /* invalid slot name */
         ylnflogW1("invalid slot name : %s\n", ylasym(ylcadr(e)).sym);
         return ylnil();
@@ -257,9 +259,10 @@ YLDEFNF(trie_get, 2, 2) {
     }
 
     t = (yltrie_t*)ylacd(ylcar(e));
-    v = yltrie_get(t, ylasym(ylcadr(e)).sym, strlen(ylasym(ylcadr(e)).sym));
+    v = yltrie_get(t, (unsigned char*)ylasym(ylcadr(e)).sym,
+                   (unsigned int)strlen(ylasym(ylcadr(e)).sym));
     if(v) { return (yle_t*)v; }
-    else { 
+    else {
         /* invalid slot name */
         ylnflogW1("invalid slot name : %s\n", ylasym(ylcadr(e)).sym);
         return ylnil();
@@ -295,8 +298,8 @@ _aif_arr_eq(const yle_t* e0, const yle_t* e1) {
     _earr_t* at0 = ylacd(e0);
     _earr_t* at1 = ylacd(e1);
 
-    if(!at0 && !at1) { 
-        return 1; 
+    if(!at0 && !at1) {
+        return 1;
     } else if(at0 && at1) {
         int i;
         if(at0->sz != at1->sz) { return 0; }
@@ -447,10 +450,7 @@ YLDEFNF(arr_create, 1, 9999) {
  oom:
     ylnflogE0("Out Of Memory\n");
     ylinterpret_undefined(YLErr_out_of_memory);
-
- invalid_param:
-    ylnflogE0("invalid parameter type\n");
-    ylinterpret_undefined(YLErr_func_invalid_param);
+    return NULL; /* to make compiler be happy */
 } YLENDNF(arr_create)
 
 
@@ -472,10 +472,10 @@ _arr_get(yle_t* e, yle_t* ie) {
     } else {
         return _arr_get(at->arr[i], ylcdr(ie));
     }
-    
+
  bail:
     yllogE0("Invalid Array Access\n");
-    return NULL; 
+    return NULL;
 }
 
 YLDEFNF(arr_get, 2, 9999) {
@@ -493,7 +493,10 @@ YLDEFNF(arr_get, 2, 9999) {
 
     pv = _arr_get(ylcar(e), ylcdr(e));
     if(pv) { return *pv; }
-    else { ylinterpret_undefined(YLErr_func_fail); }
+    else {
+        ylinterpret_undefined(YLErr_func_fail);
+        return NULL; /* to make compiler be happy */
+    }
 } YLENDNF(arr_get)
 
 
@@ -514,7 +517,10 @@ YLDEFNF(arr_set, 3, 9999) {
     if(pv && *pv) { /* *pv cannot be NULL */
         *pv = ylcadr(e);
         return ylcadr(e);
-    } else { ylinterpret_undefined(YLErr_func_fail); }
+    } else {
+        ylinterpret_undefined(YLErr_func_fail);
+        return NULL; /* to make compiler be happy */
+    }
 } YLENDNF(arr_set)
 
 

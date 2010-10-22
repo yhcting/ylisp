@@ -5,22 +5,31 @@
 Introduction
 ------------
     Goal of YLISP is Rapid Tool Development Tool.
-    So, YLISP doesn't want to be complete programming language like Common Lisp.
+    So, YLISP doesn't want to be complete programming language like Common
+     Lisp.
     And execution speed(performance) is not considered enough, too.
-    Instead of it, YLISP focuses on supporting mechanism to add and use customized-native-function(CNF)s easily.
+    Instead of it, YLISP focuses on supporting mechanism to add and use
+     customized-native-function(CNF)s easily.
     Consumer can easily extend their own CNFs by programming plugins.
-    Lisp is function based language. So, Consumer can define their own semantics with S-Expression syntax.
+    (Even new object type can be easily added at consumer's plugin.)
+    Lisp is function based language. So, consumer can define their own
+     semantics with S-Expression syntax.
     (That is, consumer can make their own lisp by extending CNF plugins)
-    YLISP's mathmatical model comes from (http://www-formal.stanford.edu/jmc/recursive (by John McCarthy)).
-    
+    YLISP's mathmatical model comes from
+     (http://www-formal.stanford.edu/jmc/recursive (by John McCarthy)).
+
     Main features that YLISP library provides are:
         * S-Expression syntax parser.
-        * Lisp evaluation mechanism (fundamental S-Functions are built-in (ex. lambda, mlambda, set, mset) in the library)
+        * Lisp evaluation mechanism
+          (fundamental S-Functions are built-in (ex. lambda, mlambda, set,
+           mset) in the library)
         * Mechanism for GC(Garbage Collection) and Force-Stop.
-        * Mechanism to manage/lookup global symbols and to get candidates for auto-completion.
+        * Mechanism to manage/lookup global symbols and to get candidates for
+           auto-completion.
         * Interface to load/unload CNF plugins(libraries).
 
-    At this project, some plugins are already implemented. Those can be good examples.
+    At this project, some plugins are already implemented. Those can be good
+     examples.
 
     YLISP has been compiled and tested only on:
         * Linux(Ubuntu)
@@ -29,57 +38,82 @@ Introduction
 Design Policy
 -------------
     Try to preserve S-Expression syntax as much as possible.
-        - Syntax of S-Expression is incredibly simple, easy-to-understand and clear! But, many lisp dialects break this for more powerful syntax.
-          The only exception at YLISP is ['] that repesents 'QUOTE'. Without the exception, YLISP obeys pure S-Expression-based-syntax!.
+        - Minimize exception in the syntax.
+          Syntax of S-Expression is incredibly simple, easy-to-understand and
+           clear!
+          But, many lisp dialects break this for more powerful syntax.
+          The only exception at YLISP is ['] that repesents 'QUOTE'.
+          Except for that, YLISP obeys pure S-Expression-based-syntax!.
           (#, : and so on don't have any special meanings.)
-    Make it as easy as possible that developers add new CNF plugins. (Obsolete)
-        - To achieve this, reference-count-based-GC becomes main, and scan-and-mark-based-GC becomes sub.
-          So, developers don't need to take care of handling memory blocks that they are using, in their own CNF.
-          That is, they don't need to consider about GC - protecting memory blocks from GC and release them at the right moment - when they uses memory blocks.
-          This can reduce burdens of developers about mis-using memory blocks - ex. leak, unexpected GC.
-    Reference Count is not used anymore!
-        - Scan-based-GC becomes major.
+        - Text-based-language.
+          YLISP doesn't compile anything. It interprets only
+           human-readable-text.
+          YLISP doesn't tell difference between 'code' and 'data'.
+          'string' can be used as 'symbol' and vice versa.
+          So, there is not special syntax to tell
+           "This indicates function name." or "This is string data."
+          For example,
+              (set 'x 'car)
+              ; Following code generates error in ELISP (I'm not sure at CL)
+              ; But works in YLISP. Function name 'car' is also just a kind of
+               'symbol'.
+              ((lambda (f) (f '(1 2))) (eval x)) ; => 1
+    Easy to add new CNF plugins.
+        - In most cases, consumer don't need to consider about protecting
+           memory block from GC.
+          See 'GC' part for details.
+        - There is predefined interface that atom should support.
+          So, consumer can easily add their own atom type at his/her plugin.
 
 
 How Do I Build It?
 ------------------
     In the YLISP directory, type 'sh build.sh'
-        To apply user specific environment, modify Makefile in each directory.
+        To apply consumer specific environment, modify Makefile in each
+         directory.
         Current source requires followings to build.
             : libpthread.so, libdl.so, librt.so, jre (yljfe), libm.so (ylmath)
 
-        
+
 How Do I Run Demo?
 ------------------
     Build it by type 'sh build.sh'. Enter yljfe. type './yljfe'.
-    For running test scripts in 'yls' directly at the start of 'yljfe'.
-    Type './yljfe (../yls/test.yl)'
+    For running initial scripts in 'yls' directly at the start of 'yljfe'.
+    Type './yljfe (../yls/init.yl)'
+    To run sanity test, type "cd test; ./test"
     Simple introduction of yljfe.
         Text panel is edit area. You can type ylisp code in it.
         Press Ctrl-R to run edited ylisp code.
         yljfe uses standard output(console).
-        So, output of execution can be seen at the console where yljfe is executed.
-        (Note! So, you SHOULD keep your console being visible to check ylisp's output!)
+        So, output of execution can be seen at the console where yljfe is
+         executed.
+        (Note! So, you SHOULD keep your console being visible to check ylisp's
+         output!)
         Ctrl-F to symbol auto completion.
 
 
-How Do I Use It?
-----------------
+Is It Useful To Me?
+-------------------
     I don't know.
     I uses yljfe as a simple script language tool for making tool.
-    The reason why I starts this project is, 
-        "I don't want to learn any other script language! Learning one-language(C/C++) is enough!"
-    But, actually I am defeated. There are lots of scripts that I should understand.
+    The reason why I starts this project is,
+        "I don't want to learn any other script language! Learning
+         one-language(C/C++) is enough!"
+    But, actually I am defeated. There are lots of scripts that I should
+     understand.
     So, I had to learn those...(ex. python, perl, shell etc)
-    But, learning language to make code requires totally different efforts comparing to learning language to understand code.
+    But, learning language to make code, requires totally different level of
+     efforts comparing to learning language to understand code.
     YLISP is tool for me to make customized script easily.
     Why don't you try to make your own script language based on S-Expression!
 
 
-External dependency
+External Dependency
 -------------------
-    YLISP uses thread, per-process timer and plugin loading - dynamic loading. And it plugin uses base symbol directly. 
-    So, "-rdynamic -ldl -lrt -lpthread" options are required when creating executable file with YLISP.a library.
+    YLISP uses thread, per-process timer and plugin loading - dynamic loading.
+    And it plugin uses base symbol directly.
+    So, "-rdynamic -ldl -lrt -lpthread" options are required when creating
+     executable file with YLISP.a library.
 
 
 
@@ -92,11 +126,12 @@ Directory/File Structure
 ------------------------
     ylisp:
         Core module.
-        This includes 'Lisp Syntax Parser', function for evaluating expression, memory management, symbol lookup, core S-Functions etc.
-        Others except for this module, are just extending native functions of YLISP.
-        So, most parts of this document are to explain details about this module (ylisp).
-    ylcon:
-        Very simple console front-end for YLISP. With yljfe, it becomes obsolete.
+        This includes 'Lisp Syntax Parser', function for evaluating expression,
+         memory management, symbol lookup, core S-Functions etc.
+        Others except for this module, are just extending native functions of
+         YLISP.
+        So, most parts of this document are to explain details about this
+         module (ylisp).
     yljfe:
         Very simple java front-end for YLISP.
         To reduce platform dependency, Java is chosen as an UI framework.
@@ -104,40 +139,53 @@ Directory/File Structure
         jsrc/:
             Java source code for GUI.
     ylbase:
-        Plugin for native function extension. Very basic and fundamental functions are implemented here.
-        Without any special reason, this plugin should be loaded at the begining.
+        Plugin for native function extension. Very basic and fundamental
+         functions are implemented here.
+        Without any special reason, this plugin should be loaded at the
+         begining.
     ylext
         Plugin for extended features (array, trie, structure)
     ylmath/ylstring/ylsystem
-        Plugin for native function extension. Followings are the list of library name and register functions.
-        libylbase.so
+        Plugin for native function extension. Followings are the list of
+         library name and register functions.
         libylmath.so
         libylstring.so
         libylsystem.so
     yls
         YLISP script files.
+    test
+        Executable binary for sanity test and test scripts.
 
 
-Creating CNF 
+Creating CNF
 ------------
     * At first, see existing CNF plugins.
     * Things to obey
-        - Assigning values to element data (yle_t) directly, SHOULD NOT be allowed. Use interface functions/macros to do this!
+        - Assigning values to element data (yle_t) directly, SHOULD NOT be
+           allowed.
+          Use interface functions/macros to do this!
     * Interface for create CNF plugins.
         Files :
-            ylisp.h : headers to implement YLISP front-end (Only to use interpreter).
-            yldev.h : essential header for developing CNF that includes data types, constants, macros and functions.
+            ylisp.h : headers to implement YLISP front-end
+                      When only interpretering interface is required.
+            yldev.h : essential header for developing CNF that includes data
+             types, constants, macros and functions.
             ylsfunc.h : This has S-functions for helping CNF development.
-       ylmp_get_block() :
+            yldef.h / yllist.h / yldynb.h / yltrie.h :
+                Utility headers.
+       ylmp_block() :
            Memory for yle_t should be taken from memory pool by using this.
        ylcons(), ylpassign(), ylpsetcar(), ylpsetcdr()
-        - Setting car or cdr value of pair should be done by calling one of those
-          (Those functions handle reference count automatically.)
-          If not, reference-based-GC may not work correctly! (Actually, Garbage may be collected in Full-Scanning-GC)
-    * There should be two functions in CNF plugin. 'ylcnf_onload/ylcnf_onunload'.
-      At the moment of loading plugin library by evaluating 'load-cnf', 'ylcnf_onload' is called.
-      And at the moment of unload plugin library by evaluating 'unload-cnf', 'ylcnf_onunload' is called.
-      So, CNF plugin should register new native functions at 'ylcnf_onload' and unregister at 'ylcnf_onunload'.
+        - Setting car or cdr value of pair would better to be done by calling
+           one of those
+    * There should be two functions in CNF plugin.
+       'ylcnf_onload/ylcnf_onunload'.
+      At the moment of loading plugin library by evaluating 'load-cnf',
+       'ylcnf_onload' is called.
+      And at the moment of unload plugin library by evaluating 'unload-cnf',
+       'ylcnf_onunload' is called.
+      So, CNF plugin should register new native functions at 'ylcnf_onload' and
+       unregister at 'ylcnf_onunload'.
 
 
 Adding new-type-atom(henceforth NTA)
@@ -146,8 +194,8 @@ Adding new-type-atom(henceforth NTA)
         - ylatomif_t      : interface for handling NTA
         - yle_t.u.a.u.cd  : data pointer for NTA
         - ylacd()         : macro to access yle_t.u.a.u.cd
-    * Following functions can be good example.
-        - ylacreate_xxx, ylaassign_xxx
+    * Following functions can be used.
+        - ylacreate_cust, ylaassign_cust
 
 
 
@@ -158,11 +206,13 @@ Adding new-type-atom(henceforth NTA)
 
 Programming Policy
 ------------------
-    non-compatible coding style (ex. codes works only on GCC) is tried to be avoided.
+    non-compatible coding style (ex. codes works only on GCC) is tried to be
+     avoided.
     So, codes are based on C89 & Posix.
     (That is, features of C99 are not used intentionally except for 'inline')
     Return value of general int-type-function
-        >=0 : for success (value greater than 0 means additional information - usually warning info.)
+        >=0 : for success (value greater than 0 means additional information -
+         usually warning info.)
         <0  : for fail or error.(it's value is error cause)
         ex.
             'FALSE(0)' means 'Success. And its return value is FALSE'
@@ -171,7 +221,8 @@ Programming Policy
 Parsing S-Expression
 --------------------
     Meta character: ", \, '
-        " : all character between double quote lose it's special meaning. except for escape character\.
+        " : all character between double quote lose it's special meaning.
+         except for escape character\.
         \ : escape character. Only ", \, n can be followed by \.
         (): nil
         ex.
@@ -194,91 +245,134 @@ Notable internal implementation of S-Expression
 Symbol look-up
 --------------
     Hash (obsolete)
-        YLISP uses 2^16 hash as an look up function. 
-        YLISP calculates 32 bit crc for symbols and lower 16 bits are used as an hash function. And this calculated 32 bit crc values are stored in the symbol data structure.
-        When comparing two symbols, YLISP compares crc values first. If those are same, real symbol strings are compared. By this way, YLISP saves costs of comparing string symbols.
+        YLISP uses 2^16 hash as an look up function.
+        YLISP calculates 32 bit crc for symbols and lower 16 bits are used as
+         an hash function.
+        And this calculated 32 bit crc values are stored in the symbol data
+         structure.
+        When comparing two symbols, YLISP compares crc values first.
+        If those are same, real symbol strings are compared.
+        By this way, YLISP saves costs of comparing string symbols.
 
     Trie :
-         Data Structure for symbol look up at 'master' branch is changed to Trie from Hash! (4bits are used).
-         One character(8bits) is represented with 2 nodes. And each node can have 2^4 sub nodes.
-         This may require more memories if there are lots of symbols in global space. 
+         Data Structure for symbol look up at 'master' branch is changed to
+          Trie from Hash!
+         (4bits are used to save memory).
+         One character(8bits) is represented with 2 nodes. And each node can
+          have 2^4 sub nodes.
+         This may require more memories if there are lots of symbols in global
+          space.
          But We can get following advantages by using Trie.
-             - Fast to search symbol (Searching time is independent on number of symbols).
+             - Fast to search symbol (Searching time is independent on number
+                of symbols).
              - Sorted result can be taken easily.
-             - Good to implement automatic-symbol-completion effectively in terms of performance.
+             - Good to implement automatic-symbol-completion effectively in
+                terms of performance.
              - Memories can be used effectively.
-               (Usually, lots of unused spaces exist in Hash, if number of symbol is small.)
+               (Usually, lots of unused spaces exist in Hash, if number of
+                symbol is small.)
 
 
 GC(Garbage collection)
 ----------------------
-    Memory pool is used. 
-        - fixed-size-memory-pool is used. We may use dynamically-growing-memory-pool.
+    Memory pool is used.
+        - fixed-size-memory-pool is used. We may use
+           dynamically-growing-memory-pool.
     'Scanning and Marking', are used for GC.
-        - Blocks that are reachable from global symbol space or registerred base blocks, are protected from GC.
+        - Blocks that are reachable from global symbol space or registerred
+           base blocks, are protected from GC.
     GC is triggered.
-        - If memory pool usage exceeded predefined threshold, GC is triggered. 
+        - If memory pool usage exceeded predefined threshold, GC is triggered.
         - GC is started only at the end of 'evaluation step'.
-            + This is to reduce complexity regarding. protecting blocks from GC.
-              (Actually, using this policy can drop complexity dramatically and reasonable enough in terms of efficient memory block usage.)
-            + In CNF, if 'eval' is called in it, memory blocks allocated before in CNF should be protected from GC by calling 'ylmp_pushN(...)' function. 
-              And after end of 'eval' registered base blocks should be released by calling 'ylmp_popN()'.
-        - When there is no interpreting request for pre-defined duration, GC is triggered.
+            + This is to reduce complexity regarding. protecting blocks from
+               GC.
+              (Actually, using this policy can drop complexity dramatically and
+               reasonable enough in terms of efficient memory block usage.)
+            + In CNF, if 'eval' is called in it, memory blocks allocated before
+               in CNF, should be protected from GC by calling 'ylmp_pushN(...)'
+               function.
+              And after end of 'eval' registered base blocks should be released
+               by calling 'ylmp_popN()'.
+              Except for this case (use 'yleval' in CNF), developer don't need
+               to worry about keeping memory blocks from GC.
+        - When there is no interpreting request for pre-defined duration, GC is
+           triggered.
           (Do expensive job when idle!)
 
 
 Force stop
 ----------
-    YLISP supports 'force stop(henceforth FS)' even if it based on thread-based interpreting. 
-    To use 'FS' interpreting(ylinterpret(..)) and FS(ylforce_stop(...)) should be run on different thread.
+    YLISP supports 'force stop(henceforth FS)' even if it based on thread-based
+     interpreting.
+    To use 'FS' interpreting(ylinterpret(..)) and FS(ylforce_stop(...)) should
+     be run on different thread.
     Moment of triggering FS is "Between evaluation".
     So, one long-evaluation be interrupted by FS.
     That's why "one evaluation would be better to be short and simple"
-    And, For CNF that spawns child process and waits it, 
-     the CNF should set child process id by calling 'ylchild_proc_set()' to make FC be able to kill sub-process.
+    And, For CNF that spawns child process and waits it, the CNF should set
+     child process id by calling 'ylchild_proc_set()' to make FC be able to
+     kill sub-process.
     After FS, FSGC is executed to collect garbage.
 
 
 Error handling
 --------------
-    To avoid cascading return chain - return from callee to caller and it's caller again and again... - in case of unexpected state, YLISP creates thread for interpreting stream and wait to join. 
-    So, at the unexpected moment, exiting from thread is enough!. Therefore, we can free from cascading return chain. This saves programming efforts dramatically.
+    To avoid cascading return chain - return from callee to caller and it's
+     caller again and again... - in case of unexpected state, YLISP creates
+     thread for interpreting stream and wait to join.
+    So, at the unexpected moment, exiting from thread is enough!.
+    Therefore, we can free from cascading return chain. This saves programming
+     efforts dramatically.
 
 
 Things to think of
 ------------------
     Memory External Fragmentation
-        ylmalloc & ylfree are used for various-size-blocks, and called very often. 
-        So, if we don't do anything, external memory fragmentation is unavoidable.
+        ylmalloc & ylfree are used for various-size-blocks, and called very
+         often.
+        So, if we don't do anything, external memory fragmentation is
+         unavoidable.
         (In most case, I didn't handle the case of failing ylmalloc.)
-        But, I'm not sure that we should take care of it. Can we ignore it? Hmm...
+        But, I'm not sure that we should take care of it. Can we ignore it?
+         Hmm...
         Handling external memory fragmentation is always big headache!!
     Process vs. Thread (ylisp uses thread based interpreting.)
-        ylisp uses 'interpret thread' to escape easily from interpret stage in case of error.
+        ylisp uses 'interpret thread' to escape easily from interpret stage in
+         case of error.
         But, using process is safer and more stable than using thread.
         Using process means,
-            At the moment of interpret, fork new 'interpret process'. 
-            And at the end of interpreting, only changes of global symbol status are passed and reflected to original parent process(main process).
+            At the moment of interpret, fork new 'interpret process'.
+            And at the end of interpreting, only changes of global symbol
+             status are passed and reflected to original parent process(main
+             process).
         What is pros and cons of process based interpreting?
         Pros:
             * It definitely safer and more stable.
             * We don't need to care about memory leak of interpreter!
-                - After interpreting, interpret-process is ended. 
+                - After interpreting, interpret-process is ended.
                   And memory is automatically reclaimed by OS.
             * We can separate main process from interpret process.
-                - Main process manages only global symbol status. 
-                  And interpret process are in charge of interpreting S-Expression.
-            * We can easily kill interpreting process in case of unexpected execution, without any damages of main ylisp process.
+                - Main process manages only global symbol status.
+                  And interpret process are in charge of interpreting
+                   S-Expression.
+            * We can easily kill interpreting process in case of unexpected
+               execution, without any damages of main ylisp process.
                 - Just killing child interpret-process is ok.
                   We can count on OS for all other things to do to clean up.
         Cons:
             * More difficult to implement.
-            * Global symbol status should be independent on interpreting in terms of OS resources.
+            * Performance drops.
+            * Global symbol status should be independent on interpreting in
+               terms of OS resources.
                 - For example, we cannot support following use cases.
                     + open socket and save it's handle to the symbol.
                     + use this when it required.
-                  Because these are two different process, allocated OS resources by interpet-process are reclaimed when it finished. So, keep it at global symbol is impossible. 
+                  Because these are two different process, allocated OS
+                   resources by interpet-process are reclaimed when it
+                   finished.
+                  So, keep it at global symbol is impossible.
                   It's big loss at usability's point of view!
+
 
 
 =================================
@@ -286,8 +380,6 @@ Things to think of
 =================================
 TODO
 ----
-    * Codes of memory pool (mempool.[ch]) is not satisfactory. Refactoring is required.
-      (Any other simpler/better way?)
 
 
 Known Bugs

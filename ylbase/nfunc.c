@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -68,7 +68,7 @@ YLDEFNF(f_and, 1, 9999) {
         e = ylcdr(e);
     }
     return ylt();
-        
+
 } YLENDNF(f_and)
 
 YLDEFNF(f_or, 1, 9999) {
@@ -107,7 +107,6 @@ _update_assoc(yle_t** x, yle_t* y) {
  */
 static void
 _evarg(yle_t* e, yle_t** a) {
-    yle_t*    r;
     if(yleis_nil(e)) { return; }
     if(yleis_atom(e)
        || yleis_atom(ylcar(e))
@@ -121,8 +120,8 @@ _evarg(yle_t* e, yle_t** a) {
      * Expression itself SHOULD NOT be changed.
      * So, yllist(...) is used instead of ylpcar/ylpcdr!
      *
-     * !IMPORTANT : 
-     *    '*a' should be protected from GC. 
+     * !IMPORTANT :
+     *    '*a' should be protected from GC.
      *    '*a' is updated. So, old value should be preserved.
      */
     ylmp_push1(*a);
@@ -134,14 +133,14 @@ _evarg(yle_t* e, yle_t** a) {
 
 YLDEFNF(f_let, 2, 9999) {
     yle_t*  p;
-    if(yleis_atom(ylcar(e)) && !yleis_nil(ylcar(e))) { 
+    if(yleis_atom(ylcar(e)) && !yleis_nil(ylcar(e))) {
         ylnflogE0("incorrect argument syntax\n");
-        ylinterpret_undefined(YLErr_func_invalid_param); 
+        ylinterpret_undefined(YLErr_func_invalid_param);
     }
     _evarg(ylcar(e), &a);
-    
-    /* 
-     * updated 'a' should be protected from GC 
+
+    /*
+     * updated 'a' should be protected from GC
      * ('e' is already protected!)
      */
     ylmp_push1(a);
@@ -176,7 +175,7 @@ YLDEFNF(f_while, 2, 9999) {
 
 /* eq [car [e]; ATOM] -> atom [eval [cadr [e]; a]] */
 YLDEFNF(atom, 1, 1) {
-    return (yle_t*)ylatom(ylcar(e)); 
+    return (yle_t*)ylatom(ylcar(e));
 } YLENDNF(atom)
 
 YLDEFNF(type, 1, 1) {
@@ -259,6 +258,7 @@ YLDEFNF(assert, 1, 1) {
     if(yleis_nil(ylcar(e))) {
         ylnflogE0("ASSERT FAILS\n");
         ylinterpret_undefined(YLErr_eval_assert);
+        return NULL; /* to make compiler be happy. */
     } else {
         return ylt();
     }
@@ -266,6 +266,7 @@ YLDEFNF(assert, 1, 1) {
 
 YLDEFNF(exit, 0, 0) {
     ylinterpret_undefined(YLOk);
+    return NULL; /* to make compiler be happy. */
 } YLENDNF(exit)
 
 YLDEFNF(print, 1, 9999) {
@@ -320,16 +321,16 @@ YLDEFNF(printf, 1, 10) {
                  * But, using exsiting 'snprintf' is much easier.
                  * So, ... allow this warning "warning: format not a string literal and no format arguments"
                  */
-                case 1: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt); break;
-                case 2: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0]); break;
-                case 3: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1]); break;
-                case 4: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2]); break;
-                case 5: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3]); break;
-                case 6: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4]); break;
-                case 7: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5]); break;
-                case 8: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6]); break;
-                case 9: ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]); break;
-                case 10:ret = snprintf(yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8]); break;
+                case 1: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt); break;
+                case 2: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0]); break;
+                case 3: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1]); break;
+                case 4: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2]); break;
+                case 5: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3]); break;
+                case 6: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4]); break;
+                case 7: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5]); break;
+                case 8: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6]); break;
+                case 9: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]); break;
+                case 10:ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8]); break;
                 default: ylassert(0);
             }
             if(ret >= yldynb_limit(&b)) {
@@ -340,7 +341,7 @@ YLDEFNF(printf, 1, 10) {
             }
         }
     }
-    ylprint(("%s", yldynb_ptr(&b)));
+    ylprint(("%s", (char*)yldynb_ptr(&b)));
     __cleanup();
     return ylt();
 
@@ -351,6 +352,7 @@ YLDEFNF(printf, 1, 10) {
 
 #undef __cleanup
 
+    return NULL; /* to make compiler be happy. */
 } YLENDNF(printf)
 
 
@@ -449,6 +451,7 @@ YLDEFNF(bit_and, 2, 9999) {
  bail:
     ylnflogE0("Parameter or return value cannot be cross-changable between long and double!\n");
     ylinterpret_undefined(YLErr_func_invalid_param);
+    return NULL; /* to make compiler be happy. */
 } YLENDNF(bit_and)
 
 YLDEFNF(bit_or, 2, 9999) {
@@ -466,6 +469,7 @@ YLDEFNF(bit_or, 2, 9999) {
  bail:
     ylnflogE0("Parameter or return value cannot be cross-changable between long and double!\n");
     ylinterpret_undefined(YLErr_func_invalid_param);
+    return NULL; /* to make compiler be happy. */
 } YLENDNF(bit_or)
 
 YLDEFNF(bit_xor, 2, 9999) {
@@ -483,6 +487,8 @@ YLDEFNF(bit_xor, 2, 9999) {
  bail:
     ylnflogE0("Parameter or return value cannot be cross-changable between long and double!\n");
     ylinterpret_undefined(YLErr_func_invalid_param);
+
+    return NULL; /* to make compiler be happy. */
 } YLENDNF(bit_xor)
 
 
@@ -544,7 +550,7 @@ YLDEFNF(div, 2, 9999) {
 } YLENDNF(div)
 
 YLDEFNF(gt, 2, 2) {
-    yle_t *p1 = ylcar(e), 
+    yle_t *p1 = ylcar(e),
           *p2 = ylcadr(e);
     ylnfcheck_atype_chain2(e, ylaif_dbl(), ylaif_sym());
     if(ylaif_dbl() == ylaif(ylcar(e))) {
@@ -555,7 +561,7 @@ YLDEFNF(gt, 2, 2) {
 } YLENDNF(gt)
 
 YLDEFNF(lt, 2, 2) {
-    yle_t *p1 = ylcar(e), 
+    yle_t *p1 = ylcar(e),
           *p2 = ylcadr(e);
     ylnfcheck_atype_chain2(e, ylaif_dbl(), ylaif_sym());
     if(ylaif_dbl() == ylaif(ylcar(e))) {

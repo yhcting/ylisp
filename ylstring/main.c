@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -35,7 +35,7 @@
 
 static int _mblk = 0;
 
-static const char* _exp = 
+static const char* _exp =
     "(load-cnf '../lib/libylbase.so)\n"
     "(interpret-file '../yls/base.yl)\n"
     "(interpret-file '../yls/string.yl)\n"
@@ -95,14 +95,15 @@ main(int argc, char* argv[]) {
     ylinit(&sys);
 
 #define NFUNC(n, s, type, desc)  \
-    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, desc)) { return; }
+    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, desc)) { return 0; }
 #   include "nfunc.in"
 #   include "nfunc_re.in"
 #undef NFUNC
 
-    if(YLOk != ylinterpret(_exp, strlen(_exp))) {
+    if(YLOk != ylinterpret((unsigned char*)_exp,
+                           (unsigned int)strlen(_exp))) {
         printf("Error during interpret\n");
-        return;
+        return 0;
     }
 
     yldeinit();
@@ -110,6 +111,8 @@ main(int argc, char* argv[]) {
 
     printf("---------------------------\n"
            "Test Success\n");
+
+    return 0; /* to make compiler be happy */
 }
 
 #else /* __YLDBG__ */
@@ -118,6 +121,7 @@ main(int argc, char* argv[]) {
 #include <string.h>
 
 #define CONFIG_LOG
+#define CONFIG_ASSERT
 
 #include "ylsfunc.h"
 

@@ -25,10 +25,10 @@ SOURCES= lisp.c sfunc.c mempool.c interpret.c nfunc.c gsym.c trie.c ut.c \
 	 testmain.c
 
 
-OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES))) 
+OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES)))
 DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 
-CFLAGS+= -g
+CFLAGS+= -g -Wall
 # temp block... no lib to link
 LDFLAGS+= -rdynamic -ldl -lrt -lpthread
 SOFLAGS+=
@@ -71,7 +71,7 @@ DEPS_MAGIC := $(shell mkdir $(DEPDIR) $(OUTDIR) > /dev/null 2>&1 || :)
 #	mkdir $(UNADIR)
 #	cd $(UNADIR); $(UNACMD)
 
-$(OUTDIR)%.o: %.c 
+$(OUTDIR)%.o: %.c
 	@echo '$(C_COMPILE) -o $@ -c $<'; \
 	$(C_COMPILE) $(C_DEPENDENCIES) -o $@ -c $<
 
@@ -86,7 +86,7 @@ $(LIBA): $(OBJ)
 	$(AR_CMD) $@ $^
 	cp $@ ../lib/
 
-# Is 'chmod' really only way to change mode of output so file?? Any elegant way???? 
+# Is 'chmod' really only way to change mode of output so file?? Any elegant way????
 $(LIBSO): $(OBJ)
 	@echo '$(SO_LINK) $@ $^'; \
 	$(SO_LINK) -shared -Wl,-soname,$@ -o $@ $^
@@ -98,7 +98,7 @@ $(TARGET): $(OBJ) $(EXTLIB)
 	$(C_LINK) -o  $@ $^
 
 
-tags: 
+tags:
 
 
 clean:

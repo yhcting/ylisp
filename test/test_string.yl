@@ -49,7 +49,7 @@
 (assert (not (s.start-with 'abcde 'ed)))
 (assert (not (s.start-with 'abcde 'ab 1)))
 (assert (not (s.start-with 'abcde 'ab 5)))
-(assert (not (s.start-with 'abcde 'b -2))) 
+(assert (not (s.start-with 'abcde 'b -2)))
 (assert (s.start-with 'abcde 'abcde))
 (assert (s.start-with 'abcde 'abc))
 (assert (s.start-with 'abcde 'a))

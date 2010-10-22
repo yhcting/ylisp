@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -33,7 +33,7 @@ ylgsym_deinit();
 
 /**
  * @sty : symbol type (see comment of 'YLASymbol attributes' at yldev.h)
- * @return: 
+ * @return:
  *   -1: error
  *    0: newly inserted
  *    1: overwritten
@@ -42,7 +42,7 @@ int
 ylgsym_insert(const char* sym, int sty, yle_t* e);
 
 /**
- * @return: 
+ * @return:
  *    <0: fail. cannot be found
  *    0 : deleted.
  */
@@ -77,14 +77,14 @@ ylgsym_gcmark();
 
 /**
  * get auto-completed-symbol
- * @return: 
- *    YLTRIEBranch : success and we meet the branch. 
- *    YLTRIELeaf : success and meet the leaf. 
+ * @return:
+ *    YLTRIEBranch : success and we meet the branch.
+ *    YLTRIELeaf : success and meet the leaf.
  *    YLTRIEFail : cannot find node which matchs prefix.
  *    <0 : error (ex. not enough buffer size)
  */
 int
-ylgsym_auto_complete(const char* start_with, 
+ylgsym_auto_complete(const char* start_with,
                      char* buf, unsigned int bufsz);
 
 /**

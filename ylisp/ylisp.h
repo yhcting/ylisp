@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -42,7 +42,7 @@ typedef enum {
     YLErr_internal,
 
     YLErr_io, /* io error */
-    
+
     YLErr_force_stopped,
 
     YLErr_under_interpreting,
@@ -62,9 +62,9 @@ typedef enum {
      */
     YLErr_eval_squoted,
 
-    /* 
-     * LErr_eval_xxx : 
-     *    from starting evaluation to before doing functional operation 
+    /*
+     * LErr_eval_xxx :
+     *    from starting evaluation to before doing functional operation
      */
     /* evaluated number is out of range */
     YLErr_eval_range,
@@ -74,12 +74,12 @@ typedef enum {
 
     /* first element of yllist should be function */
     YLErr_eval_function_expected,
-    
+
     /* assert false! */
     YLErr_eval_assert,
 
-    /* 
-     * LErr_func_xxx : 
+    /*
+     * LErr_func_xxx :
      *    error inside function. - function specific.
      */
     YLErr_func_invalid_param,
@@ -128,7 +128,7 @@ typedef struct {
     int           gctp; /* Garbage Collection Trigger Pointer */
 } ylsys_t; /* system parameter  */
 
-/* 
+/*
  * this SHOULD BE called firstly before using module.
  */
 extern ylerr_t
@@ -149,7 +149,7 @@ yldeinit();
  */
 
 extern ylerr_t
-ylinterpret(const char* stream, unsigned int streamsz);
+ylinterpret(const unsigned char* stream, unsigned int streamsz);
 
 /*
  * interrupt current interpreting.
@@ -159,9 +159,9 @@ ylforce_stop();
 
 /**
  * get more symbols to make longest prefix.
- * @return: 
- *    0 : success and we meet the branch. 
- *    1 : success and meet the leaf. 
+ * @return:
+ *    0 : success and we meet the branch.
+ *    1 : success and meet the leaf.
  *    2 : cannot find node which matchs prefix.
  *    <0 : error (ex. not enough buffer size)
  */
@@ -179,7 +179,7 @@ ylsym_nr_candidates(const char* start_with, unsigned int* max_symlen);
  * @return: <0: error. Otherwise number of candidates found.
  */
 extern int
-ylsym_candidates(const char* start_with, 
+ylsym_candidates(const char* start_with,
                  char** ppbuf,       /* in/out */
                  unsigned int ppbsz, /* size of ppbuf - regarding 'ppbuf[i]' */
                  unsigned int pbsz); /* size of pbuf - regarding 'ppbuf[0][x]' */

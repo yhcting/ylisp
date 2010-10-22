@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -53,7 +53,7 @@ ylutfile_read(unsigned int* outsz, const char* fpath, int btext) {
 
     fclose(fh);
 
-    if(btext) { 
+    if(btext) {
         *outsz = sz+1;
         buf[sz] = 0; /* add trailing 0 */
     } else {
@@ -75,13 +75,12 @@ ylutfile_read(unsigned int* outsz, const char* fpath, int btext) {
 int
 ylutstr_append(yldynb_t* b, const char* format, ...) {
     va_list       args;
-    char*         tmp;
     int           cw = 0, cwsv; /* charactera written */
 
     va_start (args, format);
     do {
         cwsv = cw;
-        cw = vsnprintf (ylutstr_ptr(b), yldynb_freesz(b), format, args);
+        cw = vsnprintf ((char*)ylutstr_ptr(b), yldynb_freesz(b), format, args);
         ylassert(cw >= 0);
         if( cw >= yldynb_freesz(b) ) {
             if( 0 > yldynb_expand(b) ) {
@@ -91,7 +90,7 @@ ylutstr_append(yldynb_t* b, const char* format, ...) {
         } else { break; }
     } while(1);
     /*
-     * 'cw' doesn't counts trailing 0. 
+     * 'cw' doesn't counts trailing 0.
      * But, 'b->sz' already counts 1 for tailing 0 at 'ylutstr_init'.
      * So, just adding 'cw' is OK!
      */

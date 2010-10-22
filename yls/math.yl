@@ -1,6 +1,6 @@
 (defun m.fuzzy-equal (v1 v2 epsilon)
 "m.fuzzy-equal <val1> <val2> <epsilon>
-    -compare double value with epsilon. 
+    -compare double value with epsilon.
      This can/should be used to compare fraction part of number
     @valN [Double]: value
     @epsilon [Double] : maximum allowable-errata.

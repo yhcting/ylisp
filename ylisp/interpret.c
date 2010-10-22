@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -29,6 +29,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 #include "lisp.h"
 #include "ylisp.h"
 #include "mempool.h"
@@ -44,7 +45,7 @@
  * =====================================*/
 static ylstk_t*        _thdstk = NULL;
 /*
- * child process id that ylisp waits for 
+ * child process id that ylisp waits for
  * '-1' means 'Error'(See, 'fork()')
  */
 static pid_t           _cpid = -1;
@@ -109,14 +110,14 @@ _DECL_MUTEX_FUNC(inteval)
  * Common values of all state
  */
 typedef struct {
-    yle_t            sentinel;
-    yle_t*           pe;               /* current expr (usually pair) */
-    char            *b, *bend;         /* element buffer - start and (end+1) position.*/
-    char*            pb;               /* current position in buffer */
-    const char      *s, *send;         /* stream / (end+1) of stream(pe) */
-    int              line;
-    ylstk_t*         ststk;            /* state stack */
-    ylstk_t*         pestk;            /* prev pair expression stack */
+    yle_t                sentinel;
+    yle_t*               pe;               /* current expr (usually pair) */
+    unsigned char       *b, *bend;         /* element buffer - start and (end+1) position.*/
+    unsigned char*       pb;               /* current position in buffer */
+    const unsigned char *s, *send;         /* stream / (end+1) of stream(pe) */
+    int                  line;
+    ylstk_t*             ststk;            /* state stack */
+    ylstk_t*             pestk;            /* prev pair expression stack */
 } _fsa_t; /* Finite State Automata - This is Automata context. */
 
 typedef struct _fsas {
@@ -137,7 +138,7 @@ typedef struct _fsas {
     static void _fsas_##nAME##_come_back(const _fsas_t*, _fsa_t*);      \
     static int  _fsas_##nAME##_next_char(const _fsas_t*, _fsa_t*, char, const _fsas_t**); \
     static void _fsas_##nAME##_exit(const _fsas_t*, _fsa_t*);
-    
+
 _DECL_FSAS_FUNC(init)
 _DECL_FSAS_FUNC(list)
 _DECL_FSAS_FUNC(squote)
@@ -154,7 +155,7 @@ Notation :
     <> : chracter is not handled.
     X : error
     - : not changed
-    E : exit state 
+    E : exit state
 
 ===========================================================================================
 state      "         other       '         \         (         )         ;         \s
@@ -187,7 +188,7 @@ static const  _fsas_t
      */
     _fsas_exit = { "exit", NULL, NULL, NULL, NULL },
 
-    /* 
+    /*
      * Initial state.
      */
     _fsas_init = {
@@ -210,7 +211,7 @@ static const  _fsas_t
     },
 
     /*
-     * In double quota 
+     * In double quota
      */
     _fsas_dquote = {
         "dquote",
@@ -221,7 +222,7 @@ static const  _fsas_t
     },
 
     /*
-     *  In comment 
+     *  In comment
      */
     _fsas_comment = {
         "comment",
@@ -267,9 +268,9 @@ static const  _fsas_t
 
 
 /* =====================================
- * Tool Functions 
+ * Tool Functions
  * =====================================*/
-static inline void 
+static inline void
 _fsa_add_symchar(_fsa_t* fsa, char c) {
     if(fsa->pb < (fsa->bend-1)) {
         *fsa->pb = c; fsa->pb++;
@@ -280,7 +281,7 @@ _fsa_add_symchar(_fsa_t* fsa, char c) {
 }
 
 static inline yle_t*
-_create_atom_sym(char* sym, unsigned int len) {
+_create_atom_sym(unsigned char* sym, unsigned int len) {
     char* str = ylmalloc(sizeof(char)*(len+1));
     if(!str) {
         yllogE1("Out Of Memory : [%d]!\n", len);
@@ -295,7 +296,6 @@ static inline void
 _eval_exp(yle_t* e) {
     /* "2 == ylmp_stack_size()" means "this evaluation is topmost one" */
 #define __TOPMOST_EVAL_MPSTACK_SIZE 2
-    int     ret;
     yle_t*  ev;
 
     dbg_gen(yllogD1(">>>>> Eval exp:\n"
@@ -307,7 +307,7 @@ _eval_exp(yle_t* e) {
 }
 
 /* =====================================
- * State Functions 
+ * State Functions
  * =====================================*/
 
 
@@ -322,7 +322,7 @@ _fsas_init_enter(const _fsas_t* fsas, _fsa_t* fsa) {
     fsa->sentinel.u.p.car = fsa->sentinel.u.p.cdr = NULL;
 
     fsa->pe = &fsa->sentinel;
-    dbg_mem(yllogD0("\n+++ START - Interpret +++\n"); 
+    dbg_mem(yllogD0("\n+++ START - Interpret +++\n");
             ylmp_log_stat(YLLogD););
 }
 
@@ -348,7 +348,7 @@ _fsas_init_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** n
         case '\'': *nexts = &_fsas_squote;                       break;
         case '\\': *nexts = &_fsas_escape;                       break;
         case '(':  *nexts = &_fsas_list;                         break;
-        case ')':  
+        case ')':
             yllogE0("Syntax Error : parenthesis mismatching\n");
             ylinterpret_undefined(YLErr_syntax_parenthesis);
         case ';':  *nexts = &_fsas_comment;                      break;
@@ -365,7 +365,7 @@ static void
 _fsas_init_exit(const _fsas_t* fsas, _fsa_t* fsa) {
     dbg_mem(yllogD0("\n+++ END - Interpret +++\n");
             ylmp_log_stat(YLLogD););
-    /* 
+    /*
      * we need to unref memory blocks that is indicated by sentinel
      * (Usually, both are nil.
      */
@@ -582,9 +582,9 @@ _fsas_escape_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t**
 
         /* "\n" is supported to represent line-feed */
         case 'n':  ch = '\n';        break;
-        default:  
+        default:
             yllogE0("Syntax Error : Unsupported character for escape!!\n");
-            ylinterpret_undefined(YLErr_syntax_escape); 
+            ylinterpret_undefined(YLErr_syntax_escape);
     }
     _fsa_add_symchar(fsa, ch);
     return bhandled;
@@ -598,11 +598,10 @@ _fsas_escape_exit(const _fsas_t* fsas, _fsa_t* fsa) {
 
 static void*
 _interp_automata(void* arg) {
-    const char*       p;
-    _fsa_t*           fsa = (_fsa_t*)arg;
-    const _fsas_t    *st, *nst; /* current st, next st */
-    int               bdone = FALSE;
-    
+    const unsigned char*  p;
+    _fsa_t*               fsa = (_fsa_t*)arg;
+    const _fsas_t        *st, *nst; /* current st, next st */
+
     p = fsa->s;
 
     st = &_fsas_init;
@@ -611,13 +610,13 @@ _interp_automata(void* arg) {
 
     while(*p) {
         /* yllogV(("+++ [%s] : '%c' => ", st->name, ('\n' == *p)? '@': *p)); */
-        if((*st->next_char)(st, fsa, *p, &nst)) { 
+        if((*st->next_char)(st, fsa, *p, &nst)) {
             if('\n' == *p) { fsa->line++; }
-            p++; 
+            p++;
         }
         /* yllogV1("[%s]", nst->name); */
 
-        if(&_fsas_nochg == nst) { 
+        if(&_fsas_nochg == nst) {
             ; /* nothing to do */
         } else if(&_fsas_exit == nst) {
             (*st->exit)(st, fsa);
@@ -651,22 +650,22 @@ _interp_automata(void* arg) {
 
         if(fsa->send == p) {
             /* for easy parsing, automata always adds '\n' at the end of stream!!! */
-            p = "\n";
+            p = (unsigned char*)"\n";
         }
     }
 
     st = ylstk_pop(fsa->ststk);
     if(&_fsas_init == st) {
         (*_fsas_init.exit)(&_fsas_init, fsa);
-        if(0 == ylstk_size(fsa->pestk)) { 
-            return (void*)YLOk; 
+        if(0 == ylstk_size(fsa->pestk)) {
+            return (void*)YLOk;
         } else {
             yllogE0("Syntax Error!!!!!!\n");
-            return (void*)YLErr_syntax_unknown; 
+            return (void*)YLErr_syntax_unknown;
         }
-    } else { 
+    } else {
         yllogE0("Syntax Error!!!!!!\n");
-        return (void*)YLErr_syntax_unknown; 
+        return (void*)YLErr_syntax_unknown;
     }
 }
 
@@ -694,7 +693,7 @@ __gctt_settime(long sec) {
     its.it_interval.tv_sec = 0;
     its.it_interval.tv_nsec = 0;
 
-    
+
     if(0 > timer_settime(_gcttid, 0, &its, NULL) ) { ylassert(0); }
 }
 
@@ -718,7 +717,6 @@ _gctt_handler(int sig, siginfo_t* si, void* uc) {
 static int
 _gctt_create() {
     struct sigevent      sev;
-    struct itimerspec    its;
     struct sigaction     sa;
 
     /* Establish handler for timer signal */
@@ -844,21 +842,20 @@ ylpop_eval_info() {
 }
 
 ylerr_t
-ylinterpret_internal(const char* stream, unsigned int streamsz) {
+ylinterpret_internal(const unsigned char* stream, unsigned int streamsz) {
     /* Declar space to use */
-    static char          elembuf[_MAX_SINGLE_ELEM_STR_LEN];
+    static unsigned char elembuf[_MAX_SINGLE_ELEM_STR_LEN];
 
     ylerr_t              ret = YLErr_force_stopped;
     _fsa_t               fsa;
-    int                  rc;
     pthread_t            thd;
 
     if(!stream || 0==streamsz) { return YLOk; } /* nothing to do */
 
-    /* 
+    /*
      * NOTE! : We SHOULD NOT initialize sentinel here!
      */
-    fsa.pb = fsa.b = elembuf; 
+    fsa.pb = fsa.b = elembuf;
     fsa.bend = fsa.b + _MAX_SINGLE_ELEM_STR_LEN;
     fsa.s = stream;
     fsa.send = fsa.s + streamsz;
@@ -871,14 +868,14 @@ ylinterpret_internal(const char* stream, unsigned int streamsz) {
         goto bail;
     }
 
-    if(rc = pthread_create(&thd, NULL, &_interp_automata, &fsa)) {
+    if(pthread_create(&thd, NULL, &_interp_automata, &fsa)) {
         ylassert(0);
         goto bail;
     }
 
     ylstk_push(_thdstk, &thd);
 
-    if(rc = pthread_join(thd, (void**)&ret)) {
+    if(pthread_join(thd, (void**)&ret)) {
         ylassert(0);
         pthread_cancel(thd);
         ylstk_pop(_thdstk);
@@ -905,7 +902,7 @@ ylinterpret_internal(const char* stream, unsigned int streamsz) {
 }
 
 ylerr_t
-ylinterpret(const char* stream, unsigned int streamsz) {
+ylinterpret(const unsigned char* stream, unsigned int streamsz) {
     _gctt_unset_timer();
 
     switch(_interp_trylock()) {
@@ -919,14 +916,14 @@ ylinterpret(const char* stream, unsigned int streamsz) {
             ret = ylinterpret_internal(stream, streamsz);
             if(YLOk == ret) { _gctt_set_timer(); }
             else {
-                /* 
+                /*
                  * evaluation stack should be shown before GC.
                  * (After GC, expression in the stack may be invalid one!)
                  */
                 _show_eval_stack();
                 /*
                  * GC should be here.
-                 * If interpreting is success, next interpreting may be requested 
+                 * If interpreting is success, next interpreting may be requested
                  *  in short time with high possibility. In this case, GC SHOULD NOT executed.
                  */
                 ylmp_clean_stack();
@@ -940,7 +937,7 @@ ylinterpret(const char* stream, unsigned int streamsz) {
             _interp_unlock();
             return ret;
         } break;
-            
+
         case FALSE: {
             yllogE0("Under interpreting...Cannot interpret in parallel!\n");
             return YLErr_under_interpreting;
@@ -955,7 +952,7 @@ ylinterpret(const char* stream, unsigned int streamsz) {
 
 void
 ylforce_stop() {
-    /* 
+    /*
      * We are ASSUMING that this function is not re-enterable!
      * '_under_interrupting' flag is can be written only in this function.
      * And can be read from other context
@@ -979,10 +976,10 @@ ylinterpret_undefined(int reason) {
     pthread_exit((void*)reason);
 }
 
-ylerr_t 
+ylerr_t
 ylinterp_init() {
     if( 0 > _gctt_create()
-       || 0 > _init_mutexes() ) { 
+       || 0 > _init_mutexes() ) {
         return YLErr_internal;
     }
     _thdstk = ylstk_create(0, NULL);

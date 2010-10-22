@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -59,7 +59,6 @@ YLDEFNF(itos, 1, 1) {
 
 YLDEFNF(dtos, 1, 1) {
     char*     b; /* buffer */
-    yle_t*    r;
 
     ylnfcheck_atype_chain1(e, ylaif_dbl());
 
@@ -91,7 +90,7 @@ YLDEFNF(btos, 1, 1) {
      */
     bsz = ylabin(ylcar(e)).sz*3;
     /* +1 for trailing 0 */
-    b = ylmalloc(bsz+1); 
+    b = ylmalloc(bsz+1);
     if(!b) {
         ylnflogE1("Not enough memory: required [%d]\n", bsz);
         ylinterpret_undefined(YLErr_func_fail);
@@ -165,7 +164,7 @@ YLDEFNF(at, 2, 2) {
     p = ylasym(ylcar(e)).sym;
     len = strlen(p);
     if(0 > idx || idx >= len) {
-        ylnflogE0("invalid index value\n"); 
+        ylnflogE0("invalid index value\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
 
@@ -213,12 +212,12 @@ YLDEFNF(start_with, 2, 3) {
     /* check parameter type */
     ylnfcheck_atype1(ylcar(e), ylaif_sym());
     ylnfcheck_atype1(ylcadr(e), ylaif_sym());
-    if(2 == pcsz) { fromi = 0; } 
+    if(2 == pcsz) { fromi = 0; }
     else {
         ylnfcheck_atype1(ylcaddr(e), ylaif_dbl());
         fromi = (int)yladbl(ylcaddr(e));
     }
-    
+
     pstr = ylasym(ylcar(e)).sym;
     psub = ylasym(ylcadr(e)).sym;
     strsz = strlen(pstr);
@@ -229,7 +228,7 @@ YLDEFNF(start_with, 2, 3) {
 
     /* check index range */
     if(0 > fromi || fromi >= strsz) {
-        ylnflogW1("invalid index value : %d\n", fromi); 
+        ylnflogW1("invalid index value : %d\n", fromi);
         return ylnil();
     }
 
@@ -245,7 +244,7 @@ YLDEFNF(index_of, 2, 3) {
     /* check parameter type */
     ylnfcheck_atype1(ylcar(e), ylaif_sym());
     ylnfcheck_atype1(ylcadr(e), ylaif_sym());
-    if(2 == pcsz) { fromi = 0; } 
+    if(2 == pcsz) { fromi = 0; }
     else {
         ylnfcheck_atype1(ylcaddr(e), ylaif_dbl());
         fromi = (int)yladbl(ylcaddr(e));
@@ -260,7 +259,7 @@ YLDEFNF(index_of, 2, 3) {
     if(0 == subsz || 0 == strsz || subsz > strsz
        || fromi > (strsz - subsz)) { return ylnil(); }
     if(fromi < 0) { fromi = 0; }
-    
+
     { /* just scope */
         int         remainsz = strsz - fromi;
         const char* p = pstr + fromi;
@@ -294,7 +293,7 @@ YLDEFNF(last_index_of, 2, 3) {
         ylnfcheck_atype1(ylcaddr(e), ylaif_dbl());
         fromi = (int)yladbl(ylcaddr(e));
     }
-    
+
     pstr = ylasym(ylcar(e)).sym;
     psub = ylasym(ylcadr(e)).sym;
     strsz = strlen(pstr);
@@ -304,7 +303,7 @@ YLDEFNF(last_index_of, 2, 3) {
     if(0 == subsz || 0 == strsz || subsz > strsz
        || fromi < (subsz-1)) { return ylnil(); }
     if(fromi > strsz-1) { fromi = strsz-1; }
-    
+
     { /* just scope */
         const char* p = pstr + fromi - subsz + 1; /* BE CAREFUL : +1 is essential! */
         while(p >= pstr) {
@@ -340,7 +339,7 @@ YLDEFNF(replace, 3, 3) {
     unsigned int lenstr, lennew, lenold;
     /* check input parameter */
     ylnfcheck_atype_chain1(e, ylaif_sym());
-    
+
     pstr = p = ylasym(ylcar(e)).sym;
     lenstr = strlen(p);
     pold = ylasym(ylcadr(e)).sym;
@@ -349,12 +348,12 @@ YLDEFNF(replace, 3, 3) {
     lennew = strlen(pnew);
 
     /* filter trivial case */
-    if(0 == lenold || lenstr < lenold) { 
+    if(0 == lenold || lenstr < lenold) {
         /* nothing to replace! copy it and return! */
         pbuf = ylmalloc(lenstr+1); /* =1 for tailing NULL */
         strcpy(pbuf, p);
     } else {
-        pe = pstr + lenstr - lenold + 1; 
+        pe = pstr + lenstr - lenold + 1;
         pb = pbuf = ylmalloc(lenstr + 1); /* initial size of buffer is same with string length */
         pbend = pb + lenstr; /* exclude space for trailing 0 */
         while(p < pe) {
@@ -378,14 +377,14 @@ YLDEFNF(replace, 3, 3) {
     return ylacreate_sym(pbuf);
 
 #undef __check_buf
-    
+
 } YLENDNF(replace)
 
 YLDEFNF(substring, 2, 3) {
     int          bi, ei; /* begin index end index */
     const char*  pstr;
     unsigned int lenstr;
-    
+
 
     /* check parameter type */
     ylnfcheck_atype1(ylcar(e), ylaif_sym());
@@ -408,7 +407,7 @@ YLDEFNF(substring, 2, 3) {
     if(bi > ei) { bi = ei; }
 
     { /* just scope */
-        char*   tmp;     
+        char*   tmp;
 
         /* make sub string */
         tmp = ylmalloc(ei-bi+1); /* +1 for tailing 0 */
@@ -423,9 +422,9 @@ YLDEFNF(to_lower_case, 1, 1) {
     const char   *p, *pe;
     char         *pbuf, *pb;
     int           delta;
-    
+
     ylnfcheck_atype_chain1(e, ylaif_sym());
-    
+
     p = ylasym(ylcar(e)).sym;
     pe = p + strlen(p);
 
@@ -440,16 +439,16 @@ YLDEFNF(to_lower_case, 1, 1) {
     }
 
     return ylacreate_sym(pbuf);
-    
+
 } YLENDNF(to_lower_case)
 
 YLDEFNF(to_upper_case, 1, 1) {
     const char   *p, *pe;
     char         *pbuf, *pb;
     int           delta;
-    
+
     ylnfcheck_atype_chain1(e, ylaif_sym());
-    
+
     p = ylasym(ylcar(e)).sym;
     pe = p + strlen(p);
 
@@ -462,9 +461,9 @@ YLDEFNF(to_upper_case, 1, 1) {
         else { *pb = *p; }
         pb++; p++;
     }
-    
+
     return ylacreate_sym(pbuf);
-    
+
 } YLENDNF(to_upper_case)
 
 YLDEFNF(trim, 1, 1) {
@@ -472,7 +471,7 @@ YLDEFNF(trim, 1, 1) {
     char*          pbuf;
 
 #define __is_ws(c) (' ' == (c) || '\n' == (c) || '\r' == (c) || '\t' == (c))
-    
+
     ylnfcheck_atype_chain1(e, ylaif_sym());
 
     p = ylasym(ylcar(e)).sym;
@@ -493,10 +492,10 @@ YLDEFNF(trim, 1, 1) {
     }
 
     if(ps > pe) { pe = ps - 1; } /* check : all are white space */
-    
+
     pbuf = ylmalloc(pe-ps+2); /* pe is inclusive(+1) and trailing 0(+1) */
     pbuf[pe-ps+1] = 0; /* add trailing 0 */
-    
+
     memcpy(pbuf, ps, pe-ps+1);
 
     return ylacreate_sym(pbuf);

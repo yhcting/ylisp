@@ -63,14 +63,6 @@ check_exit_status
 make release
 check_exit_status
 
-cd ../ylcon
-echo --- build ylcon
-check_exit_status
-make clean
-check_exit_status
-make release
-check_exit_status
-
 cd ../yljfe
 echo --- build yljfe
 check_exit_status

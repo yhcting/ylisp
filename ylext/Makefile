@@ -14,11 +14,11 @@ EXTLIB=$(addprefix $(EXTLIB_DIR),$(addsuffix .a,$(addprefix lib,$(EXT_LIBRARY)))
 
 SOURCES= main.c nfunc.c
 
-OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES))) 
+OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES)))
 DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 
 # Flags for shared object
-CFLAGS+= -fPIC -g
+CFLAGS+= -fPIC -Wall -g
 # temp block... no lib to link
 #LDFLAGS+=-static
 LDFLAGS+= -rdynamic -ldl -lrt -lpthread

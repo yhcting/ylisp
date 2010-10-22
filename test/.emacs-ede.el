@@ -10,7 +10,7 @@
     (interactive)
     (let ((cmd ""))
         (set 'cmd (concat "cd " yhc.topdir
-                          "; make CFLAGS=-g"))
+                          "; make"))
         ;(message cmd)))
         (compile cmd)))
 

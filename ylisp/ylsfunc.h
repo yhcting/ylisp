@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -27,7 +27,7 @@
  *    (Static function in header means "importing directly outside of module".)
  *
  *    The reasons is,
- *      - These have high possibility to be changed or improved 
+ *      - These have high possibility to be changed or improved
  *          in future as atom type is extended.
  *        So, importing these directly outside of module may cause future maintenance issue.
  **********************************************************/
@@ -93,6 +93,7 @@ ylcar(const yle_t* e) {
     }
     yllog((YLLogE, "'car' is available only on pair\n"));
     ylinterpret_undefined(YLErr_eval_undefined);
+    return NULL; /* to make compiler happy */
 }
 
 static inline yle_t*
@@ -102,6 +103,7 @@ ylcdr(const yle_t* e) {
     }
     yllog((YLLogE, "'cdr' is available only on pair\n"));
     ylinterpret_undefined(YLErr_eval_undefined);
+    return NULL; /* to make compiler happy */
 }
 
 #define ylcaar(e) ylcar(ylcar(e))
@@ -176,7 +178,7 @@ ylnot(const yle_t* e1) {
  *=================================*/
 static inline yle_t*
 yllist(yle_t* e1, yle_t* e2)  {
-    return ylcons(e1, ylcons(e2, ylnil())); 
+    return ylcons(e1, ylcons(e2, ylnil()));
 }
 
 /**
@@ -203,7 +205,7 @@ static inline yle_t*
 ylsubst(yle_t* x, yle_t* y, yle_t* z) {
     if(yleis_atom(y)) {
         if(yleis_atom(z)) {
-            if( yleis_true(yleq(z, y)) ) { return x; } 
+            if( yleis_true(yleq(z, y)) ) { return x; }
             else { return z; }
         } else {
             return ylcons(ylsubst(x, y, ylcar(z)), ylsubst(x, y, ylcdr(z)));
@@ -214,13 +216,13 @@ ylsubst(yle_t* x, yle_t* y, yle_t* z) {
 }
 
 /**
- * equal [x; y] = [atom [x] && atom [y] && eq[x; y]] 
+ * equal [x; y] = [atom [x] && atom [y] && eq[x; y]]
  *                    || [!atom[x] && !atom[y] && equal [car [x]; car [y]] && equal [cdr [x]; cdr [y]]]
  */
 static inline yle_t*
 ylequal(yle_t* x, yle_t* y) {
-    return ylor( yland( yland( ylatom(x), ylatom(y)), yleq(x,y)), 
-               yland( yland ( yland( ylnot( ylatom(x)), ylnot( ylatom(y))), ylequal( ylcar(x), ylcar(y))), 
+    return ylor( yland( yland( ylatom(x), ylatom(y)), yleq(x,y)),
+               yland( yland ( yland( ylnot( ylatom(x)), ylnot( ylatom(y))), ylequal( ylcar(x), ylcar(y))),
                     ylequal( ylcdr(x), ylcdr(y))));
 }
 
@@ -241,19 +243,20 @@ ylamong(yle_t* x, yle_t* y) {
 }
 
 /**
- * pair [x; y] = [null [x] && null [y] -> NIL; 
+ * pair [x; y] = [null [x] && null [y] -> NIL;
  *               !atom [x] && !atom [y] -> cons [list [car [x]; car[y]]; pair [cdr [x]; cdr [y]]]
  */
 static inline yle_t*
 ylpair(yle_t* x, yle_t* y) {
-    if( yleis_nil(x) && yleis_nil(y) ) { 
-        return ylnil(); 
+    if( yleis_nil(x) && yleis_nil(y) ) {
+        return ylnil();
     } else if( !yleis_atom(x) && !yleis_atom(y) ) {
         return ylcons(yllist(ylcar(x), ylcar(y)), ylpair(ylcdr(x), ylcdr(y)));
     } else {
         yllogE0("Fail to map parameter!\n");
         ylinterpret_undefined(YLErr_eval_undefined);
     }
+    return NULL; /* to make compiler happy */
 }
 
 
@@ -267,8 +270,8 @@ ylpair(yle_t* x, yle_t* y) {
  */
 static inline yle_t*
 __ylsub2(yle_t* x, yle_t* z) {
-    if( yleis_nil(x) ) { 
-        return z; 
+    if( yleis_nil(x) ) {
+        return z;
     } else if( yleis_true(yleq(ylcaar(x), z)) ) {
         return ylcadar(x);
     } else {
@@ -291,7 +294,7 @@ ylsublis(yle_t* x, yle_t* y) {
 static inline yle_t*
 ylevlis(yle_t* m, yle_t* a) {
     if(yleis_nil(m)) { return ylnil(); }
-    else { 
+    else {
         yle_t* r; /* return value */
         yle_t* p = yleval(ylcar(m), a);
         /* p should be preserved from GC */

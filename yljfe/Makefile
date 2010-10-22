@@ -11,10 +11,10 @@ EXTLIB=$(addprefix $(EXTLIB_DIR),$(addsuffix .a,$(addprefix lib,$(EXT_LIBRARY)))
 
 SOURCES= main.c
 
-OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES))) 
+OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES)))
 DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 
-CFLAGS+=
+CFLAGS+= -Wall -g
 # temp block... no lib to link
 #LDFLAGS+= -rdynamic -ldl -lpthread -L$(JAVALIB) -ljvm
 LDFLAGS+= -rdynamic -ldl -lrt -lpthread -ljvm
@@ -31,7 +31,7 @@ C_LINK=$(CC) $(CFLAGS) $(LDFLAGS) -L.
 
 JSRCDIR=jsrc/
 JOUTDIR=$(JSRCDIR)bin/
-JSOURCES=$(JSRCDIR)YLJEditArea.java $(JSRCDIR)Main.java 
+JSOURCES=$(JSRCDIR)YLJEditArea.java $(JSRCDIR)Main.java
 JTARGET=$(JOUTDIR)joutdummy
 JC=javac
 JFLAGS=-Xlint:unchecked -d $(JOUTDIR)
@@ -55,16 +55,16 @@ $(JTARGET): $(JSOURCES)
 	$(JC) $(JFLAGS) $^
 	touch $@
 
-$(OUTDIR)%.o: %.c 
+$(OUTDIR)%.o: %.c
 	@echo '$(C_COMPILE) -o $@ -c $<'; \
 	$(C_COMPILE) $(C_DEPENDENCIES) -o $@ -c $<
 
-$(TARGET): $(OBJ) $(EXTLIB) 
+$(TARGET): $(OBJ) $(EXTLIB)
 	@echo '$(C_LINK) -o $@ $^'; \
 	$(C_LINK) -o $@ $^
 
 
-tags: 
+tags:
 
 
 clean:

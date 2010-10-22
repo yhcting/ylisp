@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -41,8 +41,8 @@ YLDEFNF(__dummy, 0, 0) {
 } YLENDNF(__dummy)
 
 YLDEFNF(quote, 1, 1) {
-    /* 
-     * Following inactive part is code for test GC! 
+    /*
+     * Following inactive part is code for test GC!
      * Dangling cyclic-cross-referred!
      */
 #if 0
@@ -69,6 +69,7 @@ YLDEFNF(f_mset, 2, 3) {
         } else {
             ylnflogE0("MSET : 3rd parameter should be description string\n");
             ylinterpret_undefined(YLErr_func_invalid_param);
+            return NULL; /* to make compiler happy */
         }
     } else {
         return ylmset(ylcar(e), ylcadr(e), a, NULL);
@@ -92,6 +93,7 @@ YLDEFNF(set, 2, 3) {
         } else {
             ylnflogE0("SET : 3rd parameter should be description string\n");
             ylinterpret_undefined(YLErr_func_invalid_param);
+            return NULL; /* to make compiler happy */
         }
     } else {
         return ylset(ylcar(e), ylcadr(e), a, NULL);
@@ -118,7 +120,8 @@ YLDEFNF(help, 1, 9999) {
     const char*  desc;
     ylnfcheck_atype_chain1(e, ylaif_sym());
     while(!yleis_nil(e)) {
-        if(desc = ylgsym_get_description(ylasym(ylcar(e)).sym)) {
+        /* '!!' to make compiler be happy */
+        if(!!(desc = ylgsym_get_description(ylasym(ylcar(e)).sym))) {
             int    outty;
             yle_t* v;
             v = ylgsym_get(&outty, ylasym(ylcar(e)).sym);
@@ -160,7 +163,7 @@ YLDEFNF(load_cnf, 1, 1) {
     }
 
     (*register_cnf)();
-    
+
     ylnflogI0("done\n");
 
     /* dlclose(handle); */
@@ -169,6 +172,8 @@ YLDEFNF(load_cnf, 1, 1) {
  bail:
     if(handle) { dlclose(handle); }
     ylinterpret_undefined(YLErr_func_fail);
+
+    return NULL; /* to make compiler happy */
 } YLENDNF(load_cnf)
 
 YLDEFNF(unload_cnf, 1, 1) {
@@ -179,8 +184,8 @@ YLDEFNF(unload_cnf, 1, 1) {
     ylnfcheck_atype_chain1(e, ylaif_sym());
 
     fname = ylasym(ylcar(e)).sym;
-    /* 
-     * if the same library is loaded again, the same file handle is returned 
+    /*
+     * if the same library is loaded again, the same file handle is returned
      * (see manpage of dlopen(3))
      */
     handle = dlopen(fname, RTLD_LAZY);
@@ -207,6 +212,7 @@ YLDEFNF(unload_cnf, 1, 1) {
     if(handle) { dlclose(handle); }
     ylinterpret_undefined(YLErr_func_fail);
 
+    return NULL; /* to make compiler happy */
 } YLENDNF(unload_cnf)
 
 
@@ -217,10 +223,10 @@ YLDEFNF(unload_cnf, 1, 1) {
  *    So, calling 'interpret-file' serveral times is good in GC's point of view!)
  */
 YLDEFNF(interpret_file, 1, 1) {
-    FILE*        fh = NULL;
-    char*        buf = NULL;
-    const char*  fname = NULL; /* file name */
-    long int     sz;
+    FILE*            fh = NULL;
+    unsigned char*   buf = NULL;
+    const char*      fname = NULL; /* file name */
+    long int         sz;
 
     ylnfcheck_atype_chain1(e, ylaif_sym());
 
@@ -249,7 +255,7 @@ YLDEFNF(interpret_file, 1, 1) {
             ylnflogE1("Fail to read file [%s]\n", fname);
             goto bail;
         }
-    
+
         if(YLOk !=  ylinterpret_internal(buf, sz)) {
             ylnflogE1("ERROR at interpreting [%s]\n", fname);
             goto bail;
@@ -270,7 +276,8 @@ YLDEFNF(interpret_file, 1, 1) {
     if(buf) { ylfree(buf); }
 
     ylinterpret_undefined(YLErr_func_fail); /* error during interpreting */
-    
+
+    return NULL; /* to make compiler happy */
 } YLENDNF(interpret_file)
 
 /**********************************************************

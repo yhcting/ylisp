@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -53,6 +53,7 @@
  */
 #include <memory.h>
 #include <string.h>
+#include "config.h"
 #include "yltrie.h"
 #include "yldev.h"
 
@@ -77,12 +78,12 @@ typedef struct _trie {
 static inline _node_t*
 _alloc_node() {
     _node_t* n = ylmalloc(sizeof(_node_t));
-    if(!n) { 
-        /* 
+    if(!n) {
+        /*
          * if allocing such a small size of memory fails, we can't do anything!
          * Just ASSERT IT!
          */
-        ylassert(0); 
+        ylassert(0);
     }
     memset(n, 0, sizeof(_node_t));
     return n;
@@ -90,13 +91,13 @@ _alloc_node() {
 
 static inline void
 _free_node(_node_t* n, void(*fcb)(void*) ) {
-    if(n->v) { 
+    if(n->v) {
         if(fcb) { fcb(n->v); }
     }
     ylfree(n);
 }
 
-static inline void 
+static inline void
 _delete_node(_node_t* n, void(*fcb)(void*) ) {
     register int i;
     for(i=0; i<16; i++) {
@@ -167,7 +168,7 @@ _delete_key(_node_t* n, const unsigned char* p,
         /* Cannot find symbol! */
         return -1;
     } else {
-        /* 
+        /*
          * End of stream.
          * We need to check this node has valid data.
          * If yes, delete value!
@@ -204,7 +205,7 @@ _delete_key(_node_t* n, const unsigned char* p,
  * @return: back node of last character of symbol. If fails to get, NULL is returned.
  */
 static _node_t*
-_get_node(_trie_t* t, 
+_get_node(_trie_t* t,
           const unsigned char* key, unsigned int sz,
           int bcreate) {
     register _node_t*             n = &t->rt;
@@ -214,14 +215,14 @@ _get_node(_trie_t* t,
 
     if(bcreate) {
         while(p<pend) {
-            _move_down_node(*p, n, fi, bi, 
+            _move_down_node(*p, n, fi, bi,
                             n = n->n[fi] = _alloc_node(),
                             n = n->n[bi] = _alloc_node());
             p++;
         }
     } else {
         while(p<pend) {
-            _move_down_node(*p, n, fi, bi, 
+            _move_down_node(*p, n, fi, bi,
                             return NULL, return NULL);
             p++;
         }
@@ -230,10 +231,9 @@ _get_node(_trie_t* t,
 }
 
 static int
-_equal_internal(const _node_t* n0, const _node_t* n1, 
+_equal_internal(const _node_t* n0, const _node_t* n1,
                   int(*cmp)(const void*, const void*)) {
     register int i;
-    int          r;
     if(n0->v && n1->v) {
         if(0 == cmp(n0->v, n1->v)) { return 0; /* NOT same */ }
     } else if(n0->v || n1->v) {
@@ -320,7 +320,7 @@ yltrie_get(_trie_t* t, const unsigned char* key, unsigned int sz) {
 }
 
 int
-yltrie_walk(_trie_t* t, void* user, 
+yltrie_walk(_trie_t* t, void* user,
             const unsigned char* from, unsigned int fromsz,
             /* return 1 for keep going, 0 for stop and don't do anymore */
             int(cb)(void*, const unsigned char*, unsigned int, void*)) {
@@ -329,7 +329,7 @@ yltrie_walk(_trie_t* t, void* user,
 
     ylassert(t && from);
     if(n) {
-        return _walk_internal(user, n, cb, (unsigned char*)buf, _MAX_KEY_LEN, 0); 
+        return _walk_internal(user, n, cb, (unsigned char*)buf, _MAX_KEY_LEN, 0);
     } else { return -1; }
 }
 
@@ -408,19 +408,18 @@ yltrie_copy(yltrie_t* dst, const yltrie_t* src, void* user,
     for(i=0; i<16; i++) {
         if(src->rt.n[i]) { dst->rt.n[i] = _node_clone(src->rt.n[i], user, clonev); }
     }
-
+    return 0; /* return value of this function is reserved for future use */
 }
 
 yltrie_t*
 yltrie_clone(const yltrie_t* t, void* user, void*(*clonev)(void*, const void*)) {
-    register int i;
     yltrie_t*    r = yltrie_create(t->fcb);
     yltrie_copy(r, t, user, clonev);
     return r;
 }
 
 int
-yltrie_auto_complete(_trie_t* t, 
+yltrie_auto_complete(_trie_t* t,
                      const unsigned char* start_with, unsigned int sz,
                      unsigned char* buf, unsigned int bufsz) {
     int                   ret = -1;
@@ -456,13 +455,13 @@ yltrie_auto_complete(_trie_t* t,
             if(n->n[i]) { cnt++; j=i; }
         }
         if(cnt > 1) { ret = YLTRIEBranch; break; }
-        else if(0 == cnt) { 
+        else if(0 == cnt) {
             /* This is unexpected case on this trie algorithm */
             ylassert(0);
         }
         c |= j;
         n = n->n[j];
-    
+
         if(bi >= (bufsz-1)) { return -1; }
         else { buf[bi] = c; bi++; }
     }

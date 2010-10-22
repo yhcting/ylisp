@@ -1,17 +1,17 @@
 /*****************************************************************************
  *    Copyright (C) 2010 Younghyung Cho. <yhcting77@gmail.com>
- *    
+ *
  *    This file is part of YLISP.
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
- *    published by the Free Software Foundation either version 3 of the 
+ *    published by the Free Software Foundation either version 3 of the
  *    License, or (at your option) any later version.
- *    
+ *
  *    This program is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License 
+ *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
@@ -51,8 +51,8 @@
 /* --------------------------
  * YLE types
  * --------------------------*/
-#define YLEPair            0           
-#define YLEAtom            0x80000000  /**< 0 means ylpair */ 
+#define YLEPair            0
+#define YLEAtom            0x80000000  /**< 0 means ylpair */
 #define YLEGCMark          0x40000000  /**< Mark used only for GC */
 #define YLEMark            0x20000000  /**< Bit for Mark. This is used for several purpose! */
 
@@ -78,11 +78,11 @@ struct yle;
  * +Interfaces for atom operation+
  *    Each function pointer can be NULL.
  *    And this means, 'this operation is NOT supported or allowed'
- * 
+ *
  * !NOTE & WARNING!
  *    clone : [IMPORTANT]
  *        'clone' is ONLY USED for 'mlambda' and 'mset'.
- *        So, custom atom that doesn't allow/suport cloning, 
+ *        So, custom atom that doesn't allow/suport cloning,
  *            SHOULD NOT be used at mlambda and mset!.
  *        Using atom which have NULL-clone-value at 'mlambda' or 'mset',
  *            cause 'ylinterpret_undefined' and interpreting is stopped with error.
@@ -106,7 +106,7 @@ typedef struct {
      * Values  will be shallow-copied before calling this function.
      * So, 'copy' SHOULD DO DEEP COPY if needed.
      * This can be NULL.(Nothing to deep-copy.
-     * @map : 
+     * @map :
      *    map of [orignal block - cloned block]
      *    Usually Trie is used as a data structure. (Hash is also good choice)
      * @return : <0 if error.
@@ -120,7 +120,7 @@ typedef struct {
      *       It's caller's responsibility to pass ''sz' less than 1 byte of real one.
      * @return :
      *    bytes written to buffer if success. -1 if fails (ex. Not enough buffer size)
-     *    
+     *
      */
     int           (*to_string)(const struct yle*, char*/*buf*/, unsigned int/*sz*/);
     /*
@@ -128,12 +128,12 @@ typedef struct {
      * (This may used to implement special atom type - ex. array, struture, class etc. if required)
      * return : 0: stop by user, 1: complete visiting.
      */
-    int           (*visit)(struct yle*, void* user, 
+    int           (*visit)(struct yle*, void* user,
                            /* 1: keep visiting / 0:stop visiting */
-                           int(*)(void*/*user*/, 
+                           int(*)(void*/*user*/,
                                   struct yle*/*referred element*/));
     void          (*clean)(struct yle*);
-} ylatomif_t; /* atom inteface
+} ylatomif_t; /* atom inteface */
 
 /* nfunc : Native FUNCtion */
 typedef struct yle* (*ylnfunc_t)(struct yle*, struct yle*);
@@ -185,7 +185,7 @@ typedef struct yle {
      */
 #ifdef CONFIG_DBG_MEM
     /**< evaluation id that take this block from the pool. */
-    unsigned int      evid; 
+    unsigned int      evid;
 #endif /* CONFIG_DBG_MEM */
 } yle_t;
 
@@ -237,8 +237,8 @@ typedef struct yle {
 #define ylpcar(e)               ((e)->u.p.car)
 #define ylpcdr(e)               ((e)->u.p.cdr)
 
-/* 
- * each type-specific macros 
+/*
+ * each type-specific macros
  */
 
 /* -- common -- */
@@ -280,7 +280,7 @@ typedef struct yle {
 #define ylprint(x)      do { ylsysv()->print x; } while(0)
 #define ylmpsz(x)       (ylsysv()->mpsz)
 #define ylgctp(x)       (ylsysv()->gctp)
-/* 
+/*
  * ! Predefined atoms !
  * To improve performance, we may use global variable instead of function.
  * This is referened very frequently!
@@ -508,7 +508,7 @@ extern void ylinterpret_undefined(int reason);
 
 #define YLDECLNF(n) yle_t* YLNFN(n)(yle_t* e, yle_t* a)
 /*
- * Native Function EXPORT 
+ * Native Function EXPORT
  * @p: number of parameter that this function expected.
  *     <0 means variable number.
  */
@@ -525,7 +525,7 @@ extern void ylinterpret_undefined(int reason);
     }                                                                   \
     do
 
-/* This should be ylpair with YLDEFNF */                 
+/* This should be ylpair with YLDEFNF */
 #define YLENDNF(n) while(0); }
 
 
@@ -604,7 +604,7 @@ ylsysv();
  * -------------------------------*/
 extern ylerr_t
 ylregister_nfunc(unsigned int version,
-                 const char* sym, ylnfunc_t nfunc, 
+                 const char* sym, ylnfunc_t nfunc,
                  const ylatomif_t* aif, const char* desc);
 
 extern void
@@ -616,7 +616,7 @@ ylunregister_nfunc(const char* sym);
 
 /*
  * mp : Memory Pool
- * get yle_t block 
+ * get yle_t block
  */
 extern yle_t*
 ylmp_block();
@@ -697,7 +697,7 @@ ylchild_proc_unset();
 extern int
 ylelist_size(const yle_t* e);
 
-/* 
+/*
  * get print string.
  * returned memory SHOULD NOT be freed.
  * (This function uses static buffer, So please keep this in mind!)
