@@ -65,7 +65,7 @@
 ; two different implementations of defstruct
 (mset defstruct
     (mlambda (name SLOTS)
-        (let ( (rf '()) )
+        (let ( (rf '()) (unrf '()) )
             (defun rf (st S) ""
                 (cond ((not (null S))
                     (progn
@@ -76,7 +76,17 @@
                         (rf st (cdr S))))))
             (f-mset (concat 'make- 'name)
                 '(lambda () (trie-create (pr-from-list '() 'SLOTS ''()))))
-            (rf 'name 'SLOTS)))
+            (rf 'name 'SLOTS)
+
+            ; undef functions. (unset all auto-defined symbols...)
+            (f-mset (concat 'undef- 'name)
+                '(lambda ()
+                    (let ( (l 'SLOTS) )
+                        (unset (concat 'make- 'name))
+                        (while (not (null l))
+                            (unset (concat 'name '. (car l) '*))
+                            (unset (concat 'name '. (car l) '+))
+                            (set 'l (cdr l))))))    ))
 "defstruct <name> <slots> ")
 
 ; ---

@@ -146,6 +146,7 @@
 ; Test Struct (Trie Based)
 ;=============================
 (defstruct person (name sex))
+
 (set 'me (make-person))
 (person.name+ me 'cho)
 (assert (equal 'cho (person.name* me)))
@@ -168,6 +169,15 @@
 (assert (equal 'cho (person.name* me)))
 (assert (equal 'male (person.sex* me)))
 
+(undef-person)
+(assert (not (is-set 'make-pserson)))
+(assert (not (is-set 'person.name*)))
+(assert (not (is-set 'person.name+)))
+(assert (not (is-set 'person.sex*)))
+(assert (not (is-set 'person.sex+)))
+
+
+
 (defstruct anim (name class nr-leg))
 (set 'my (make-anim))
 (anim.name+ my 'joe)
@@ -176,5 +186,10 @@
 (anim.name+ my 'wow)
 (assert (equal 'wow (anim.name* my)))
 (assert (equal 4 (anim.nr-leg* my)))
+
+(undef-anim)
+(assert (not (is-set 'make-anim)))
+(assert (not (is-set 'anim.name*)))
+(assert (not (is-set 'anim.name+)))
 
 (unset 'map)
