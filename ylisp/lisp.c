@@ -344,7 +344,10 @@ ylregister_nfunc(unsigned int version,
     }
 
     /* default symbol type is 0 */
-    ylgsym_insert(sym, 0, e);
+    if(1 == ylgsym_insert(sym, 0, e) ) {
+        yllogW1("WARN! : [Native Function] Symbol Overwritten!\n"
+                "    symbol : %s\n", sym);
+    }
     ylgsym_set_description(sym, desc);
 
     return YLOk;

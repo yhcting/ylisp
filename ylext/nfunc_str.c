@@ -39,10 +39,10 @@
 #define _NUMSTRSZ  31
 
 
-YLDEFNF(length, 1, 1) {
+YLDEFNF(strlen, 1, 1) {
     ylnfcheck_atype_chain1(e, ylaif_sym());
     return ylacreate_dbl(strlen(ylasym(ylcar(e)).sym));
-} YLENDNF(length)
+} YLENDNF(strlen)
 
 YLDEFNF(itos, 1, 1) {
     long      l;
@@ -149,7 +149,7 @@ YLDEFNF(split_to_line, 1, 1) {
 
 } YLENDNF(split_to_line)
 
-YLDEFNF(at, 2, 2) {
+YLDEFNF(char_at, 2, 2) {
     int         idx;
     int         len;
     const char* p;
@@ -174,14 +174,14 @@ YLDEFNF(at, 2, 2) {
     ch[1] = 0; /* trailing NULL */
     return ylacreate_sym(ch);
 
-} YLENDNF(at)
+} YLENDNF(char_at)
 
 
-YLDEFNF(compare, 2, 2) {
+YLDEFNF(strcmp, 2, 2) {
     /* check input parameter */
     ylnfcheck_atype_chain1(e, ylaif_sym());
     return ylacreate_dbl(strcmp(ylasym(ylcar(e)).sym, ylasym(ylcadr(e)).sym));
-} YLENDNF(compare)
+} YLENDNF(strcmp)
 
 
 YLDEFNF(end_with, 2, 2) {

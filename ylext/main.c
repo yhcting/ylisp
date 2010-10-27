@@ -118,22 +118,71 @@ main(int argc, char* argv[]) {
 
 #else /* __YLDBG__ */
 
-#include "yldev.h"
+#include <dlfcn.h>
+#include <string.h>
+
+#define CONFIG_LOG
+#define CONFIG_ASSERT
+
+#include "ylsfunc.h"
 
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
 #   include "nfunc.in"
 #undef NFUNC
 
-extern void __LNF__libylext__nfunc__INIT__();
-extern void __LNF__libylext__nfunc__DeINIT__();
+#define PCRELIB_PATH_SYM "pcrelib-path"
+
+static void*  _libmhandle;
+static void*  _pcrelib;
 
 void
 ylcnf_onload() {
+
+    /* load math library */
+    _libmhandle = dlopen("/usr/lib/libm.so", RTLD_NOW | RTLD_GLOBAL);
+    if(!_libmhandle) {
+        yllogE0("Cannot open use system library required [/usr/lib/libm.so]\n");
+        return;
+    }
+
+
+    { /* Just Scope */
+        char*      sym;
+        yle_t*     libpath;
+
+        /* make lib path symbol to get pcre-lib path */
+        sym = ylmalloc(sizeof(PCRELIB_PATH_SYM));
+        strcpy(sym, PCRELIB_PATH_SYM);
+        libpath = ylacreate_sym(sym);
+
+        if(ylis_set(sym)) {
+            libpath = yleval(libpath, ylnil());
+            if(!yleis_nil(libpath) && ylais_type(libpath, ylaif_sym()) ) {
+                /* if there is pcre, let's use it! */
+                _pcrelib = dlopen(ylasym(libpath).sym, RTLD_NOW | RTLD_GLOBAL);
+            }
+        }
+    } /* Just Scope */
+
     /* return if fail to register */
 #define NFUNC(n, s, type, desc)  \
     if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylext <<\n" desc)) { return; }
 #   include "nfunc.in"
 #undef NFUNC
+
+    /* if fail to load pcre lib */
+    if(!_pcrelib) {
+        yllogW0("WARNING!\n"
+                "    Fail to load pcre library!.\n"
+                "    Set library path to 'string,pcrelib-path' before load-cnf.\n"
+                "    ex. (set 'string,pcrelib-path '/usr/local/lib/libpcre.so).\n"
+                "    (pcre-relative-cnfs are not loaded!)\n");
+
+        /* functions that uses pcre-lib */
+        ylunregister_nfunc("re-match");
+        ylunregister_nfunc("re-replace");
+
+    }
 }
 
 void
@@ -141,5 +190,21 @@ ylcnf_onunload() {
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc.in"
 #undef NFUNC
+
+    /*
+     * All functions that uses 'libm.so' SHOULD BE HERE.
+     * We don't care of others who uses 'libm.so' out of here!
+     * Let's close it!
+     */
+    dlclose(_libmhandle);
+
+    if(_pcrelib) { /* re is loaded */
+        /*
+         * All functions that uses 'libpcre.so' SHOULD BE HERE.
+         * We don't care of others who uses 'libm.so' out of here!
+         * Let's close it!
+         */
+        dlclose(_pcrelib);
+    }
 }
 #endif /* __YLDBG__ */

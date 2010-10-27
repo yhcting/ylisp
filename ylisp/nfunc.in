@@ -101,8 +101,8 @@ NFUNC(unset,                  "unset",                   ylaif_nfunc(),
     "    -Remove symbol from the global space.\n"
     "    @return: t if removed, nil if symbol doesn't exist.\n")
 
-NFUNC(is_set,                 "is-set",                  ylaif_nfunc(),
-    "is-set <symbol> : [t/nil]\n"
+NFUNC(is_set,                 "set?",                    ylaif_nfunc(),
+    "set? <symbol> : [t/nil]\n"
     "    -check whether specified <symbol> is set in global symbol space or not.\n"
     "    @return: t if exists. Otherwise nil\n")
 

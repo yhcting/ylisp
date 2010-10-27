@@ -12,7 +12,7 @@ EXTLIB_DIR=../lib/
 EXT_LIBRARY=ylisp
 EXTLIB=$(addprefix $(EXTLIB_DIR),$(addsuffix .a,$(addprefix lib,$(EXT_LIBRARY))))
 
-SOURCES= main.c nfunc.c
+SOURCES= main.c nfunc_str.c nfunc_arr.c nfunc_math.c nfunc_sys.c nfunc_trie.c nfunc_re.c
 
 OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES)))
 DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
@@ -21,7 +21,7 @@ DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 CFLAGS+= -fPIC -Wall -g
 # temp block... no lib to link
 #LDFLAGS+=-static
-LDFLAGS+= -rdynamic -ldl -lrt -lpthread
+LDFLAGS+= -rdynamic -ldl -lrt -lpthread -lm -L/usr/local/lib -lpcre
 #LDFLAGS+= -ldl -lpthread
 SOFLAGS+=
 

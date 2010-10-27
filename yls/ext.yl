@@ -1,9 +1,47 @@
-; extention of base lisp... This should be interpreted after loading string library.
+; =================================================
+; EXT.YL
+; =================================================
 
-;link function with easy-name
-(set 'aset arr-set '"see arr-set\n")
-(set 'aref arr-get '"see arr-get\n")
-(set 'make-array arr-create '"see arr-create\n")
+(defun fuzzy-equal (v1 v2 epsilon)
+"fuzzy-equal <val1> <val2> <epsilon>
+    -compare double value with epsilon.
+     This can/should be used to compare fraction part of number
+    @valN [Double]: value
+    @epsilon [Double] : maximum allowable-errata.
+"
+    (let ((x 0))
+        (set 'x (- v1 v2))
+        (cond ((< x 0) (set 'x (* -1 x))))
+        (> epsilon x)))
+
+(defun equal-ignore-case (s1 s2)
+"equal-ignore-case <str1> <str2> : [t/nil]
+    -Compare strings, ignoring case considerations
+"
+    (equal (to-lower-case s1) (to-lower-case s2)))
+
+(defun bsort (cmp L)
+"bsort <cmp func> <list exp>
+    -sort by using bubble sort alorithm (descending order)
+     NOTE!: Passed list itself is changed! - sorted.
+    @cmp func [Symbol]:   function used to compare.
+                          function should be like '(<func> e1 e2)'.
+                          This should return 'not nil' if 1st parameter is greater than 2nd parameter, otherwise nil.
+    @list exp [list]:     list expression.
+"
+    (let ( (etmp '()) (I L) (J '()) )
+        (while (not (null (cdr I)))
+            (set 'J L)
+            (while (not (null (cdr J)))
+                (cond
+                    ( (equal '() (cmp (car J) (cadr J)))
+                        (progn
+                            (set 'etmp (car J))
+                            (setcar J (cadr J))
+                            (setcar (cdr J) etmp))))
+                (set 'J (cdr J)))
+            (set 'I (cdr I)))
+        L))
 
 (defun pr? (PAIR key)
 "pr? <pair> <key>
@@ -70,12 +108,12 @@
                 (cond ((not (null S))
                     (progn
                         (f-mset (concat st '. (car S) '*)
-                            (list 'mlambda '(inst) (list 'trie-get 'inst (list 'car (list 'quote S)))))
+                            (list 'mlambda '(inst) (list 'trie* 'inst (list 'car (list 'quote S)))))
                         (f-mset (concat st '. (car S) '+)
-                           (list 'mlambda '(inst val) (list 'trie-insert 'inst (list 'car (list 'quote S)) 'val)))
+                           (list 'mlambda '(inst val) (list 'trie+ 'inst (list 'car (list 'quote S)) 'val)))
                         (rf st (cdr S))))))
             (f-mset (concat 'make- 'name)
-                '(lambda () (trie-create (pr-from-list '() 'SLOTS ''()))))
+                '(lambda () (make-trie (pr-from-list '() 'SLOTS ''()))))
             (rf 'name 'SLOTS)
 
             ; undef functions. (unset all auto-defined symbols...)

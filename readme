@@ -144,13 +144,8 @@ Directory/File Structure
         Without any special reason, this plugin should be loaded at the
          begining.
     ylext
-        Plugin for extended features (array, trie, structure)
-    ylmath/ylstring/ylsystem
-        Plugin for native function extension. Followings are the list of
-         library name and register functions.
-        libylmath.so
-        libylstring.so
-        libylsystem.so
+        Plugin for extended features.
+        (math, string, system, array, trie, structure, utility funcs. etc)
     yls
         YLISP script files.
     test

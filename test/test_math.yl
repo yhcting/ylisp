@@ -1,5 +1,0 @@
-(print '"====== Start Testing 'math' ======\n")
-(assert (equal 't (m.fuzzy-equal 0.9998 0.9999 0.001)))
-(assert (equal 5.0 (m.integer 5.892)))
-(assert (m.fuzzy-equal 0.98 (m.fraction 5.98) 0.00000001))
-(assert (equal 1024 (m.pow 2 10)))

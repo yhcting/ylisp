@@ -1,5 +1,0 @@
-(defun s.equal-ignore-case (s1 s2)
-"s.equal-ignore-case <str1> <str2> : [t/nil]
-    -Compare strings, ignoring case considerations
-"
-    (equal (s.to-lower-case s1) (s.to-lower-case s2)))

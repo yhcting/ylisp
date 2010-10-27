@@ -1,14 +1,7 @@
 (load-cnf '../lib/libylbase.so)
-(load-cnf '../lib/libylmath.so)
-(load-cnf '../lib/libylsystem.so)
-;set pcre library path variable
-(set 's.pcrelib-path '/usr/local/lib/libpcre.so)
-(load-cnf '../lib/libylstring.so)
-(unset 's.pcrelib-path)
+(set 'pcrelib-path '/usr/local/lib/libpcre.so)
 (load-cnf '../lib/libylext.so)
+(unset 'pcrelib-path)
 
 (interpret-file '../yls/base.yl)
-(interpret-file '../yls/math.yl)
-(interpret-file '../yls/string.yl)
-(interpret-file '../yls/util.yl)
 (interpret-file '../yls/ext.yl)

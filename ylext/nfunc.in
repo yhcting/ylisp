@@ -19,55 +19,365 @@
  *****************************************************************************/
 
 
-NFUNC(trie_create,              "trie-create",                ylaif_nfunc(),
-    "trie-create (<pair>)\n"
+/**********************************************
+ * Math
+ **********************************************/
+/*
+ * Function which has only one argument.
+ */
+NFUNC(cos,                "cos",                ylaif_nfunc(),
+    "cos <value> : [Double]\n"
+    "    -calculates consine.\n"
+    "    @value [Double]: angle expressed in radians\n")
+
+NFUNC(sin,                "sin",                ylaif_nfunc(),
+    "sin <value> : [Double]\n"
+    "    -calculates sine.\n"
+    "    @value [Double]: angle expressed in radians\n")
+
+NFUNC(tan,                "tan",                ylaif_nfunc(),
+    "tan <value> : [Double]\n"
+    "    -calculates tangent.\n"
+    "    @value [Double]: angle expressed in radians\n")
+
+NFUNC(acos,               "acos",               ylaif_nfunc(),
+    "acos <value> : [Double]\n"
+    "    -calculates arc cosine.\n"
+    "    @value [Double]: value in the interval [-1, +1].\n"
+    "    @return:         expressed in radians.\n")
+
+
+NFUNC(asin,               "asin",               ylaif_nfunc(),
+    "asin <value> : [Double]\n"
+    "    -calculates arc sine.\n"
+    "    @value [Double]: value in the interval [-1, +1].\n"
+    "    @return:         expressed in radians.\n")
+
+NFUNC(atan,               "atan",               ylaif_nfunc(),
+    "atan <value> : [Double]\n"
+    "    -calculates arc tangent.\n"
+    "    @value [Double]:\n"
+    "    @return:         expressed in radians.\n")
+
+NFUNC(cosh,               "cosh",               ylaif_nfunc(),
+    "cosh <value> : [Double]\n"
+    "    -calculates hyperbolic cosine of x.\n")
+
+NFUNC(sinh,               "sinh",               ylaif_nfunc(),
+    "sinh <value> : [Double]\n"
+    "    -calculates hyperbolic sine of x.\n")
+
+NFUNC(tanh,               "tanh",               ylaif_nfunc(),
+    "tanh <value> : [Double]\n"
+    "    -calculates hyperbolic tangent of x.\n")
+
+NFUNC(exp,                "exp",                ylaif_nfunc(),
+    "exp <value> : [Double]\n"
+    "    -calculates base-e exponential of x.\n")
+
+NFUNC(log,                "loge",               ylaif_nfunc(),
+    "log <value> : [Double]\n"
+    "    -calculates base-e logarithm of x.\n")
+
+NFUNC(log10,              "log10",              ylaif_nfunc(),
+    "log10 <value> : [Double]\n"
+    "    -calculates base-10 logarithm of x.\n")
+
+NFUNC(sqrt,               "sqrt",               ylaif_nfunc(),
+    "log <value> : [Double]\n"
+    "    -calculates sqare root of x.\n")
+
+NFUNC(ceil,               "ceil",               ylaif_nfunc(),
+    "ceil <value> : [Double]\n"
+    "    -calculates the smallest integral value that is not less than x.\n")
+
+NFUNC(floor,              "floor",              ylaif_nfunc(),
+    "floor <value> : [Double]\n"
+    "    -calculates the largest integral value that is not greater than x.\n")
+
+NFUNC(fabs,               "fabs",               ylaif_nfunc(),
+    "fabs <value> : [Double]\n"
+    "    -calculates absolute value of x.\n")
+
+NFUNC(integer,            "integer",            ylaif_nfunc(),
+    "ingeger <value> : [Double]\n"
+    "    -get value of integer part of x.\n")
+
+NFUNC(fraction,           "fraction",           ylaif_nfunc(),
+    "fraction <value> : [Double]\n"
+    "    -get value of fraction part of x.\n")
+
+/*
+ * Function which has two arguments
+ */
+NFUNC(pow,                "pow",                ylaif_nfunc(),
+    "pow <base> <exponent> : [Double]\n"
+    "    -return <base> raised to the power <exponent>\n")
+
+/**********************************************
+ * String
+ **********************************************/
+NFUNC(strlen,             "strlen",             ylaif_nfunc(),
+    "strlen <symbol> : [Double]\n"
+    "    -return length of symbol\n"
+    "    @symbol [Symbol]\n")
+
+NFUNC(itos,               "itos",               ylaif_nfunc(),
+    "itos <value> : [Symbol]\n"
+    "    -convert interger part of double to symbol - fraction is ignored\n"
+    "    @<value> [Double]\n"
+    "    *ex\n"
+    "        (itos 12.78); => 12\n")
+
+NFUNC(dtos,               "dtos",               ylaif_nfunc(),
+    "dtos <value> : [Symbol]\n"
+    "    -convert double to symbol\n"
+    "    @<value> [Double]\n"
+    "    *ex\n"
+    "        (dtos 12.78); => 12.78\n")
+
+NFUNC(btos,               "btos",               ylaif_nfunc(),
+    "btos <value> : [Symbol]\n"
+    "    -convert binary to human-readable symbol\n"
+    "    @<value> [Binary]\n"
+    "    *ex\n"
+    "        !Not Tested YET!\n")
+
+NFUNC(split_to_line,      "split-to-line",      ylaif_nfunc(),
+    "split-to-line <text> : <list exp>\n"
+    "    -return symbol list. Each symbol contains one-line-string.\n"
+    "     line-feed and carrage return are removed.\n"
+    "    @text [Symbol]\n"
+    "    @return:         list of symbols\n"
+    "    *ex\n"
+    "        (set 'r (split-to-line '\"1st line\\n2nd line\\n\"))\n"
+    "        (print (car r));   => '1st line'\n"
+    "        (print (cadr r));  => '2nd line'\n")
+
+NFUNC(char_at,            "char-at",            ylaif_nfunc(),
+    "char-at <string> <index> : [Symbol]\n"
+    "    -get character at the specific index.\n"
+    "    @index [Double] :\n"
+    "    @return         : one-character-symbol\n")
+
+NFUNC(strcmp,             "strcmp",             ylaif_nfunc(),
+    "strcmp <str1> <str2>: [Double]\n"
+    "    -Compare two strings lexicographically\n"
+    "    @return:    same with 'strcmp'\n")
+
+NFUNC(end_with,           "end-with",           ylaif_nfunc(),
+    "end-with <string> <suffix> : [t/nil]\n"
+    "    -Tests if <string> ends with specific suffix.\n")
+
+NFUNC(start_with,         "start-with",         ylaif_nfunc(),
+    "start-with <string> <prefix> (<from index>): [t/nil]\n"
+    "    -Tests if this <string> starts with the specified <prefix> beginning a specified <from index>.\n"
+    "    @from index [Double] :\n")
+
+NFUNC(index_of,           "index-of",           ylaif_nfunc(),
+    "index-of <string> <str> (<from index>): [Double/nil]\n"
+    "    -Returns the index within <string> of the first occurrence of the <str>, starting the search forward at the <from index>\n"
+    "    @return [Double]     : nil if fail to search. Otherwise index.\n"
+    "    @from index [Double] :\n");
+
+NFUNC(last_index_of,       "last-index-of",     ylaif_nfunc(),
+    "last-index-of <string> <str> (<from index>): [Double/nil]\n"
+    "    -Returns the index within <string> of the last occurrence of the <str>, starting the search backward from the <from index>\n"
+    "    @from index [Double] :\n"
+    "    @return: nil if fails\n")
+
+NFUNC(replace,             "replace",           ylaif_nfunc(),
+    "replace <string> <old> <new>: [Symbol]\n"
+    "    -Returns a new string resulting from replacing all occurrences of <old> in <string> with <new>.\n"
+    "     If fails to match, original string is returned.\n")
+
+NFUNC(substring,           "substring",         ylaif_nfunc(),
+    "substring <string> <begin index> (<end index>): [Symbol]\n"
+    "    -Returns a new string that is a substring of this string.\n"
+    "    @begin index [Double] : inclusive\n"
+    "    @end index [Double]   : exclusive\n")
+
+NFUNC(to_lower_case,       "to-lower-case",     ylaif_nfunc(),
+    "to-lower-case <string>: [Symbol]\n"
+    "    -Converts all of the characters in this string to lower case - assume ASCII\n");
+
+NFUNC(to_upper_case,       "to-upper-case",     ylaif_nfunc(),
+    "to-upper-case <string>: [Symbol]\n"
+    "    -Converts all of the characters in this string to upper case - assume ASCII\n");
+
+NFUNC(trim,                "trim",              ylaif_nfunc(),
+    "trim <string>: [Symbol]\n"
+    "    -Removes white space from both ends of <string>\n")
+
+/**********************************************
+ * String PCRE
+ **********************************************/
+NFUNC(re_match,            "re-match",          ylaif_nfunc(),
+    "re-match <pattern> <subject> <option> : <list exp>\n"
+    "    -match with 'pcre - Perl Compatible REgular expression'. And returns matched string.\n"
+    "    @pattern [Symbol]: Pattern format\n"
+    "    @subject [Symbol]: Subject string\n"
+    "    @option [Symbol]:  Match option 'i', 'm', 's' are supported\n"
+    "    @return : list of matched string. nil for unmatch\n"
+    "    *ex\n"
+    "        (set 'r (re-match '\"\\\\s+(\\\\w+)\\\\s+\" '\"yyy haha  hehe\" '\"\"))\n"
+    "        (print (car r)); ' haha  ' is printed.\n"
+    "        (print (cadr r));'haha' is printed.\n")
+
+
+NFUNC(re_replace,          "re-replace",        ylaif_nfunc(),
+    "re-replace <pattern> <new string> <subject> <option> : [Symbol]\n"
+    "    -replace matched part with <new string>\n"
+    "    @new string [Symbol]:\n"
+    "    @pattern, subject, option: see 're-match'\n"
+    "    @return : newly generated string.\n"
+    "    *ex\n"
+    "        (print (re-replace '[0-9]+ 'num '\"value is 467\" '\"\"));\n"
+    "            ;'value is num' is printed.\n")
+
+/**********************************************
+ * System
+ **********************************************/
+NFUNC(sh,                  "sh",                ylaif_nfunc(),
+    "sh <command> : [Symbol]\n"
+    "    -execute command in the shell by '/bin/bash -c')\n"
+    "    @return : values of standard output and error\n")
+
+NFUNC(sleep,               "sleep",             ylaif_nfunc(),
+    "sleep <seconds> : [t]\n"
+    "    -sleep for <secconds>\n");
+
+NFUNC(usleep,              "usleep",            ylaif_nfunc(),
+    "usleep <micro seconds> : [t]\n")
+
+NFUNC(getenv,              "getenv",            ylaif_nfunc(),
+    "getenv <variable> : [Symbol/nil]\n"
+    "    -get value of environment variable. If there is no matching variable, it returns nil\n"
+    "    @variable [Symbol]:\n")
+
+NFUNC(setenv,              "setenv",            ylaif_nfunc(),
+    "getenv <variable> <value> : [t/nil]\n"
+    "    -set environment variable. If there is no matching variable, it returns nil\n"
+    "    @variable, value [Symbol]:\n")
+
+NFUNC(chdir,               "chdir",             ylaif_nfunc(),
+    "chdir <path> : [t/nil]\n"
+    "    -change current working directory.\n"
+    "    @return: nil if fails. Otherwise not nil\n")
+
+NFUNC(getcwd,              "getcwd",            ylaif_nfunc(),
+    "getcwd : [Symbol]\n"
+    "    -get current working directory path.\n")
+
+NFUNC(fstat,               "fstat",             ylaif_nfunc(),
+    "fstat [file] : [pair/nil]\n"
+    "    -get paired map of file stat.\n"
+    "    @return : nil if fails.\n"
+    "        key: type\n"
+    "            s : socket\n"
+    "            l : symbolic link\n"
+    "            f : regular file\n"
+    "            b : block device\n"
+    "            d : directory\n"
+    "            c : character device\n"
+    "            p : pipe\n"
+    "            u : unknown\n"
+    "        key: size\n"
+    "            size of file.\n")
+
+NFUNC(fread,               "fread",             ylaif_nfunc(),
+    "fread <file path> : [Symbol/nil]\n"
+    "    -read text file.\n"
+    "    @file path[Symbol]:  file path\n"
+    "    @return:             symbol atom if success. Otherwise nil is returned!\n"
+    "    *ex\n"
+    "        (fread 'test.txt) => <content of file>\n")
+
+NFUNC(freadb,              "freadb",            ylaif_nfunc(),
+    "freadb <file path> : [Binary/nil] - not tested yet\n"
+    "    -read binary file.\n"
+    "    @file path[Symbol]:  file path\n"
+    "    @return:             binary atom if success. Otherwise nil is returned!\n"
+    "    *ex\n"
+    "        (freadb 'test.bin) => <content of file>\n")
+
+
+NFUNC(fwrite,              "fwrite",            ylaif_nfunc(),
+    "fwrite <file path> <exp> : [t/nil] - not tested yet\n"
+    "    -write data(symbol or binary) to file.\n"
+    "    @file path [Symbol]:      file path\n"
+    "    @exp[Symbol | Binary]:   data to write \n"
+    "    @return:                 t if success. Otherwise nil is returned!\n"
+    "    *ex\n"
+    "        (fwrite 'test.bin data) => <content of file>\n")
+
+NFUNC(readdir,             "readdir",           ylaif_nfunc(),
+    "readdir <dir path> : [list/nil]\n"
+    "    -read directory.\n"
+    "    @dir path [Symbol]: dir path\n"
+    "    @return:            list of file names. nil if fails or there is no file in it.\n"
+    "    *ex\n"
+    "        (readdir '/usr) => <file names in the directory>\n")
+
+/**********************************************
+ * Trie
+ **********************************************/
+NFUNC(make_trie,           "make-trie",         ylaif_nfunc(),
+    "make-trie (<pair>)\n"
     "    @pair : <key value> pair list.\n"
     "    *ex\n"
-    "        trie-create '(name class age)\n")
+    "        make-trie '(name class age)\n")
 
-NFUNC(trie_insert,              "trie-insert",                ylaif_nfunc(),
-    "trie-insert <instance> <slot> (<value>)\n"
+NFUNC(trie_insert,         "trie+",             ylaif_nfunc(),
+    "trie+ <instance> <slot> (<value>)\n"
     "    @instance : returned value from st_create\n"
     "    @slot     : newly added slot\n"
     "    @value    : initial value of newly added slot. (default is nil)\n"
     "    @return   : t(overwritten). nil(newly inserted)\n"
     "    *ex\n"
-    "        (trie-insert me 'age 34)\n")
+    "        (trie+ me 'age 34)\n")
 
-NFUNC(trie_del,                 "trie-del",                   ylaif_nfunc(),
-    "trie-del <instance> <slot>\n"
+NFUNC(trie_del,            "trie-",             ylaif_nfunc(),
+    "trie- <instance> <slot>\n"
     "    @instance : returned value from st_create\n"
     "    @slot     : slot name.\n"
     "    @return   : t if success. nil if there is no slot whose name is <slot>\n"
     "    *ex\n"
-    "        (trie-del me 'age)\n")
+    "        (trie- me 'age)\n")
 
-NFUNC(trie_get,                 "trie-get",                   ylaif_nfunc(),
-    "trie-get <instance> <slot>\n"
+NFUNC(trie_get,            "trie*",             ylaif_nfunc(),
+    "trie* <instance> <slot>\n"
     "    @instance : returned value from st_create\n"
     "    @return   : nil if not int the trie, otherwise value.\n"
     "                (value itself can be nil!)\n"
     "    *ex\n"
-    "        (trie-get me 'age)\n")
+    "        (trie* me 'age)\n")
 
-NFUNC(arr_create,               "arr-create",                 ylaif_nfunc(),
+/**********************************************
+ * Array
+ **********************************************/
+NFUNC(make_array,          "make-array",        ylaif_nfunc(),
     "arr-create <dim0> <dim1> ...\n"
     "    -Create array of given dimension - row major\n"
     "    @dimN [Double] : \n"
     "    *ex\n"
     "        (arr-create 5 6)\n")
 
-NFUNC(arr_get,                  "arr-get",                    ylaif_nfunc(),
-    "arr-get <arr> <dim0> <dim1> ...\n"
+NFUNC(arr_get,             "arr*",              ylaif_nfunc(),
+    "arr* <arr> <dim0> <dim1> ...\n"
     "    -access array of given dimension - row major\n"
     "    @dimN [Double] : \n"
     "    *ex\n"
     "        (arr-get 5 6)\n")
 
-NFUNC(arr_set,                  "arr-set",                    ylaif_nfunc(),
-    "arr-set <arr> <value> <dim0> <dim1> ...\n"
+NFUNC(arr_set,             "arr+",              ylaif_nfunc(),
+    "arr+ <arr> <value> <dim0> <dim1> ...\n"
     "    -access array of given dimension - row major\n"
     "    @value :\n"
     "    @dimN [Double] : \n"
     "    *ex\n"
     "        (arr-set 'name 5 6)\n")
+
+/**********************************************
+ *
+ **********************************************/
