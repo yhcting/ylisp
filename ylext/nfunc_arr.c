@@ -32,6 +32,8 @@
 #include "ylsfunc.h"
 #include "ylut.h"
 
+#define _arr(e) ((_err_t*)ylacd(e))
+
 typedef struct {
     yle_t**        arr;
     unsigned int   sz;
@@ -153,9 +155,13 @@ _arr_alloc(yle_t* ar, yle_t* e) {
     if(!at) { goto oom; }
     /* only integer is allowed */
     at->sz = (unsigned int)(yladbl(ylcar(e)));
-    at->arr = ylmalloc(sizeof(*at->arr) * at->sz);
-    if(!at->arr) { goto oom; }
-    memset(at->arr, 0, sizeof(*at->arr) * at->sz);
+    if(at->sz > 0) {
+        at->arr = ylmalloc(sizeof(*at->arr) * at->sz);
+        if(!at->arr) { goto oom; }
+        memset(at->arr, 0, sizeof(*at->arr) * at->sz);
+    } else {
+        at->arr = NULL;
+    }
 
     /* move to next dimension */
     e = ylcdr(e);
@@ -177,15 +183,11 @@ _arr_alloc(yle_t* ar, yle_t* e) {
     return -1;
  }
 
-#define _check_dim_param(e)                                     \
-    while( !yleis_nil(e) ) {                                    \
-        if(!ylais_type(ylcar(e), ylaif_dbl())                   \
-           || (long)(yladbl(ylcar(e))) != yladbl(ylcar(e))      \
-           || yladbl(ylcar(e)) < 0 ) {                          \
-            ylnflogE0("invalid parameter type\n");              \
-            ylinterpret_undefined(YLErr_func_invalid_param);    \
-        }                                                       \
-        (e) = ylcdr(e);                                         \
+#define _check_dim_param(e)                                             \
+    ylelist_foreach(e) {                                                \
+        ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_dbl())           \
+                            && (long long)(yladbl(ylcar(e))) == yladbl(ylcar(e)) \
+                            && yladbl(ylcar(e)) >= 0);                  \
     }
 
 
@@ -214,7 +216,7 @@ YLDEFNF(make_array, 1, 9999) {
 static yle_t**
 _arr_get(yle_t* e, yle_t* ie) {
     const _earr_t*  at;
-    long      i = yladbl(ylcar(ie));
+    long long       i = yladbl(ylcar(ie));
     if(!_is_arr_type(e) || !ylacd(e)) { goto bail; }
     at = ylacd(e);
     if(at->sz <= i) { goto bail;  }
@@ -233,12 +235,7 @@ _arr_get(yle_t* e, yle_t* ie) {
 
 YLDEFNF(arr_get, 2, 9999) {
     yle_t** pv;
-
-    if(!_is_arr_type(ylcar(e))) {
-        ylnflogE0("invalid parameter type\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
-
+    ylnfcheck_parameter(_is_arr_type(ylcar(e)));
     { /* Just scope */
         yle_t* w = ylcdr(e);
         _check_dim_param(w);
@@ -256,11 +253,7 @@ YLDEFNF(arr_get, 2, 9999) {
 YLDEFNF(arr_set, 3, 9999) {
     yle_t** pv;
 
-    if(!_is_arr_type(ylcar(e))) {
-        ylnflogE0("invalid parameter type\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
-
+    ylnfcheck_parameter(_is_arr_type(ylcar(e)));
     { /* Just scope */
         yle_t* w = ylcddr(e); /* dimension starts from 3rd parameter */
         _check_dim_param(w);

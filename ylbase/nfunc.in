@@ -44,6 +44,20 @@ NFUNC(f_let,          "f-let",           ylaif_nfunc(),
     "    @vars:  ((<var1> <init value1>) (<var2> <init value2>) ...)\n"
     "    @expN:  Expressions to execute.\n")
 
+NFUNC(f_case,         "f-case",          ylaif_nfunc(),
+    "f-case <key> ( <key-list> <exp1> <exp2> ... ) ( ... ) ...\n"
+    "    -Similar with case of CL.\n"
+    "     But, all keys are evaluated.\n"
+    "     key 'otherwise', means 'unconditional TRUE'.\n"
+    "     So, expressions below 'otherwise' are not reached.\n"
+    "    *ex\n"
+    "        (set 'a 1) (set 'b 1) (set 'c 2) (set 'd 3)\n"
+    "        (case a\n"
+    "            ((b c) (print 'OK) 't)\n"
+    "            (( (+ 0 1) d) (print 'OK) 't)\n"
+    "            (d     (print 'NOK)\n"
+    "            ((d)   (print 'This is Error!)) <= YLISP handles 'd' as a funcion.\n"
+    "            (otherwise    (print 'default)\n")
 
 NFUNC(f_while,        "f-while",         ylaif_nfunc(),
     "f-while <cond_exp> <exp1> <exp2> ...\n"
@@ -135,11 +149,19 @@ NFUNC(to_string,      "to-string",       ylaif_nfunc(),
     "to-string <exp> : [Symbol]\n"
     "    -get printable string of <exp> - same with the one of 'print <exp>'.\n")
 
-NFUNC(concat,                "concat",               ylaif_nfunc(),
+NFUNC(concat,         "concat",          ylaif_nfunc(),
     "concat <sym1> <sym2> ... : [Symbol]\n"
     "    -concatenate arguements.\n"
     "    *ex\n"
     "        (concat 'abc 'def 'gh) --> abcdefgh\n")
+
+NFUNC(integer,        "integer",         ylaif_nfunc(),
+    "ingeger <value> : [Double]\n"
+    "    -get value of integer part of x.\n")
+
+NFUNC(fraction,       "fraction",        ylaif_nfunc(),
+    "fraction <value> : [Double]\n"
+    "    -get value of fraction part of x.\n")
 
 NFUNC(bit_and,        "&",               ylaif_nfunc(),
     "& <value1> <value2> ... : [Double]\n"

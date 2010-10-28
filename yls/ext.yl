@@ -149,3 +149,37 @@
 ;"defstruct <name> <slots> ")))
 
 
+; ==============================
+; We can use representative object to check type!
+; ==============================
+(set '.bintype (type (to-bin 't)))
+(set '.arrtype (type (make-array 0)))
+(set '.trietype (type (make-trie '())))
+
+(defun arrtype? (e)
+"is array type?\n"
+    (equal (type e) .arrtype))
+
+(defun trietype? (e)
+"is trie type?\n"
+    (equal (type e) .trietype))
+
+(defun bintype? (e)
+"is binary type?\n"
+    (equal (type e) .bintype))
+
+
+;===================================================
+;=             Integrated Interface                =
+;===================================================
+(defun length2 (e)
+"length2 <exp>
+    -Integrated version of length.
+     This supports list, symbol, binary and returns
+      list size, binary size, symbol length respectively.
+"
+    (case (type e)
+        (.listtype (length e))
+        (.symtype (strlen e))
+        (.bintype (binlen e))
+        (otherwise (assert '()))))

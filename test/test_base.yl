@@ -130,6 +130,9 @@
 (assert (equal 'a (to-string 'a)))
 (assert (equal '"(x y)" (to-string '(x y))))
 
+(assert (equal 5.0 (integer 5.892)))
+(assert (equal 0xffffffff (integer 0xffffffff)))
+
 (assert (equal 0x1 (& 0x1 0x3 0x7 0xf 0xff)))
 (assert (equal 0xff (| 0x1 0x2 0x4 0x8 0x10 0x20 0x40 0x80)))
 (assert (equal 0x3 (^ 0x1 0x2 0x4 0x8 0x4 0x8)))
@@ -172,6 +175,8 @@
 (assert (equal '(a) (caar '(((a) b) c))))
 
 (assert (equal '(a b) (caaar '((((a b) c))))))
+(assert (equal '((a b) 1) '((a b) 1)))
+
 
 (set 'ttt '(x y (1 2)))
 ; yyy points same instance with ttt.
@@ -202,6 +207,55 @@
     (assert (equal 2 f)))
 
 (assert (equal 'abcdefgh (concat 'ab 'cdef 'gh)))
+
+(assert (symtype? 'a))
+(assert (not (symtype? 1)))
+(assert (dbltype? 1))
+(assert (not (dbltype? 'a)))
+(assert (sfunctype? quote))
+(assert (not (sfunctype? car)))
+(assert (not (sfunctype? 'a)))
+(assert (nfunctype? car))
+(assert (not (nfunctype? quote)))
+
+; test 'case'
+(set 'a 1) (set 'b 1) (set 'c 2) (set 'd 3)
+
+(f-case 'a '((b c) 1) '(d 2) '(otherwise 3))
+(assert (equal 1
+        (case a
+            ((b c) (print 'ttt) 1)
+            (d     (print 'fff) 2)
+            (otherwise (print 'otherwise) 3))))
+
+(assert (equal 1
+        (case a
+            (( (+ 0 1) c) (print 'ttt) 1)
+            (d            (print 'fff) 2)
+            (otherwise    (print 'otherwise) 3))))
+
+(assert (equal 3
+        (case a
+            ((c) (print 'ttt) 1)
+            (d    (print 'fff) 2)
+            (otherwise  3))))
+
+(assert (equal 3
+        (case a
+            (otherwise 3)
+            ((c) (print 'ttt) 1)
+            (d    (print 'fff) 2))))
+
+(assert (equal '()
+        (case a
+            (d 't))))
+
+(unset 'a)
+(unset 'b)
+(unset 'c)
+(unset 'd)
+
+
 
 ; test list handling
 (set 'lst '(a b cd ef (1 2)))

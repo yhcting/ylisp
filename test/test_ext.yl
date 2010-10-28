@@ -5,7 +5,6 @@
 ;=============================
 (print '"====== Start Testing 'math' ======\n")
 (assert (equal 't (fuzzy-equal 0.9998 0.9999 0.001)))
-(assert (equal 5.0 (integer 5.892)))
 (assert (fuzzy-equal 0.98 (fraction 5.98) 0.00000001))
 (assert (equal 1024 (pow 2 10)))
 
@@ -15,8 +14,8 @@
 (print '"====== Start Testing 'string' =======\n")
 (assert (equal 5 (strlen 'abcde)))
 (set 'x 10.98)
-(assert (equal '10 (itos x)))
-(assert (equal '10.980000 (dtos x)))
+(assert (equal '10 (to-string (integer x))))
+(assert (equal '10.980000 (to-string x)))
 (set 'lns (split-to-line '"123\n\n7890\nabcd"))
 (assert (equal '123 (car lns)))
 (assert (equal 0 (strlen (cadr lns))))
@@ -127,6 +126,18 @@
 (unset 'lns)
 
 ;=============================
+; Test Binary
+;=============================
+(assert (equal 'aaa (to-string (to-bin 'aaa))))
+(assert (equal 4 (binlen (to-bin 'aaa))))
+(assert (equal 'cdefg (to-string (subbin (to-bin 'abcdefg) 2))))
+(assert (equal 'cde (to-string (subbin (to-bin 'abcdefg) 2 5))))
+(print (bin-human-read (to-bin '123)))
+(assert (equal (concat-bin 'a 'b (to-bin 'c)) (concat-bin 'a 'b 'c)))
+(assert (equal 0x0f (bin-to-num (to-bin 0x0f 1))))
+(assert (equal 0xabcde (bin-to-num (to-bin 0xabcde 3))))
+
+;=============================
 ; Test System
 ;=============================
 (print '"====== Start Testing 'system' =======\n")
@@ -197,6 +208,8 @@
 ; Test Trie
 ;=============================
 ; test about struct trie interface...
+(set 'tr0 (make-trie '()))
+(assert (equal '() (trie* tr0 'a))) ; access to inalid slot.
 (set 'tr0 (make-trie '((ab 12) (cd 34) (ef 56))))
 (set 'tr1 (make-trie '((rs '()) (tu 'name) (vw 100) )))
 (assert (equal 12 (trie* tr0 'ab)))
@@ -351,3 +364,12 @@
 (assert (not (set? 'anim.name+)))
 
 (unset 'map)
+
+;=============================
+; Test Type Checking
+;=============================
+(assert (bintype? (to-bin 'a)))
+(assert (arrtype? (make-array 0)))
+(assert (trietype? (make-trie '())))
+
+(assert (equal 4 (length2 (to-bin 'aaa))))

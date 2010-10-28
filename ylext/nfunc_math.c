@@ -28,20 +28,20 @@
 
 #include "ylsfunc.h"
 
-#define _MATHFUNC1(nAME)                                                \
-    YLDEFNF(nAME, 1, 1) {                                               \
-        double r;                                                       \
-        ylnfcheck_atype_chain1(e, ylaif_dbl());                         \
-        r = nAME(yladbl(ylcar(e)));                                     \
-        return ylacreate_dbl(r);                                        \
+#define _MATHFUNC1(nAME)                                        \
+    YLDEFNF(nAME, 1, 1) {                                       \
+        double r;                                               \
+        ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));  \
+        r = nAME(yladbl(ylcar(e)));                             \
+        return ylacreate_dbl(r);                                \
     } YLENDNF(nAME)
 
-#define _MATHFUNC2(nAME)                                                \
-    YLDEFNF(nAME, 2, 2) {                                               \
-        double r;                                                       \
-        ylnfcheck_atype_chain1(e, ylaif_dbl());                         \
-        r = nAME(yladbl(ylcar(e)), yladbl(ylcadr(e)));                  \
-        return ylacreate_dbl(r);                                        \
+#define _MATHFUNC2(nAME)                                        \
+    YLDEFNF(nAME, 2, 2) {                                       \
+        double r;                                               \
+        ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));  \
+        r = nAME(yladbl(ylcar(e)), yladbl(ylcadr(e)));          \
+        return ylacreate_dbl(r);                                \
     } YLENDNF(nAME)
 
 
@@ -61,19 +61,4 @@ _MATHFUNC1(sqrt)
 _MATHFUNC1(ceil)
 _MATHFUNC1(floor)
 _MATHFUNC1(fabs)
-
-static inline double
-integer(double x) {
-    return ((long)x);
-}
-
-_MATHFUNC1(integer)
-
-static inline double
-fraction(double x) {
-    return x-integer(x);
-}
-
-_MATHFUNC1(fraction)
-
 _MATHFUNC2(pow)

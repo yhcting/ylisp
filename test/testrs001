@@ -10,3 +10,9 @@ FAIL
 ; wrong usage of escape character.
 FAIL
 (help '\y)
+
+=================================================
+
+; function name or (lambda ...) or (mlambda ...)
+FAIL
+((eval 'help) 'ttt)

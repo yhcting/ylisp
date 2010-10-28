@@ -83,8 +83,7 @@ YLDEFNF(re_match, 3, 3) {
     int           ovect[_OVECCNT];  /* out vector */
     const char   *pattern, *subject, *errmsg;
 
-
-    ylnfcheck_atype_chain1(e, ylaif_sym());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
     pattern = ylasym(ylcar(e)).sym;
     subject = ylasym(ylcadr(e)).sym;
@@ -137,7 +136,7 @@ YLDEFNF(re_replace, 4, 4) {
     pcre*         re;
     char*         subject = NULL;
 
-    ylnfcheck_atype_chain1(e, ylaif_sym());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
     { /* Just scope */
         const char   *pattern, *errmsg;

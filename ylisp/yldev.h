@@ -118,6 +118,7 @@ typedef struct {
      * @sz : exclude space for trailing 0.
      *       That is this is one-byte-smaller than real-buffer-size.
      *       It's caller's responsibility to pass ''sz' less than 1 byte of real one.
+     *       So, implementation of 'to_string' don't need to add trailing 0 to complete C-style string.
      * @return :
      *    bytes written to buffer if success. -1 if fails (ex. Not enough buffer size)
      *
@@ -163,11 +164,11 @@ typedef struct yle {
                     ylnfunc_t      f;
                 } nfunc; /**< for YLANfunc/YLASfunc */
 
-                double     dbl; /**< for YLADouble */
+                double     dbl;
 
                 struct {
-                    unsigned int sz;  /**< data size */
-                    char*        d;   /**< data */
+                    unsigned int    sz;  /**< data size */
+                    unsigned char*  d;   /**< data */
                 } bin; /**< for YLABinary */
 
                 void*      cd; /**< any data for custom atom(YLACustom) - Custom Data*/
@@ -310,17 +311,8 @@ extern const ylatomif_t* const ylg_predefined_aif_nil;
 #define ylaif_bin()     ylg_predefined_aif_bin
 #define ylaif_nil()     ylg_predefined_aif_nil
 
-/**
- * DO NOT USE "yltrue() == xxxx" if you don't know what you are doing!
- * Instead of this, use "ylfalse() != xxxx"
- * TRUE in ylisp means "Not NIL"!
- * FALSE in ylisp means "NIL"
- */
-#define yltrue()          ylt()
-#define ylfalse()         ylnil()
-
-#define yleis_true(e)     (ylfalse() != (e))
-#define yleis_false(e)    (ylfalse() == (e))
+#define yleis_true(e)     (ylnil() != (e))
+#define yleis_false(e)    (ylnil() == (e))
 
 
 /**
@@ -528,67 +520,14 @@ extern void ylinterpret_undefined(int reason);
 /* This should be ylpair with YLDEFNF */
 #define YLENDNF(n) while(0); }
 
-
-#define ylnfcheck_atype_chain1(eXP, aIF)                                \
-    do {                                                                \
-        yle_t* _E = (eXP);                                              \
-        while( !yleis_nil(_E) ) {                                       \
-            if(!ylais_type(ylcar(_E), aIF)) {                           \
-                ylnflogE0("invalid parameter type\n");                  \
-                ylinterpret_undefined(YLErr_func_invalid_param);        \
-            }                                                           \
-            _E = ylcdr(_E);                                             \
-        }                                                               \
-    } while(0)
+#define ylnfcheck_parameter(cond)                               \
+    if(!(cond)) {                                               \
+        ylnflogE0("invalid parameter type\n");                  \
+        ylinterpret_undefined(YLErr_func_invalid_param);        \
+    }
 
 
-/*
- * Type of all parameters should be same. And it should be ty0 or ty1.
- */
-#define ylnfcheck_atype_chain2(eXP, aIF0, aIF1)                         \
-    do {                                                                \
-        yle_t*              _E = (eXP);                                 \
-        const ylatomif_t*   _aif;                                       \
-        if(!yleis_nil(_E)) {                                            \
-            int bok = TRUE;                                             \
-            _aif = ylaif(ylcar(_E));                                    \
-            if( aIF0 != _aif && aIF1 != _aif ) { bok = FALSE; }         \
-            else {                                                      \
-                _E = ylcdr(_E);                                         \
-                while( !yleis_nil(_E) ) {                               \
-                    if(!ylais_type(ylcar(_E), _aif) ) {                 \
-                        bok = FALSE; break;                             \
-                    }                                                   \
-                    _E = ylcdr(_E);                                     \
-                }                                                       \
-            }                                                           \
-            if(!bok) {                                                  \
-                ylnflogE0("invalid parameter type\n");                  \
-                ylinterpret_undefined(YLErr_func_invalid_param);        \
-            }                                                           \
-        }                                                               \
-    } while(0)
-
-
-#define ylnfcheck_atype1(eXP, aIF)                              \
-    do {                                                        \
-        yle_t* _E = (eXP);                                      \
-        if(!ylais_type(_E, aIF)) {                              \
-            ylnflogE0("invalid parameter type\n");              \
-            ylinterpret_undefined(YLErr_func_invalid_param);    \
-        }                                                       \
-    } while(0)
-
-#define ylnfcheck_atype2(eXP, aIF1, aIF2)                       \
-    do {                                                        \
-        yle_t* _E = (eXP);                                      \
-        if( !(ylais_type(_E, aIF1)                              \
-             || ylais_type(_E, aIF2)) ) {                       \
-            ylnflogE0("invalid parameter type\n");              \
-            ylinterpret_undefined(YLErr_func_invalid_param);    \
-        }                                                       \
-    } while(0)
-
+#define ylelist_foreach(e)       for(;!yleis_nil(e);(e)=ylpcdr(e))
 
 /*===================================
  *
@@ -773,6 +712,39 @@ ylais_type(const yle_t* e, const ylatomif_t* aif) {
     return (yleis_atom(e) && ylaif(e) == aif );
 }
 
+static inline int
+ylais_type2(const yle_t* e, const ylatomif_t* aif0, const ylatomif_t* aif1) {
+    return (yleis_atom(e) && (ylaif(e) == aif0 || ylaif(e) == aif1) );
+}
+
+/**
+ * @return : 0 for FALSE, 1 for TRUE
+ */
+static inline int
+yleis_pair_chain(yle_t* e) {
+    ylelist_foreach(e) {
+        if(yleis_atom(ylpcar(e))) { return 0; }
+    }
+    return 1;
+}
+
+static inline int
+ylais_type_chain(yle_t* e, const ylatomif_t* aif) {
+    ylelist_foreach(e) {
+        if(!ylais_type(ylpcar(e), aif)) { return 0; }
+    }
+    return 1;
+}
+
+static inline int
+ylais_type_chain2(yle_t* e,
+                  const ylatomif_t* aif0, const ylatomif_t* aif1) {
+    ylelist_foreach(e) {
+        if(!ylais_type2(ylpcar(e), aif0, aif1)) { return 0; }
+    }
+    return 1;
+}
+
 /* --------------------------------
  * Element - Atom - Symbol
  * --------------------------------*/
@@ -849,7 +821,7 @@ ylacreate_dbl(double d) {
  * Element - Atom - Binary
  * --------------------------------*/
 static inline void
-ylaassign_bin(yle_t* e, char* data, unsigned int len) {
+ylaassign_bin(yle_t* e, unsigned char* data, unsigned int len) {
     yleset_type(e, YLEAtom);
     ylaif(e) = ylaif_bin();
     ylabin(e).d = data;
@@ -857,7 +829,7 @@ ylaassign_bin(yle_t* e, char* data, unsigned int len) {
 }
 
 static inline yle_t*
-ylacreate_bin(char* data, unsigned int len) {
+ylacreate_bin(unsigned char* data, unsigned int len) {
     yle_t* e = ylmp_block();
     ylaassign_bin(e, data, len);
     return e;

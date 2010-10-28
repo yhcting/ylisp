@@ -114,7 +114,12 @@ External Dependency
     And it plugin uses base symbol directly.
     So, "-rdynamic -ldl -lrt -lpthread" options are required when creating
      executable file with YLISP.a library.
-
+    YLISP also supports function to handle binary data.
+    But some functions that handles binary data may be dependent on host.
+    For example, Endianess, sizeof(double), sizeof(long long)..
+    YLISP's default environment for binary-handling is
+        Little Endian, 8 == sizeof(double), 8 == sizeof(long long),
+        4 == sizeof(int).
 
 
 

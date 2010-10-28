@@ -189,8 +189,8 @@ _DEFAIF_COPY_START(dbl) {
 
 _DEFAIF_TO_STRING_START(dbl) {
     int bw;
-    if((double)((int)yladbl(e)) == yladbl(e)) {
-        bw = snprintf(b, sz, "%d", (int)(yladbl(e)));
+    if( (double)((long long)yladbl(e)) == yladbl(e)) {
+        bw = snprintf(b, sz, "%lld", (long long)(yladbl(e)));
     } else {
         bw = snprintf(b, sz, "%f", yladbl(e));
     }
@@ -225,9 +225,9 @@ _DEFAIF_COPY_START(bin) {
 #endif /* Keep it for future use! */
 
 _DEFAIF_TO_STRING_START(bin) {
-#define S ">>BIN<<"
-    if(sizeof(S) > sz) { return -1; }
-    else { memcpy(b, S, sizeof(S)-1); return sizeof(S)-1; }
+    /* make binary data to string directly! */
+    if(ylabin(e).sz > sz) { return -1; }
+    else { memcpy(b, ylabin(e).d, ylabin(e).sz); return ylabin(e).sz; }
 #undef S
 } _DEFAIF_TO_STRING_END
 
@@ -586,6 +586,19 @@ ylinit(ylsys_t* sysv) {
     }
 
     _sysv = sysv;
+
+    /* Basic Arhitecture Assumption!! */
+    if(!(8 == sizeof(double)
+         && 4 == sizeof(int)
+         && 8 == sizeof(long long))) {
+        ylprint(("!!!!! WARNING !!!!!\n"
+                 "    Some operations may assumes that\n"
+                 "        sizeof(double) == 8 && sizeof(long long) == 8 && sizeof(int) == 4\n"
+                 "    But, host environment is different.\n"
+                 "        double[%d], long long[%d], int[%d]\n"
+                 "    So, some numeric operation may return unexpected value.!\n",
+                 sizeof(double), sizeof(long long), sizeof(int)));
+    }
 
     if( YLOk != ylsfunc_init()
         || YLOk != ylgsym_init()

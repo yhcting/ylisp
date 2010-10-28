@@ -153,13 +153,13 @@ YLDEFNF(make_trie, 0, 1) {
     /* Parameter validataion */
     if(pcsz > 0) {
         w = ylcar(e);
-        if(yleis_atom(w)) { goto invalid_param; }
-        while( !yleis_nil(w) ) {
+        /* 'nil' as an initial pair is allowed */
+        if(yleis_atom(w) && !yleis_nil(w)) { goto invalid_param; }
+        ylelist_foreach(w) {
             if(yleis_atom(ylcar(w))
                || !ylais_type(ylcaar(w), ylaif_sym())) {
                 goto invalid_param;
             }
-            w = ylcdr(w);
         }
     }
 
@@ -180,13 +180,12 @@ YLDEFNF(make_trie, 0, 1) {
     if(pcsz > 0) {
         yle_t*  v;
         w = ylcar(e);
-        while(!yleis_nil(w)) {
+        ylelist_foreach(w) {
             v = yleval(ylcadar(w), a);
             if(1 == yltrie_insert(t, (unsigned char*)ylasym(ylcaar(w)).sym,
                                   (unsigned int)strlen(ylasym(ylcaar(w)).sym), v) ) {
                 ylnflogW1("Trie duplicated intial value : %s\n", ylasym(ylcaar(w)).sym);
             }
-            w = ylcdr(w);
         }
     }
     ylmp_pop1();
@@ -202,11 +201,9 @@ YLDEFNF(make_trie, 0, 1) {
 YLDEFNF(trie_insert, 2, 3) {
     yltrie_t*   t;
     yle_t*      v;
-    if(!(_is_trie_type(ylcar(e))
-         && ylais_type(ylcadr(e), ylaif_sym()))) {
-        ylnflogE0("invalid parameter type\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
+
+    ylnfcheck_parameter(_is_trie_type(ylcar(e))
+                        && ylais_type(ylcadr(e), ylaif_sym()));
 
     t = (yltrie_t*)ylacd(ylcar(e));
     v = (pcsz > 2)? ylcaddr(e): ylnil();
@@ -228,11 +225,9 @@ YLDEFNF(trie_insert, 2, 3) {
 
 YLDEFNF(trie_del, 2, 2) {
     yltrie_t*   t;
-    if(!(_is_trie_type(ylcar(e))
-         && ylais_type(ylcadr(e), ylaif_sym()))) {
-        ylnflogE0("invalid parameter type\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
+
+    ylnfcheck_parameter(_is_trie_type(ylcar(e))
+                        && ylais_type(ylcadr(e), ylaif_sym()));
 
     t = (yltrie_t*)ylacd(ylcar(e));
     if(0 > yltrie_delete(t, (unsigned char*)ylasym(ylcadr(e)).sym,
@@ -248,11 +243,9 @@ YLDEFNF(trie_del, 2, 2) {
 YLDEFNF(trie_get, 2, 2) {
     yltrie_t*   t;
     yle_t*      v;
-    if(!(_is_trie_type(ylcar(e))
-         && ylais_type(ylcadr(e), ylaif_sym()))) {
-        ylnflogE0("invalid parameter type\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
+
+    ylnfcheck_parameter(_is_trie_type(ylcar(e))
+                        && ylais_type(ylcadr(e), ylaif_sym()));
 
     t = (yltrie_t*)ylacd(ylcar(e));
     v = yltrie_get(t, (unsigned char*)ylasym(ylcadr(e)).sym,

@@ -53,7 +53,7 @@ public class Main extends JFrame {
                     } catch (Exception e){
                         System.out.println("Fail to wait object!!");
                     }
-                    System.out.print("====================== Interpret =====================\n" +
+                    System.out.print("\n====================== Interpret =====================\n" +
                             _edit.getText() + "\n" +
                             "----------------------------\n\n");
                     nativeInterpret(_edit.getText());

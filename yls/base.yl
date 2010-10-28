@@ -1,3 +1,8 @@
+;===============================
+; Naming Rule for Predefined Global Symbol!
+;    .xxxx : starts with '.'
+;===============================
+
 ; ==============================
 ; Define basic S-Functions!!!
 ; ==============================
@@ -89,6 +94,10 @@
         (print 'x); 'a' is printed
 ")
 
+(mset case
+    (mlambda () (apply f-case))
+"See f-case")
+
 (mset progn
     (mlambda () (let ()))
 "progn <exp1> <exp2> ...
@@ -111,6 +120,31 @@
     -Traditional C-like if/else.
 "
     (cond (test tRUE) ('t fALSE)))
+
+; ==============================
+; We can use representative object to check type!
+; ==============================
+(set '.listtype (type '(a b)))
+(set '.symtype (type 'a))
+(set '.dbltype (type 1))
+(set '.sfunctype (type quote))
+(set '.nfunctype (type eval))
+
+(defun symtype? (e)
+"is symbol type?\n"
+    (equal (type e) .symtype))
+
+(defun dbltype? (e)
+"is double type?\n"
+    (equal (type e) .dbltype))
+
+(defun sfunctype? (e)
+"is sfunction type?\n"
+    (equal (type e) .sfunctype))
+
+(defun nfunctype? (e)
+"is nfunction type?\n"
+    (equal (type e) .nfunctype))
 
 ; ===========================
 ; = Define cx...r series - START

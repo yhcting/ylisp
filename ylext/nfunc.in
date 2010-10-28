@@ -99,14 +99,6 @@ NFUNC(fabs,               "fabs",               ylaif_nfunc(),
     "fabs <value> : [Double]\n"
     "    -calculates absolute value of x.\n")
 
-NFUNC(integer,            "integer",            ylaif_nfunc(),
-    "ingeger <value> : [Double]\n"
-    "    -get value of integer part of x.\n")
-
-NFUNC(fraction,           "fraction",           ylaif_nfunc(),
-    "fraction <value> : [Double]\n"
-    "    -get value of fraction part of x.\n")
-
 /*
  * Function which has two arguments
  */
@@ -121,27 +113,6 @@ NFUNC(strlen,             "strlen",             ylaif_nfunc(),
     "strlen <symbol> : [Double]\n"
     "    -return length of symbol\n"
     "    @symbol [Symbol]\n")
-
-NFUNC(itos,               "itos",               ylaif_nfunc(),
-    "itos <value> : [Symbol]\n"
-    "    -convert interger part of double to symbol - fraction is ignored\n"
-    "    @<value> [Double]\n"
-    "    *ex\n"
-    "        (itos 12.78); => 12\n")
-
-NFUNC(dtos,               "dtos",               ylaif_nfunc(),
-    "dtos <value> : [Symbol]\n"
-    "    -convert double to symbol\n"
-    "    @<value> [Double]\n"
-    "    *ex\n"
-    "        (dtos 12.78); => 12.78\n")
-
-NFUNC(btos,               "btos",               ylaif_nfunc(),
-    "btos <value> : [Symbol]\n"
-    "    -convert binary to human-readable symbol\n"
-    "    @<value> [Binary]\n"
-    "    *ex\n"
-    "        !Not Tested YET!\n")
 
 NFUNC(split_to_line,      "split-to-line",      ylaif_nfunc(),
     "split-to-line <text> : <list exp>\n"
@@ -194,6 +165,7 @@ NFUNC(replace,             "replace",           ylaif_nfunc(),
 NFUNC(substring,           "substring",         ylaif_nfunc(),
     "substring <string> <begin index> (<end index>): [Symbol]\n"
     "    -Returns a new string that is a substring of this string.\n"
+    "     If index value is out of bound, substring try to fix it.!\n"
     "    @begin index [Double] : inclusive\n"
     "    @end index [Double]   : exclusive\n")
 
@@ -234,6 +206,46 @@ NFUNC(re_replace,          "re-replace",        ylaif_nfunc(),
     "    *ex\n"
     "        (print (re-replace '[0-9]+ 'num '\"value is 467\" '\"\"));\n"
     "            ;'value is num' is printed.\n")
+
+/**********************************************
+ * Binary
+ **********************************************/
+NFUNC(binlen,              "binlen",            ylaif_nfunc(),
+    "See strlen\n")
+
+NFUNC(subbin,              "subbin",            ylaif_nfunc(),
+    "See substring\n")
+
+NFUNC(bin_human_read,      "bin-human-read",    ylaif_nfunc(),
+    "bin-human-read <value> : [Symbol]\n"
+    "    -convert binary to human-readable symbol\n"
+    "    @<value> [Binary]\n"
+    "    *ex\n"
+    "        !Not Tested YET!\n")
+
+NFUNC(concat_bin,          "concat-bin",        ylaif_nfunc(),
+    "See concat\n"
+    "Parameter can be Symbol or Binary. Returns Binary.\n")
+
+NFUNC(to_bin,              "to-bin",            ylaif_nfunc(),
+    "to-bin <exp> (<size>) : [Binary]\n"
+    "    -change to binary object\n"
+    "     NOTE!!! : The result may depend on Endianess of host machine!\n"
+    "    @exp [Symbol, Doublie] :\n"
+    "    @size :\n"
+    "        [if] (Symbol == @exp) This is ignored.\n"
+    "        [else] Double value is changed into integer which byte-size is @size.\n"
+    "               [if] (@size == 1) @exp changes into [unsigned byte].\n"
+    "               [if] (@size == 2) @exp changes into [unsigned 2byte].\n"
+    "               [if] (@size == 4) @exp changes into [unsigned 4byte].\n"
+    "               (@size can be 3 too. Just memcpy is used!)\n"
+    "               if @exp cannot be changed into same-valued-integer, --> error.\n"
+    "               : Test Expression : (double)((long)@exp) == @exp.\n")
+
+NFUNC(bin_to_num,          "bin-to-num",        ylaif_nfunc(),
+    "bin-to-num <bin> : [Double]\n"
+    "    -<bin> --> [long long] type --> [double].\n"
+    "     So, if <bin> is too long than this function fails.\n")
 
 /**********************************************
  * System
@@ -326,7 +338,8 @@ NFUNC(make_trie,           "make-trie",         ylaif_nfunc(),
     "make-trie (<pair>)\n"
     "    @pair : <key value> pair list.\n"
     "    *ex\n"
-    "        make-trie '(name class age)\n")
+    "        (make-trie '()) ; make empty trie\n"
+    "        (make-trie '(name class age))\n")
 
 NFUNC(trie_insert,         "trie+",             ylaif_nfunc(),
     "trie+ <instance> <slot> (<value>)\n"
@@ -357,18 +370,19 @@ NFUNC(trie_get,            "trie*",             ylaif_nfunc(),
  * Array
  **********************************************/
 NFUNC(make_array,          "make-array",        ylaif_nfunc(),
-    "arr-create <dim0> <dim1> ...\n"
+    "make-array <dim0> <dim1> ...\n"
     "    -Create array of given dimension - row major\n"
     "    @dimN [Double] : \n"
     "    *ex\n"
-    "        (arr-create 5 6)\n")
+    "        (make-array 0) ; make empty array.\n"
+    "        (make-array 5 6)\n")
 
 NFUNC(arr_get,             "arr*",              ylaif_nfunc(),
     "arr* <arr> <dim0> <dim1> ...\n"
     "    -access array of given dimension - row major\n"
     "    @dimN [Double] : \n"
     "    *ex\n"
-    "        (arr-get 5 6)\n")
+    "        (arr* 5 6)\n")
 
 NFUNC(arr_set,             "arr+",              ylaif_nfunc(),
     "arr+ <arr> <value> <dim0> <dim1> ...\n"
@@ -376,7 +390,7 @@ NFUNC(arr_set,             "arr+",              ylaif_nfunc(),
     "    @value :\n"
     "    @dimN [Double] : \n"
     "    *ex\n"
-    "        (arr-set 'name 5 6)\n")
+    "        (arr+ 'name 5 6)\n")
 
 /**********************************************
  *

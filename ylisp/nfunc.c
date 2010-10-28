@@ -101,13 +101,13 @@ YLDEFNF(set, 2, 3) {
 } YLENDNF(set)
 
 YLDEFNF(unset, 1, 1) {
-    ylnfcheck_atype_chain1(e, ylaif_sym());
+    ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
     if(0 <= ylgsym_delete(ylasym(ylcar(e)).sym)) { return ylt(); }
     else { return ylnil(); }
 } YLENDNF(unset)
 
 YLDEFNF(is_set, 1, 1) {
-    ylnfcheck_atype_chain1(e, ylaif_sym());
+    ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
     if(ylis_set(ylasym(ylcar(e)).sym)) { return ylt(); }
     else { return ylnil(); }
 } YLENDNF(is_set)
@@ -118,7 +118,7 @@ YLDEFNF(eval, 1, 1) {
 
 YLDEFNF(help, 1, 9999) {
     const char*  desc;
-    ylnfcheck_atype_chain1(e, ylaif_sym());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
     while(!yleis_nil(e)) {
         /* '!!' to make compiler be happy */
         if(!!(desc = ylgsym_get_description(ylasym(ylcar(e)).sym))) {
@@ -147,7 +147,7 @@ YLDEFNF(load_cnf, 1, 1) {
     void  (*register_cnf)();
     const char*  fname;
 
-    ylnfcheck_atype_chain1(e, ylaif_sym());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
     fname = ylasym(ylcar(e)).sym;
     handle = dlopen(fname, RTLD_LAZY);
@@ -181,7 +181,7 @@ YLDEFNF(unload_cnf, 1, 1) {
     void  (*unregister_cnf)();
     const char* fname;
 
-    ylnfcheck_atype_chain1(e, ylaif_sym());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
     fname = ylasym(ylcar(e)).sym;
     /*
@@ -228,7 +228,7 @@ YLDEFNF(interpret_file, 1, 1) {
     const char*      fname = NULL; /* file name */
     long int         sz;
 
-    ylnfcheck_atype_chain1(e, ylaif_sym());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
     while(!yleis_nil(e)) {
         fh = NULL; buf = NULL;

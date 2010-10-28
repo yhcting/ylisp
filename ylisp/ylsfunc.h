@@ -149,23 +149,23 @@ ylcons(yle_t* car, yle_t* cdr) {
 static inline const yle_t*
 ylatom(const yle_t* e) {
     /*NIL is ylatom too. */
-    return yleis_atom(e)? yltrue(): ylfalse();
+    return yleis_atom(e)? ylt(): ylnil();
 }
 
 
 static inline yle_t*
 yland(const yle_t* e1, const yle_t* e2) {
-    return (ylfalse() != e1 && ylfalse() != e2)? yltrue(): ylfalse();
+    return (ylnil() != e1 && ylnil() != e2)? ylt(): ylnil();
 }
 
 static inline yle_t*
 ylor(const yle_t* e1, const yle_t* e2) {
-    return (ylfalse() == e1 && ylfalse() == e2)? ylfalse(): yltrue();
+    return (ylnil() == e1 && ylnil() == e2)? ylnil(): ylt();
 }
 
 static inline yle_t*
 ylnot(const yle_t* e1) {
-    return (ylfalse() == e1)? yltrue(): ylfalse();
+    return (ylnil() == e1)? ylt(): ylnil();
 }
 
 
@@ -186,7 +186,7 @@ yllist(yle_t* e1, yle_t* e2)  {
  */
 static inline yle_t*
 ylnull(yle_t* e) {
-    return (yleis_atom(e) && yleis_nil(e))? yltrue(): ylfalse();
+    return (yleis_atom(e) && yleis_nil(e))? ylt(): ylnil();
 }
 
 /**
@@ -215,6 +215,8 @@ ylsubst(yle_t* x, yle_t* y, yle_t* z) {
     ylinterpret_undefined(YLErr_eval_undefined);
 }
 
+
+#if 0 /* 'yleq' is applicable to pair, too. So, yleq is just same with ylequal */
 /**
  * equal [x; y] = [atom [x] && atom [y] && eq[x; y]]
  *                    || [!atom[x] && !atom[y] && equal [car [x]; car [y]] && equal [cdr [x]; cdr [y]]]
@@ -225,6 +227,7 @@ ylequal(yle_t* x, yle_t* y) {
                yland( yland ( yland( ylnot( ylatom(x)), ylnot( ylatom(y))), ylequal( ylcar(x), ylcar(y))),
                     ylequal( ylcdr(x), ylcdr(y))));
 }
+#endif
 
 /**
  * append[x; y] = [null [x] -> y; T -> cons [car [x]; append [cdr [x]; y]]
@@ -239,7 +242,7 @@ ylappend(yle_t* x, yle_t* y) {
  */
 static inline yle_t*
 ylamong(yle_t* x, yle_t* y) {
-    return yland( ylnot( ylnull(y)), ylor( ylequal(x, ylcar(y)), ylamong(x, ylcdr(y))));
+    return yland( ylnot( ylnull(y)), ylor( yleq(x, ylcar(y)), ylamong(x, ylcdr(y))));
 }
 
 /**

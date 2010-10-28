@@ -153,6 +153,48 @@ YLDEFNF(f_let, 2, 9999) {
     return p;
 } YLENDNF(f_let)
 
+
+YLDEFNF(f_case, 2, 9999) {
+#define __DEFAULT_KEYWORD "otherwise"
+    yle_t *key, *r = ylnil();
+    ylnfcheck_parameter(yleis_pair_chain(ylcdr(e)));
+    key = yleval(ylcar(e), a);
+    ylmp_push1(key);
+
+    e = ylcdr(e);
+    ylelist_foreach(e) {
+        if(ylais_type(ylcaar(e), ylaif_sym())
+           && (0 == strcmp(ylasym(ylcaar(e)).sym, __DEFAULT_KEYWORD))) {
+            /* unconditionally TRUE */
+            break;
+        } else if(yleis_atom(ylcaar(e))) {
+            if(yleis_true(yleq(key, yleval(ylcaar(e), a)))) { break; }
+        } else {
+            /* key is list (key list) */
+            yle_t*     w = ylcaar(e);
+            ylelist_foreach(w) {
+                if(yleis_true(yleq(key, yleval(ylcar(w), a)))) { break; }
+            }
+            if(!yleis_nil(w)) { break; }
+        }
+    }
+
+    ylmp_pop1(); /* key */
+
+    if(!yleis_nil(e)) {
+        /* we found! */
+        yle_t*   w = ylcdar(e);
+        ylelist_foreach(w) {
+            r = yleval(ylcar(w), a);
+        }
+    }
+
+    return r;
+
+#undef __DEFAULT_KEYWORD
+} YLENDNF(f_case)
+
+
 YLDEFNF(f_while, 2, 9999) {
     static const int __MAX_LOOP_COUNT = 1000000;
     yle_t *cond, *exp;
@@ -200,11 +242,6 @@ YLDEFNF(type, 1, 1) {
 
 #if 0 /* Keep it for future use! */
 YLDEFNF(clone, 1, 1) {
-    if(yleis_nil(e)) {
-        ylnflogE0("nil cannot be cloned!!\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
-    return ylechain_clone(ylcar(e));
 } YLENDNF(clone)
 #endif /* Keep it for future use! */
 
@@ -219,19 +256,13 @@ YLDEFNF(cdr, 1, 1) {
 } YLENDNF(cdr)
 
 YLDEFNF(setcar, 2, 2) {
-    if( yleis_atom(ylcar(e)) ) {
-        ylnflogE0("invalid parameter type\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
+    ylnfcheck_parameter(!yleis_atom(ylcar(e)));
     ylpsetcar(ylcar(e), ylcadr(e));
     return ylt();
 } YLENDNF(setcar)
 
 YLDEFNF(setcdr, 2, 2) {
-    if( yleis_atom(ylcar(e)) ) {
-        ylnflogE0("invalid parameter type\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
+    ylnfcheck_parameter(!yleis_atom(ylcar(e)));
     ylpsetcdr(ylcar(e), ylcadr(e));
     return ylt();
 } YLENDNF(setcdr)
@@ -270,7 +301,7 @@ YLDEFNF(exit, 0, 0) {
 } YLENDNF(exit)
 
 YLDEFNF(print, 1, 9999) {
-    if(yleis_atom(e)) { ylinterpret_undefined(YLErr_func_invalid_param); }
+    ylnfcheck_parameter(!yleis_atom(e));
     do {
         ylprint(("%s", ylechain_print(ylcar(e)) ));
         e = ylcdr(e);
@@ -294,7 +325,8 @@ YLDEFNF(printf, 1, 10) {
     yldynb_t     b;
     const char*  fmt;
     char**       s = NULL;
-    if(yleis_atom(e)) { ylinterpret_undefined(YLErr_func_invalid_param); }
+
+    ylnfcheck_parameter(!yleis_atom(e));
     /*
      * allocate memory to save print string
      * First string is 'format string'. So we don't need to alloc memory for this.
@@ -359,7 +391,7 @@ YLDEFNF(printf, 1, 10) {
 YLDEFNF(log, 2, 9999) {
     const char*  lvstr;
     int          loglv;
-    ylnfcheck_atype1(ylcar(e), ylaif_sym());
+    ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
     lvstr = ylasym(ylcar(e)).sym;
     if(0 == lvstr[0] || 0 != lvstr[1]) { goto invalid_loglv; }
     switch(lvstr[0]) {
@@ -404,7 +436,7 @@ YLDEFNF(concat, 2, 9999) {
     char*            p;
 
     /* check input parameter */
-    ylnfcheck_atype_chain1(e, ylaif_sym());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
     /* calculate total string length */
     len = 0; pe = e;
@@ -433,15 +465,33 @@ YLDEFNF(concat, 2, 9999) {
 } YLENDNF(concat)
 
 /*===========================
- * Simple calculations
+ * fundamental calculations
  *===========================*/
+static inline double
+_integer(double x) {
+    return (double)((long long)x);
+}
+
+YLDEFNF(integer, 1, 1) {
+    double r;
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
+    r = _integer(yladbl(ylcar(e)));
+    return ylacreate_dbl(r);
+} YLENDNF(integer)
+
+YLDEFNF(fraction, 1, 1) {
+    double r;
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
+    r = yladbl(ylcar(e)) - _integer(yladbl(ylcar(e)));
+    return ylacreate_dbl(r);
+} YLENDNF(fraction)
 
 YLDEFNF(bit_and, 2, 9999) {
-    long   r = -1; /* to make r be 'ffff...fff' type value. - 2's complement */
-    ylnfcheck_atype_chain1(e, ylaif_dbl());
+    long long   r = -1; /* to make r be 'ffff...fff' type value. - 2's complement */
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
     while( !yleis_nil(e) ) {
-        if( ((long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
-            r &= ((long)yladbl(ylcar(e)));
+        if( ((long long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
+            r &= ((long long)yladbl(ylcar(e)));
             e = ylcdr(e);
         } else { goto bail; }
     }
@@ -449,17 +499,17 @@ YLDEFNF(bit_and, 2, 9999) {
     return ylacreate_dbl((double)r);
 
  bail:
-    ylnflogE0("Parameter or return value cannot be cross-changable between long and double!\n");
+    ylnflogE0("Parameter or return value cannot be cross-changable between long long and double!\n");
     ylinterpret_undefined(YLErr_func_invalid_param);
     return NULL; /* to make compiler be happy. */
 } YLENDNF(bit_and)
 
 YLDEFNF(bit_or, 2, 9999) {
-    long   r = 0;
-    ylnfcheck_atype_chain1(e, ylaif_dbl());
+    long long  r = 0;
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
     while( !yleis_nil(e) ) {
-        if( ((long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
-            r |= ((long)yladbl(ylcar(e)));
+        if( ((long long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
+            r |= ((long long)yladbl(ylcar(e)));
             e = ylcdr(e);
         } else { goto bail; }
     }
@@ -467,17 +517,17 @@ YLDEFNF(bit_or, 2, 9999) {
     return ylacreate_dbl((double)r);
 
  bail:
-    ylnflogE0("Parameter or return value cannot be cross-changable between long and double!\n");
+    ylnflogE0("Parameter or return value cannot be cross-changable between long long and double!\n");
     ylinterpret_undefined(YLErr_func_invalid_param);
     return NULL; /* to make compiler be happy. */
 } YLENDNF(bit_or)
 
 YLDEFNF(bit_xor, 2, 9999) {
-    long   r = 0;
-    ylnfcheck_atype_chain1(e, ylaif_dbl());
+    long long  r = 0;
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
     while( !yleis_nil(e) ) {
-        if( ((long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
-            r ^= ((long)yladbl(ylcar(e)));
+        if( ((long long)yladbl(ylcar(e))) == yladbl(ylcar(e)) ) {
+            r ^= ((long long)yladbl(ylcar(e)));
             e = ylcdr(e);
         } else { goto bail; }
     }
@@ -485,7 +535,7 @@ YLDEFNF(bit_xor, 2, 9999) {
     return ylacreate_dbl((double)r);
 
  bail:
-    ylnflogE0("Parameter or return value cannot be cross-changable between long and double!\n");
+    ylnflogE0("Parameter or return value cannot be cross-changable between long long and double!\n");
     ylinterpret_undefined(YLErr_func_invalid_param);
 
     return NULL; /* to make compiler be happy. */
@@ -493,16 +543,16 @@ YLDEFNF(bit_xor, 2, 9999) {
 
 
 YLDEFNF(mod, 2, 2) {
-    long   r = 0;
-    ylnfcheck_atype_chain1(e, ylaif_dbl());
-    r = ((long)yladbl(ylcar(e))) % ((long)yladbl(ylcadr(e)));
+    long long  r = 0;
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
+    r = ((long long)yladbl(ylcar(e))) % ((long long)yladbl(ylcadr(e)));
     return ylacreate_dbl(r);
 } YLENDNF(add)
 
 
 YLDEFNF(add, 2, 9999) {
     double   r = 0;
-    ylnfcheck_atype_chain1(e, ylaif_dbl());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
     while( !yleis_nil(e) ) {
         r += yladbl(ylcar(e));
         e = ylcdr(e);
@@ -512,7 +562,7 @@ YLDEFNF(add, 2, 9999) {
 
 YLDEFNF(mul, 2, 9999) {
     double   r = 1;
-    ylnfcheck_atype_chain1(e, ylaif_dbl());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
     while( !yleis_nil(e) ) {
         r *= yladbl(ylcar(e));
         e = ylcdr(e);
@@ -522,7 +572,7 @@ YLDEFNF(mul, 2, 9999) {
 
 YLDEFNF(sub, 2, 9999) {
     double   r = 0;
-    ylnfcheck_atype_chain1(e, ylaif_dbl());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
     r = yladbl(ylcar(e));
     e = ylcdr(e);
     while( !yleis_nil(e) ) {
@@ -535,7 +585,7 @@ YLDEFNF(sub, 2, 9999) {
 
 YLDEFNF(div, 2, 9999) {
     double   r = 0;
-    ylnfcheck_atype_chain1(e, ylaif_dbl());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
     r = yladbl(ylcar(e));
     e = ylcdr(e);
     while( !yleis_nil(e) ) {
@@ -552,7 +602,8 @@ YLDEFNF(div, 2, 9999) {
 YLDEFNF(gt, 2, 2) {
     yle_t *p1 = ylcar(e),
           *p2 = ylcadr(e);
-    ylnfcheck_atype_chain2(e, ylaif_dbl(), ylaif_sym());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym())
+                        || ylais_type_chain(e, ylaif_dbl()));
     if(ylaif_dbl() == ylaif(ylcar(e))) {
         return (yladbl(p1) > yladbl(p2))? ylt(): ylnil();
     } else {
@@ -563,7 +614,8 @@ YLDEFNF(gt, 2, 2) {
 YLDEFNF(lt, 2, 2) {
     yle_t *p1 = ylcar(e),
           *p2 = ylcadr(e);
-    ylnfcheck_atype_chain2(e, ylaif_dbl(), ylaif_sym());
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym())
+                        || ylais_type_chain(e, ylaif_dbl()));
     if(ylaif_dbl() == ylaif(ylcar(e))) {
         return (yladbl(p1) < yladbl(p2))? ylt(): ylnil();
     } else {
