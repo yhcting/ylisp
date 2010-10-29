@@ -145,9 +145,8 @@ YLDEFNF(f_let, 2, 9999) {
      */
     ylmp_push1(a);
     e = ylcdr(e);
-    while(!yleis_nil(e)) {
+    ylelist_foreach(e) {
         p = yleval(ylcar(e), a);
-        e = ylcdr(e);
     }
     ylmp_pop1();
     return p;
@@ -203,9 +202,8 @@ YLDEFNF(f_while, 2, 9999) {
     while( yleis_true(yleval(cond, a)) ) {
         if(cnt < __MAX_LOOP_COUNT) {
             exp = ylcdr(e);
-            while(!yleis_nil(exp)) {
+            ylelist_foreach(exp) {
                 yleval(ylcar(exp), a);
-                exp = ylcdr(exp);
             }
         } else {
             ylnflogE1("Loop count exceeded limits(%d)\n", __MAX_LOOP_COUNT);

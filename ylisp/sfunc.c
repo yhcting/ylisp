@@ -328,21 +328,12 @@ yleval(yle_t* e, yle_t* a) {
     unsigned int evid = _eval_id++; /* evaluation id for debugging */
 #endif /* CONFIG_DBG_EVAL */
 
-    /* This is right place to interrupt evaluation! */
-    ylinteval_unlock();
-    ylinteval_lock();
-
     /* Add evaluation stack -- for debugging */
     ylpush_eval_info(e);
 
     dbg_eval(yllogV2("[%d] eval In:\n"
                      "    %s\n", evid, ylechain_print(e)););
     dbg_eval(yllogV1("    =>%s\n", ylechain_print(a)););
-    dbg_mem(yllogV4("START eval:\n"
-                    "    MP usage : %d\n"
-                    "    refcnt : nil(%d), t(%d), q(%d)\n",
-                    ylmp_usage(), ylercnt(ylnil()),
-                    ylercnt(ylt()), ylercnt(ylq())););
 
     /*
      * 'e' and 'a' should be preserved during evaluation.
@@ -459,6 +450,16 @@ yleval(yle_t* e, yle_t* a) {
 
         /* Returned value should be pretected from GC. */
         ylmp_push1(r);
+
+        /*
+         * This is right place to interrupt evaluation!
+         * - Evaulation is pushed to debugging stack.
+         * - Parameter's are kept from GC.
+         * So, now interrupting is acceptable!
+         */
+        ylinteval_unlock();
+        ylinteval_lock();
+
         ylmp_gc_if_needed();
         /* Pass responsibility about preserving return value to the caller! */
         ylmp_pop1();
@@ -466,12 +467,12 @@ yleval(yle_t* e, yle_t* a) {
         /* pop evaluation stack -- for debugging */
         ylpop_eval_info();
 
-        dbg_mem(yllogV4("END eval:  MP usage => %d\n", ylmp_usage()););
         return r;
     } else {
         yllogE0("NULL return! is it possible!\n");
         ylinterpret_undefined(YLErr_eval_undefined);
     }
+    ylassert(0);
     return NULL; /* to make compiler happy */
 }
 

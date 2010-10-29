@@ -46,10 +46,10 @@
 #endif /* CONFIG_DBG_MEM */
 
 
-#ifdef CONFIG_DBG_INTEVAL
-#   define dbg_inteval(x)  do{ x } while(0)
+#ifdef CONFIG_DBG_MUTEX
+#   define dbg_mutex(x)  do{ x } while(0)
 #else /* CONFIG_DBG_INTEVAL */
-#   define dbg_inteval(x)
+#   define dbg_mutex(x)
 #endif /* CONFIG_DBG_INTEVAL */
 
 #include "ylsfunc.h"
@@ -87,6 +87,10 @@ extern void
 ylpop_eval_info();
 
 /*
+ * *** NOTE ***
+ * This function requires evaluation MUTEX HANDLING!!!
+ * KEEP YOUR ATTENTION TO MUTEX when use this function!
+ *
  * only for internel use - for 'interpret-file' command!
  * (To know whether interpreting started by user request or by batch script)
  */

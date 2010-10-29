@@ -58,48 +58,102 @@ static ylstk_t*        _evalstk = NULL;
  *
  * =====================================*/
 /* to prevent parallel interrpreting */
-static pthread_mutex_t _interp_mutex  = PTHREAD_MUTEX_INITIALIZER;
-/* mutex to stop evaluation */
-static pthread_mutex_t _force_stop_mutex  = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t _interp_mutex;
 /* mutex to handle child process */
-static pthread_mutex_t _child_proc_mutex  = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t _child_proc_mutex;
 /* mutex to interrupt evaluation */
-static pthread_mutex_t _inteval_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t _inteval_mutex;
 
+/* mutex attribute */
+static pthread_mutexattr_t _mutexattr;
 
 static inline int
 _init_mutexes () {
-    /* initialize mutex */
+    /*
+     * [SOFT-TODO]
+     * Mutex Initialization rarely fails.
+     * So, "Error Handling" is missed here!.
+     * (Implemenet it if required!)
+     */
+    pthread_mutexattr_init(&_mutexattr);
+    pthread_mutexattr_settype(&_mutexattr, PTHREAD_MUTEX_NORMAL);
+
+    pthread_mutex_init(&_interp_mutex, &_mutexattr);
+    pthread_mutex_init(&_child_proc_mutex, &_mutexattr);
+    pthread_mutex_init(&_inteval_mutex, &_mutexattr);
     return 0;
+}
+
+static inline void
+_deinit_mutexes() {
+    pthread_mutex_destroy(&_inteval_mutex);
+    pthread_mutex_destroy(&_child_proc_mutex);
+    pthread_mutex_destroy(&_interp_mutex);
+
+    pthread_mutexattr_destroy(&_mutexattr);
 }
 
 #define _DECL_MUTEX_FUNC(m)                                             \
     static inline void                                                  \
     _##m##_lock() {                                                     \
-        if(0 > pthread_mutex_lock(&_##m##_mutex)) { ylassert(0); }      \
+        int r;                                                          \
+        r = pthread_mutex_lock(&_##m##_mutex);                          \
+        if(r) {                                                         \
+            yllogE2("ERROR LOCK Mutex [%s]\n"                           \
+                    "    => %s\n",#m, strerror(r));                     \
+            ylassert(0);                                                \
+        }                                                               \
     }                                                                   \
                                                                         \
     static inline void                                                  \
     _##m##_unlock() {                                                   \
-        if(0 > pthread_mutex_unlock(&_##m##_mutex)) { ylassert(0); }    \
+        int r;                                                          \
+        r = pthread_mutex_unlock(&_##m##_mutex);                        \
+        if(r) {                                                         \
+            yllogE2("ERROR UNLOCK Mutex [%s]\n"                         \
+                    "    => %s\n",#m, strerror(r));                     \
+            ylassert(0);                                                \
+        }                                                               \
     }                                                                   \
                                                                         \
     static inline int                                                   \
     _##m##_trylock() {                                                  \
-        switch(pthread_mutex_trylock(&_##m##_mutex)) {                  \
+        int r;                                                          \
+        r = pthread_mutex_trylock(&_##m##_mutex);                       \
+        switch(r) {                                                     \
             case 0:       return TRUE;  /* successfully get */          \
             case EBUSY:   return FALSE; /* fail to get */               \
-            default:      ylassert(0); return -1;    /* error case */   \
+            default:                                                    \
+                yllogE2("ERROR TRYLOCK Mutex [%s]\n"                    \
+                        "    => %s\n",#m, strerror(r));                 \
+                ylassert(0);                                            \
+                return -1;                                              \
         }                                                               \
     }
 
 
+
 _DECL_MUTEX_FUNC(interp)
-_DECL_MUTEX_FUNC(force_stop)
 _DECL_MUTEX_FUNC(child_proc)
 _DECL_MUTEX_FUNC(inteval)
 
 #undef _DECL_MUTEX_FUNC
+
+
+static inline void
+_push_thread(pthread_t* thd) {
+    _inteval_lock();
+    ylstk_push(_thdstk, thd);
+    _inteval_unlock();
+}
+
+static inline void
+_pop_thread() {
+    _inteval_lock();
+    ylstk_pop(_thdstk);
+    _inteval_unlock();
+}
+
 
 /* =====================================
  *
@@ -294,8 +348,6 @@ _create_atom_sym(unsigned char* sym, unsigned int len) {
 
 static inline void
 _eval_exp(yle_t* e) {
-    /* "2 == ylmp_stack_size()" means "this evaluation is topmost one" */
-#define __TOPMOST_EVAL_MPSTACK_SIZE 2
     yle_t*  ev;
 
     dbg_gen(yllogD1(">>>>> Eval exp:\n"
@@ -303,7 +355,6 @@ _eval_exp(yle_t* e) {
     ylmp_push1(e);
     ev = yleval(e, ylnil());
     ylmp_pop1();
-#undef __TOPMOST_EVAL_MPSTACK_SIZE
 }
 
 /* =====================================
@@ -322,8 +373,6 @@ _fsas_init_enter(const _fsas_t* fsas, _fsa_t* fsa) {
     fsa->sentinel.u.p.car = fsa->sentinel.u.p.cdr = NULL;
 
     fsa->pe = &fsa->sentinel;
-    dbg_mem(yllogD0("\n+++ START - Interpret +++\n");
-            ylmp_log_stat(YLLogD););
 }
 
 static void
@@ -363,8 +412,6 @@ _fsas_init_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** n
 
 static void
 _fsas_init_exit(const _fsas_t* fsas, _fsa_t* fsa) {
-    dbg_mem(yllogD0("\n+++ END - Interpret +++\n");
-            ylmp_log_stat(YLLogD););
     /*
      * we need to unref memory blocks that is indicated by sentinel
      * (Usually, both are nil.
@@ -598,9 +645,15 @@ _fsas_escape_exit(const _fsas_t* fsas, _fsa_t* fsa) {
 
 static void*
 _interp_automata(void* arg) {
+    void*                 ret = (void*)YLOk;
     const unsigned char*  p;
     _fsa_t*               fsa = (_fsa_t*)arg;
     const _fsas_t        *st, *nst; /* current st, next st */
+
+    /*
+     * we need to lock here... we are about to start evaluation!
+     */
+    _inteval_lock();
 
     p = fsa->s;
 
@@ -658,15 +711,21 @@ _interp_automata(void* arg) {
     if(&_fsas_init == st) {
         (*_fsas_init.exit)(&_fsas_init, fsa);
         if(0 == ylstk_size(fsa->pestk)) {
-            return (void*)YLOk;
+            goto done;
         } else {
             yllogE0("Syntax Error!!!!!!\n");
-            return (void*)YLErr_syntax_unknown;
+            ret = (void*)YLErr_syntax_unknown;
+            goto done;
         }
     } else {
         yllogE0("Syntax Error!!!!!!\n");
-        return (void*)YLErr_syntax_unknown;
+        ret = (void*)YLErr_syntax_unknown;
+        goto done;
     }
+
+ done:
+    _inteval_unlock();
+    return ret;
 }
 
 /* =====================================
@@ -686,13 +745,12 @@ __gctt_settime(long sec) {
     struct itimerspec its;
 
     /* Start the timer */
-    its.it_value.tv_sec = sec;
+    its.it_value.tv_sec = 1;
     its.it_value.tv_nsec = 0;
 
     /* This is one-time shot! */
     its.it_interval.tv_sec = 0;
     its.it_interval.tv_nsec = 0;
-
 
     if(0 > timer_settime(_gcttid, 0, &its, NULL) ) { ylassert(0); }
 }
@@ -707,11 +765,20 @@ _gctt_unset_timer() {
     __gctt_settime(0);
 }
 
+static void*
+_gctt_gc(void* arg) {
+    _inteval_lock();
+    ylmp_gc();
+    _inteval_unlock();
+    return NULL;
+}
+
 static inline void
 _gctt_handler(int sig, siginfo_t* si, void* uc) {
-    _interp_lock();
-    ylmp_gc();
-    _interp_unlock();
+    pthread_t    thd;
+    if(pthread_create(&thd, NULL, &_gctt_gc, NULL)) {
+        ylassert(0);
+    }
 }
 
 static int
@@ -759,14 +826,12 @@ _gctt_delete() {
  * =====================================*/
 static void
 _child_proc_kill() {
-    dbg_inteval(yllogI0("## child proc kill - ENTER\n"););
     _child_proc_lock();
     if(-1 != _cpid) {
         kill(_cpid, SIGKILL);
         _cpid = -1;
     }
     _child_proc_unlock();
-    dbg_inteval(yllogI0("## child proc kill - END\n"););
 }
 
 
@@ -788,17 +853,7 @@ _show_eval_stack() {
  * =====================================*/
 void
 ylinteval_lock() {
-    dbg_inteval(yllogI0("## inteval lock - TRY\n"););
-
-    /* Check that ylisp is under 'force close' stage or not! */
-    while(!_force_stop_trylock()) {
-        usleep(100000); /* 100 ms */
-    }
-    /* Unlock immediately! It was just Test! */
-    _force_stop_unlock();
-
     _inteval_lock();
-    dbg_inteval(yllogI0("## inteval lock - OK\n"););
 }
 
 void
@@ -808,7 +863,6 @@ ylinteval_unlock() {
 
 int
 ylchild_proc_set(long pid) {
-    dbg_inteval(yllogI1("## Set proc id ENTER : %d\n", pid););
     _child_proc_lock();
     if(-1 != _cpid) {
         yllogE0("Cannot wait more than one process at one time!!\n");
@@ -818,17 +872,14 @@ ylchild_proc_set(long pid) {
     }
     _cpid = pid;
     _child_proc_unlock();
-    dbg_inteval(yllogI1("## Set proc id END: %d\n", pid););
     return 0;
 }
 
 void
 ylchild_proc_unset() {
-    dbg_inteval(yllogI0("## Unset proc id ENTER\n"););
     _child_proc_lock();
     _cpid = -1;
     _child_proc_unlock();
-    dbg_inteval(yllogI0("## Unset proc id END\n"););
 }
 
 void
@@ -863,6 +914,11 @@ ylinterpret_internal(const unsigned char* stream, unsigned int streamsz) {
     fsa.ststk = ylstk_create(0, NULL);
     fsa.pestk = ylstk_create(0, NULL);
 
+    /*
+     * Force stop uses inteval_lock, and it access thread stack.
+     * So, thread creation should be synchronized with force stop!
+     */
+
     if( !(fsa.ststk && fsa.pestk) ) {
         ret = YLErr_out_of_memory;
         goto bail;
@@ -873,12 +929,12 @@ ylinterpret_internal(const unsigned char* stream, unsigned int streamsz) {
         goto bail;
     }
 
-    ylstk_push(_thdstk, &thd);
+    _push_thread(&thd);
 
     if(pthread_join(thd, (void**)&ret)) {
         ylassert(0);
         pthread_cancel(thd);
-        ylstk_pop(_thdstk);
+        _pop_thread();
         goto bail;
     }
 
@@ -887,12 +943,11 @@ ylinterpret_internal(const unsigned char* stream, unsigned int streamsz) {
         goto bail;
     }
 
-    ylstk_pop(_thdstk);
+    _pop_thread();
 
     ylstk_destroy(fsa.pestk);
     ylstk_destroy(fsa.ststk);
 
-    dbg_mem(yllogI1("current MP after interpret : %d\n", ylmp_usage()););
     return YLOk;
 
  bail:
@@ -908,7 +963,6 @@ ylinterpret(const unsigned char* stream, unsigned int streamsz) {
     switch(_interp_trylock()) {
         case TRUE: {
             ylerr_t  ret;
-            _inteval_lock();
 
             ylstk_clean(_thdstk);
             ylstk_clean(_evalstk);
@@ -916,6 +970,12 @@ ylinterpret(const unsigned char* stream, unsigned int streamsz) {
             ret = ylinterpret_internal(stream, streamsz);
             if(YLOk == ret) { _gctt_set_timer(); }
             else {
+                /*
+                 * Following operations are reading ylisp state.
+                 * So, we have to use inteval mutex!
+                 */
+                _inteval_lock();
+
                 /*
                  * evaluation stack should be shown before GC.
                  * (After GC, expression in the stack may be invalid one!)
@@ -931,9 +991,11 @@ ylinterpret(const unsigned char* stream, unsigned int streamsz) {
                  * Interpreting fails. So, let's clean garbage!
                  */
                 ylmp_gc();
+
+                /* back to */
+                _inteval_unlock();
             }
 
-            _inteval_unlock();
             _interp_unlock();
             return ret;
         } break;
@@ -954,10 +1016,7 @@ void
 ylforce_stop() {
     /*
      * We are ASSUMING that this function is not re-enterable!
-     * '_under_interrupting' flag is can be written only in this function.
-     * And can be read from other context
      */
-    _force_stop_lock();
     while(!_inteval_trylock()) {
         _child_proc_kill();
         usleep(20000); /* 20ms */
@@ -967,12 +1026,16 @@ ylforce_stop() {
         pthread_cancel(*((pthread_t*)ylstk_pop(_thdstk)));
     }
     _inteval_unlock();
-    _force_stop_unlock();
     ylprint(("Force Stop !!!\n"));
 }
 
 void
 ylinterpret_undefined(int reason) {
+    /*
+     * This is called in the evaluation lock.
+     * So, we need to unlock firstly!
+     */
+    _inteval_unlock();
     pthread_exit((void*)reason);
 }
 
@@ -990,6 +1053,7 @@ ylinterp_init() {
 void
 ylinterp_deinit() {
     _gctt_delete();
+    _deinit_mutexes();
     ylstk_destroy(_thdstk);
     ylstk_destroy(_evalstk);
 }

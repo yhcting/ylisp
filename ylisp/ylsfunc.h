@@ -79,6 +79,15 @@ ylmset(yle_t* x, yle_t* y, yle_t* a, const char* desc);
  * Take your attention for using this function!
  *
  * GC Protection required to caller
+ *
+ * *** NOTE ***
+ * Return value of 'yleval' is not protected from GC.
+ * So, if return value should be preserved, it is explicitly protected from GC.
+ * Here is a example case.
+ *    func(yleval(x, a), yleval(y, b)); <= bad example.
+ * First arguement - return value of 'yleval(x, a)'- may be GCed at 'yleval(y, b)'!!
+ * So, in this case, return value of 'yleval(x, a)' should be protected explicitly!
+ *
  */
 extern yle_t*
 yleval(yle_t* e, yle_t* a);

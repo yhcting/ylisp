@@ -256,9 +256,35 @@ YLDEFNF(interpret_file, 1, 1) {
             goto bail;
         }
 
-        if(YLOk !=  ylinterpret_internal(buf, sz)) {
-            ylnflogE1("ERROR at interpreting [%s]\n", fname);
-            goto bail;
+        { /* Just Scope */
+            ylerr_t lret; /* local return */
+
+            /*
+             * *** NOTE! ***
+             * We need to unlock evaluation mutex here!
+             * In ylinterpret_internal, it create new automata thread,
+             *  and in it, it lock evaluation mutex.
+             *
+             * *** Things to consider. ***
+             * Is there anything to protect from GC?
+             */
+            ylinteval_unlock();
+
+            lret = ylinterpret_internal(buf, sz);
+
+            /*
+             * *** NOTE! ***
+             * It's time to restore mutex state (to lock)!
+             * 'ylinterpret_internal()' is returned with 'unlocked mutex'.
+             * And, original state of mutex is 'locked'.
+             * Restore it back to origin!
+             */
+            ylinteval_lock();
+
+            if(YLOk != lret) {
+                ylnflogE1("ERROR at interpreting [%s]\n", fname);
+                goto bail;
+            }
         }
 
         if(fh) { fclose(fh); }
