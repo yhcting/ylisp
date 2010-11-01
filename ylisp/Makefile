@@ -21,7 +21,7 @@ SYSLIB=$(addprefix $(SYSLIB_DIR),$(addsuffix .a,$(addprefix lib,$(SYSLIB_NAME)))
 
 UNALIB=$(EXTLIB) $(SYSLIB)
 
-SOURCES= lisp.c sfunc.c mempool.c interpret.c nfunc.c gsym.c trie.c ut.c \
+SOURCES= lisp.c sfunc.c mempool.c parser.c interpret.c nfunc.c gsym.c trie.c ut.c \
 	 testmain.c
 
 

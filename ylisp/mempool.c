@@ -61,7 +61,12 @@ static struct {
     int        fbi;     /**< Free Block Index - grow to bottom */
 } _m; /**< s-Expression PooL */
 
-/* To handle push/pop of allocated memory block */
+/*
+ * Stack is enough!
+ * Usually, "ylmp_rm_bb" is very close with "ylmp_add_bb".
+ * So, searching backward can be very efficient!
+ * And there are not many blocks to adjust array (because it's very close to top!)
+ */
 ylstk_t* _bbs;       /**< Base-Block-Stack */
 
 static inline int
@@ -96,17 +101,32 @@ ylmp_block() {
 }
 
 void
-ylmp_push(yle_t* e) {
+ylmp_add_bb(yle_t* e) {
     ylstk_push(_bbs, e);
 }
 
+/*
+ * This modifies stack directly!
+ */
 void
-ylmp_pop() {
-    ylstk_pop(_bbs);
+ylmp_rm_bb(yle_t* e) {
+    register int i = ylstk_size(_bbs)-1; /* top */
+    for(;i>=0; i--) {
+        if(_bbs->item[i] == (void*)e) {
+            /* we found! */
+            memmove(&_bbs->item[i], &_bbs->item[i+1],
+                    sizeof(_bbs->item[i])*(ylstk_size(_bbs)-i-1));
+            _bbs->sz--;
+            return; /* done! */
+        }
+    }
+    if(i<0) {
+        yllogW1("WARN!! Try to remove unregistered base block! : %p\n", e);
+    }
 }
 
 void
-ylmp_clean_stack() {
+ylmp_clean_bb() {
     ylstk_clean(_bbs);
 }
 
@@ -225,7 +245,7 @@ ylmp_init() {
 void
 ylmp_deinit() {
     /* force gc for deinit */
-    ylmp_clean_stack();
+    ylmp_clean_bb();
     _gc();
     if(_bbs)    { ylstk_destroy(_bbs); }
     if(_m.pool) { ylfree(_m.pool); }

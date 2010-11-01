@@ -54,7 +54,7 @@
 
 #include "ylsfunc.h"
 #include "ylut.h"
-
+#include "stack.h"
 
 
 extern ylerr_t ylnfunc_init();
@@ -81,10 +81,29 @@ yleval_id();
  * To show 'eval' stack when interpreting fails
  */
 extern void
-ylpush_eval_info(const yle_t* e);
+ylevalinfo_push(const yle_t* e);
 
 extern void
-ylpop_eval_info();
+ylevalinfo_pop();
+
+
+/*
+ * Internal use only. (between interpret.c -> syntax.c)
+ * (This struct is totally dependent on internal code!)
+ */
+struct __interpthd_arg {
+    const unsigned char* s;
+    unsigned int         sz;
+    int                 *line;
+    ylstk_t             *ststk, *pestk;
+};
+
+
+/*
+ * Thread to interpret syntax automata!
+ */
+extern void*
+ylinterp_automata(void* arg);
 
 /*
  * *** NOTE ***
@@ -96,12 +115,6 @@ ylpop_eval_info();
  */
 extern ylerr_t
 ylinterpret_internal(const unsigned char* stream, unsigned int streamsz);
-
-extern void
-ylinteval_lock();
-
-void
-ylinteval_unlock();
 
 /*
  * to avoid symbol name (function name) conflicts with plug-ins

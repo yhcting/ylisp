@@ -361,8 +361,8 @@ yltrie_create(void(*fcb)(void*)) {
     return t;
 }
 
-static void
-_trie_clean(_trie_t* t) {
+void
+yltrie_clean(_trie_t* t) {
     register int i;
     for(i=0; i<16; i++) {
         if(t->rt.n[i]) {
@@ -372,9 +372,9 @@ _trie_clean(_trie_t* t) {
     }
 }
 
-extern void
+void
 yltrie_destroy(yltrie_t* t) {
-    _trie_clean(t);
+    yltrie_clean(t);
     ylfree(t);
 }
 
@@ -403,7 +403,7 @@ int
 yltrie_copy(yltrie_t* dst, const yltrie_t* src, void* user,
             void*(*clonev)(void*,const void*)) {
     register int i;
-    _trie_clean(dst);
+    yltrie_clean(dst);
     dst->fcb = src->fcb;
     for(i=0; i<16; i++) {
         if(src->rt.n[i]) { dst->rt.n[i] = _node_clone(src->rt.n[i], user, clonev); }

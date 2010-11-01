@@ -329,7 +329,7 @@ yleval(yle_t* e, yle_t* a) {
 #endif /* CONFIG_DBG_EVAL */
 
     /* Add evaluation stack -- for debugging */
-    ylpush_eval_info(e);
+    ylevalinfo_push(e);
 
     dbg_eval(yllogV2("[%d] eval In:\n"
                      "    %s\n", evid, ylechain_print(e)););
@@ -341,7 +341,7 @@ yleval(yle_t* e, yle_t* a) {
      * (especially, in case of a, some functions (ex let) may add new assoc. element
      *  in front of current 'a'.
      */
-    ylmp_push2(e, a);
+    ylmp_add_bb2(e, a);
 
     if( yleis_atom(e) ) {
         if(ylaif_sym() == ylaif(e)) {
@@ -369,9 +369,9 @@ yleval(yle_t* e, yle_t* a) {
                 if(yleis_atom(r)) {
                     if(ylaif_nfunc() == ylaif(r)) {
                         yle_t* param = ylevlis(ylcdr(e), a);
-                        ylmp_push1(param); /* preserve! */
+                        ylmp_add_bb1(param); /* preserve! */
                         r = (*(ylanfunc(r).f))(param, a);
-                        ylmp_pop1();
+                        ylmp_rm_bb1(param);
                     } else if(ylaif_sfunc() == ylaif(r)) {
                         /* parameters are not evaluated before being passed! */
                         r = (*(ylanfunc(r).f))(ylcdr(e), a);
@@ -446,10 +446,16 @@ yleval(yle_t* e, yle_t* a) {
 
         dbg_eval(yllogV2("[%d] eval Out:\n"
                          "    %s\n", evid, ylechain_print(r)););
-        ylmp_pop2();
+        ylmp_rm_bb2(e, a);
+
+        /*
+         * pop evaluation stack -- for debugging
+         * (Push and Pop should be in one 'evaluatin-step' -- before unlock inteval_mutex)
+         */
+        ylevalinfo_pop();
 
         /* Returned value should be pretected from GC. */
-        ylmp_push1(r);
+        ylmp_add_bb1(r);
 
         /*
          * This is right place to interrupt evaluation!
@@ -462,10 +468,7 @@ yleval(yle_t* e, yle_t* a) {
 
         ylmp_gc_if_needed();
         /* Pass responsibility about preserving return value to the caller! */
-        ylmp_pop1();
-
-        /* pop evaluation stack -- for debugging */
-        ylpop_eval_info();
+        ylmp_rm_bb1(r);
 
         return r;
     } else {

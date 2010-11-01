@@ -27,6 +27,21 @@
 #ifndef ___YLDEv_h___
 #define ___YLDEv_h___
 
+/******************************************
+ * !! Multi-Threaded Evaluation !!
+ *
+ * Most functions listed here, are used in 'inteval_lock'!
+ * And, functiond that affects only local state(stack frame),
+ *  it can be used out of 'inteval_lock'.
+ * But, it is easy to assume that all functions should be in the 'lock'.!
+ *
+ * NOTE!
+ *    CNF code already in 'inteval_lock'!
+ *    So, in many cases, you don't need to consider of the 'lock'!
+ *
+ ******************************************/
+
+
 #include "ylisp.h"
 #include "yldef.h"
 
@@ -561,55 +576,58 @@ extern yle_t*
 ylmp_block();
 
 /*
- * push base block
+ * add Base Block
  */
 extern void
-ylmp_push(yle_t* e);
+ylmp_add_bb(yle_t* e);
 
-#define ylmp_push1(e0)                     do{ ylmp_push(e0); } while(0)
-#define ylmp_push2(e0, e1)                 do{ ylmp_push1(e0); ylmp_push1(e1); } while(0)
-#define ylmp_push3(e0, e1, e2)             do{ ylmp_push1(e0); ylmp_push2(e1, e2); } while(0)
-#define ylmp_push4(e0, e1, e2, e3)         do{ ylmp_push1(e0); ylmp_push3(e1, e2, e3); } while(0)
-#define ylmp_push5(e0, e1, e2, e3, e4)     do{ ylmp_push1(e0); ylmp_push4(e1, e2, e3, e4); } while(0)
-#define ylmp_push6(e0, e1, e2, e3, e4, e5) do{ ylmp_push1(e0); ylmp_push5(e1, e2, e3, e4, e5); } while(0)
-#define ylmp_push7(e0, e1, e2, e3, e4, e5, e6)                          \
-    do{ ylmp_push1(e0); ylmp_push6(e1, e2, e3, e4, e5, e6); } while(0)
-#define ylmp_push8(e0, e1, e2, e3, e4, e5, e6, e7)                      \
-    do{ ylmp_push1(e0); ylmp_push7(e1, e2, e3, e4, e5, e6, e7); } while(0)
-#define ylmp_push9(e0, e1, e2, e3, e4, e5, e6, e7, e8)                  \
-    do{ ylmp_push1(e0); ylmp_push8(e1, e2, e3, e4, e5, e6, e7, e8); } while(0)
+#define ylmp_add_bb1(e0)                     do{ ylmp_add_bb(e0); } while(0)
+#define ylmp_add_bb2(e0, e1)                 do{ ylmp_add_bb1(e0); ylmp_add_bb1(e1); } while(0)
+#define ylmp_add_bb3(e0, e1, e2)             do{ ylmp_add_bb1(e0); ylmp_add_bb2(e1, e2); } while(0)
+#define ylmp_add_bb4(e0, e1, e2, e3)         do{ ylmp_add_bb1(e0); ylmp_add_bb3(e1, e2, e3); } while(0)
+#define ylmp_add_bb5(e0, e1, e2, e3, e4)     do{ ylmp_add_bb1(e0); ylmp_add_bb4(e1, e2, e3, e4); } while(0)
+#define ylmp_add_bb6(e0, e1, e2, e3, e4, e5) do{ ylmp_add_bb1(e0); ylmp_add_bb5(e1, e2, e3, e4, e5); } while(0)
+#define ylmp_add_bb7(e0, e1, e2, e3, e4, e5, e6)                          \
+    do{ ylmp_add_bb1(e0); ylmp_add_bb6(e1, e2, e3, e4, e5, e6); } while(0)
+#define ylmp_add_bb8(e0, e1, e2, e3, e4, e5, e6, e7)                      \
+    do{ ylmp_add_bb1(e0); ylmp_add_bb7(e1, e2, e3, e4, e5, e6, e7); } while(0)
+#define ylmp_add_bb9(e0, e1, e2, e3, e4, e5, e6, e7, e8)                  \
+    do{ ylmp_add_bb1(e0); ylmp_add_bb8(e1, e2, e3, e4, e5, e6, e7, e8); } while(0)
 
 /*
  * pop base block
  */
 extern void
-ylmp_pop();
+ylmp_rm_bb(yle_t* e);
 
-#define ylmp_pop1()  do{ ylmp_pop(); } while(0)
-#define ylmp_pop2()  do{ ylmp_pop1(); ylmp_pop1(); } while(0)
-#define ylmp_pop3()  do{ ylmp_pop1(); ylmp_pop2(); } while(0)
-#define ylmp_pop4()  do{ ylmp_pop1(); ylmp_pop3(); } while(0)
-#define ylmp_pop5()  do{ ylmp_pop1(); ylmp_pop4(); } while(0)
-#define ylmp_pop6()  do{ ylmp_pop1(); ylmp_pop5(); } while(0)
-#define ylmp_pop7()  do{ ylmp_pop1(); ylmp_pop6(); } while(0)
-#define ylmp_pop8()  do{ ylmp_pop1(); ylmp_pop7(); } while(0)
-#define ylmp_pop9()  do{ ylmp_pop1(); ylmp_pop8(); } while(0)
+#define ylmp_rm_bb1(e0)                     do{ ylmp_rm_bb(e0); } while(0)
+#define ylmp_rm_bb2(e0, e1)                 do{ ylmp_rm_bb1(e0); ylmp_rm_bb1(e1); } while(0)
+#define ylmp_rm_bb3(e0, e1, e2)             do{ ylmp_rm_bb1(e0); ylmp_rm_bb2(e1, e2); } while(0)
+#define ylmp_rm_bb4(e0, e1, e2, e3)         do{ ylmp_rm_bb1(e0); ylmp_rm_bb3(e1, e2, e3); } while(0)
+#define ylmp_rm_bb5(e0, e1, e2, e3, e4)     do{ ylmp_rm_bb1(e0); ylmp_rm_bb4(e1, e2, e3, e4); } while(0)
+#define ylmp_rm_bb6(e0, e1, e2, e3, e4, e5) do{ ylmp_rm_bb1(e0); ylmp_rm_bb5(e1, e2, e3, e4, e5); } while(0)
+#define ylmp_rm_bb7(e0, e1, e2, e3, e4, e5, e6)                          \
+    do{ ylmp_rm_bb1(e0); ylmp_rm_bb6(e1, e2, e3, e4, e5, e6); } while(0)
+#define ylmp_rm_bb8(e0, e1, e2, e3, e4, e5, e6, e7)                      \
+    do{ ylmp_rm_bb1(e0); ylmp_rm_bb7(e1, e2, e3, e4, e5, e6, e7); } while(0)
+#define ylmp_rm_bb9(e0, e1, e2, e3, e4, e5, e6, e7, e8)                  \
+    do{ ylmp_rm_bb1(e0); ylmp_rm_bb8(e1, e2, e3, e4, e5, e6, e7, e8); } while(0)
 
 /*
- * clean base block stack
+ * clean base block set
  */
 extern void
-ylmp_clean_stack();
+ylmp_clean_bb();
 
 extern void
 ylmp_gc_if_needed();
 
 /* -------------------------------
- * Interface to handle child process
+ * Interface for multi-threaded evaluation
  * -------------------------------*/
 
 /*
- * Following 2 ylchild_proc_xxxx are for handling child process that ylisp waits for.
+ * Following 2 ylprocinfo_xxxx are for handling child process that ylisp waits for.
  */
 /*
  * Actually, 'pid_t' should be used.
@@ -617,10 +635,22 @@ ylmp_gc_if_needed();
  * So, long is used instead of 'pid_t'
  */
 extern int
-ylchild_proc_set(long pid);
+ylprocinfo_add(long pid);
 
 extern void
-ylchild_proc_unset();
+ylprocinfo_del(long pid);
+
+
+/*
+ * !!! EXTREAMLY SENSITIVE !!!
+ * Following is for lock/unlock evaluation.
+ * If you are not sure what you are doing, DO NOT USE THIS!
+ */
+extern void
+ylinteval_lock();
+
+extern void
+ylinteval_unlock();
 
 
 /* -------------------------------

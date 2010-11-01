@@ -74,7 +74,7 @@ ylmset(yle_t* x, yle_t* y, yle_t* a, const char* desc);
  * In this function, GC may be triggered!
  * So, when use this function,
  *  caller SHOULD PRESERVE base blocks that should be protected from GC!
- *  by using 'ylmp_pushN(...)'.
+ *  by using 'ylmp_add_bbN(...)'.
  * This function is SENSITIVE AND DANGEROUS.
  * Take your attention for using this function!
  *
@@ -310,10 +310,10 @@ ylevlis(yle_t* m, yle_t* a) {
         yle_t* r; /* return value */
         yle_t* p = yleval(ylcar(m), a);
         /* p should be preserved from GC */
-        ylmp_push1(p);
+        ylmp_add_bb1(p);
         r = ylcons(p, ylevlis(ylcdr(m), a));
         /* Now p is not base block anymore */
-        ylmp_pop1();
+        ylmp_rm_bb1(p);
         return r;
     }
 }

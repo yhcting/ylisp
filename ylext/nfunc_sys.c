@@ -94,110 +94,71 @@ _readf(unsigned int* outsz, const char* func, const char* fpath, int btext) {
  *     For example, keeping only one-page-data, block when pipe is empty.
  *     I'm not good at linux system programming.
  *     So, until I found solution, using file explicitly to redirect.
+ *
+ * !!NOTE
+ *    This function redirect stdout/stderr.
+ *    So, redirecting stdout/stderr at some other place while waiting for ending child process,
+ *     may give unexpected result!
+ *    Be careful of using this function when use Multi-Threaded evaluation!
  */
 YLDEFNF(sh, 1, 1) {
-#define __outf_name ".#_______yljfe___outf______#"
-#define __restore_redirection()                         \
-    /* restore stdout/stderr */                         \
-    if(saved_stdout >= 0) {                             \
-        close(STDOUT_FILENO);                           \
-        dup2(saved_stdout, STDOUT_FILENO);              \
-        close(saved_stdout);                            \
-        saved_stdout = -1;                              \
-    }                                                   \
-    if(saved_stderr >= 0) {                             \
-        close(STDERR_FILENO);                           \
-        dup2(saved_stderr, STDERR_FILENO);              \
-        close(saved_stderr);                            \
-        saved_stderr = -1;                              \
-    }
+#define __outf_name ".#_______ylisp___shout______#"
 
-#define __cleanup_process()                             \
+#define __cleanup()                                     \
     /* clean resources */                               \
     if(buf) { ylfree(buf); }                            \
-    if(ofh) { fclose(ofh); }                            \
     unlink(__outf_name);
 
-    int         saved_stdout, saved_stderr;
-    FILE*       ofh = NULL;
     char*       buf = NULL;
 
     /* check input parameter */
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
-    /* set to invalid value */
-    saved_stdout = saved_stderr = -1;
-
-    /* save stdout/stderr to restore later*/
-    saved_stdout = dup(STDOUT_FILENO);
-    saved_stderr = dup(STDERR_FILENO);
-    if(saved_stdout < 0 || saved_stderr < 0) {
-        ylnflogE0("Fail to save stdout/stderr\n");
-        goto bail;
-    }
-
-    if( NULL == (ofh = fopen(__outf_name, "w")) ) {
-        ylnflogE0("Fail to open file to redirect stdout/stderr!\n");
-        goto bail;
-    }
-
-    /* before redirecting... flush stdout and stderr */
+    /* before forking flush/clean stdout and stderr */
     fflush(stdout); fflush(stderr);
 
-    /* redirect stderr to the pipe */
-    if(0 > dup2(fileno(ofh), STDERR_FILENO)) { ylnflogE0("Fail to dup stderr\n"); goto bail; }
-    /* redirect stdout to the pipe */
-    if(0 > dup2(fileno(ofh), STDOUT_FILENO)) { ylnflogE0("Fail to dup stdout\n"); goto bail; }
-
-
-    /*
-     * Now, we are ready to redirect
-     * It's time to execute command (fork)
-     */
     { /* Just scope */
         pid_t       cpid; /* child process id */
 
         cpid = fork();
+
         if(-1 == cpid) {
             ylnflogE0("Fail to fork!\n");
             goto bail;
         }
 
         if(cpid) { /* parent */
-            ylchild_proc_set(cpid);
-
+            ylprocinfo_add(cpid);
             if(-1 == waitpid(cpid, NULL, 0)) {
-                ylnflogE0("Fail to wait child process!\n");
+                /* my turn again! lock! */
                 ylassert(0);
-                ylchild_proc_unset();
+                ylnflogE0("Fail to wait child process!\n");
                 kill(cpid, SIGKILL);
+                ylprocinfo_del(cpid);
                 goto bail;
             }
+            ylprocinfo_del(cpid);
 
-            ylchild_proc_unset();
         } else { /* child */
+            /*
+             * redirect to file!
+             */
+            FILE*    ofh;
+            if( NULL == (ofh = fopen(__outf_name, "w")) ) {
+                perror("Fail to open target file for redirection.\n");
+                exit(0);
+            }
+
+            /* redirect stderr to the pipe */
+            if(0 > dup2(fileno(ofh), STDOUT_FILENO )
+               || 0 > dup2(fileno(ofh), STDERR_FILENO)) {
+                perror("Fail to dup stderr or stdout\n");
+                exit(0);
+            }
+
             execl("/bin/bash", "/bin/bash", "-c", ylasym(ylcar(e)).sym, (char*)0);
         }
-
     } /* Just scope */
-
-    /* flush result */
-    /*
-     * ****** NOTE ******
-     *    This SHOULD BE 'fflush(ofh)'!!!
-     *    "fflush(stdout); fflush(stderr);" gives unexpected result!!!!
-     */
-    fflush(ofh);
-    fclose(ofh);
-    ofh = NULL;
-
-    /*
-     * stdout/stderr was redirected.
-     * So, if system uses stdout/stderr as an outstream of print or log,
-     *     this may not be shown because it's already redirected.
-     * That's why redirection should be restored as sooon as possible.
-     */
-    __restore_redirection();
 
     { /* Just scope */
         FILE*  fh;
@@ -221,17 +182,16 @@ YLDEFNF(sh, 1, 1) {
         yle_t* r = ylacreate_sym(buf);
         /* buffer is already assigned to expression. So, this SHOULD NOT be freed */
         buf = NULL;
-        __cleanup_process();
+        __cleanup();
         return r;
     }
 
  bail:
-    __restore_redirection();
-    __cleanup_process();
+    __cleanup();
     ylinterpret_undefined(YLErr_func_fail);
     return NULL; /* to make compiler be happy. */
 
-#undef __cleanup_process
+#undef __cleanup
 #undef __outf_name
 
 } YLENDNF(sh)

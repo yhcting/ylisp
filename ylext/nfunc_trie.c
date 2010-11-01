@@ -176,7 +176,7 @@ YLDEFNF(make_trie, 0, 1) {
     r = ylacreate_cust(&_aif_trie, t);
 
     /* r should be protected from GC - there is eval below! */
-    ylmp_push1(r);
+    ylmp_add_bb1(r);
     if(pcsz > 0) {
         yle_t*  v;
         w = ylcar(e);
@@ -188,7 +188,7 @@ YLDEFNF(make_trie, 0, 1) {
             }
         }
     }
-    ylmp_pop1();
+    ylmp_rm_bb1(r);
 
     return r;
 

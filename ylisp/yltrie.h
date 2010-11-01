@@ -38,6 +38,9 @@ extern yltrie_t*
 yltrie_create(void(*fcb)(void*));
 
 extern void
+yltrie_clean(yltrie_t* t);
+
+extern void
 yltrie_destroy(yltrie_t*);
 
 /**
@@ -64,7 +67,7 @@ extern void(*yltrie_fcb(const yltrie_t* t))(void*);
 
 
 /**
- * @return     : NULL if @sym is not in trie.
+ * @return     : NULL if @key is not in trie.
  */
 extern void*
 yltrie_get(yltrie_t*, const unsigned char* key, unsigned int sz);
@@ -74,6 +77,7 @@ yltrie_get(yltrie_t*, const unsigned char* key, unsigned int sz);
  * (*yltrie_getref()) is value stored at trie.
  * Sometimes, direct modification of reference is required
  * (Especially to avoid duplicated 'Trie-Seaching')
+ * @return : NULL if @key is not in the trie.
  */
 extern void**
 yltrie_getref(yltrie_t*, const unsigned char* key, unsigned int sz);

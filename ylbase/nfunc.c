@@ -124,10 +124,13 @@ _evarg(yle_t* e, yle_t** a) {
      *    '*a' should be protected from GC.
      *    '*a' is updated. So, old value should be preserved.
      */
-    ylmp_push1(*a);
-    _update_assoc(a, yllist(ylcaar(e), yleval(ylcadar(e), *a)));
-    ylmp_pop1();
-    _evarg(ylcdr(e), a);
+    { /* Just Scope */
+        void*  asv = *a;
+        ylmp_add_bb1(asv);
+        _update_assoc(a, yllist(ylcaar(e), yleval(ylcadar(e), *a)));
+        ylmp_rm_bb1(asv);
+        _evarg(ylcdr(e), a);
+    }
 }
 
 
@@ -143,12 +146,12 @@ YLDEFNF(f_let, 2, 9999) {
      * updated 'a' should be protected from GC
      * ('e' is already protected!)
      */
-    ylmp_push1(a);
+    ylmp_add_bb1(a);
     e = ylcdr(e);
     ylelist_foreach(e) {
         p = yleval(ylcar(e), a);
     }
-    ylmp_pop1();
+    ylmp_rm_bb1(a);
     return p;
 } YLENDNF(f_let)
 
@@ -158,7 +161,7 @@ YLDEFNF(f_case, 2, 9999) {
     yle_t *key, *r = ylnil();
     ylnfcheck_parameter(yleis_pair_chain(ylcdr(e)));
     key = yleval(ylcar(e), a);
-    ylmp_push1(key);
+    ylmp_add_bb1(key);
 
     e = ylcdr(e);
     ylelist_foreach(e) {
@@ -178,7 +181,7 @@ YLDEFNF(f_case, 2, 9999) {
         }
     }
 
-    ylmp_pop1(); /* key */
+    ylmp_rm_bb1(key); /* key */
 
     if(!yleis_nil(e)) {
         /* we found! */
