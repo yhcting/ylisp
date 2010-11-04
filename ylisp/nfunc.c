@@ -24,9 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "gsym.h"
 #include "lisp.h"
-#include "mempool.h"
 
 
 /**********************************************************
@@ -59,7 +57,7 @@ YLDEFNF(quote, 1, 1) {
 } YLENDNF(quote)
 
 YLDEFNF(apply, 1, 9999) {
-    return ylapply(ylcar(e), ylcdr(e), a);
+    return ylapply(cxt, ylcar(e), ylcdr(e), a);
 } YLENDNF(apply)
 
 YLDEFNF(f_mset, 2, 3) {
@@ -113,7 +111,7 @@ YLDEFNF(is_set, 1, 1) {
 } YLENDNF(is_set)
 
 YLDEFNF(eval, 1, 1) {
-    return yleval(ylcar(e), a);
+    return yleval(cxt, ylcar(e), a);
 } YLENDNF(eval)
 
 YLDEFNF(help, 1, 9999) {
@@ -122,8 +120,8 @@ YLDEFNF(help, 1, 9999) {
     while(!yleis_nil(e)) {
         /* '!!' to make compiler be happy */
         if(!!(desc = ylgsym_get_description(ylasym(ylcar(e)).sym))) {
-            int    outty;
-            yle_t* v;
+            int        outty;
+            yle_t*     v;
             v = ylgsym_get(&outty, ylasym(ylcar(e)).sym);
             ylprint(("\n======== %s Desc =========\n"
                      "%s\n"
@@ -132,7 +130,7 @@ YLDEFNF(help, 1, 9999) {
                      , ylasym(ylcar(e)).sym
                      , desc
                      , (ylasymis_macro(outty))? "M": ""
-                     , ylechain_print(v)));
+                     , ylechain_print(ylethread_buf(cxt), v)));
         } else {
             ylprint(("======== %s =========\n"
                      "Cannot find symbol\n", ylasym(ylcar(e)).sym));
@@ -162,7 +160,7 @@ YLDEFNF(load_cnf, 1, 1) {
         goto bail;
     }
 
-    (*register_cnf)();
+    (*register_cnf)(cxt);
 
     ylnflogI0("done\n");
 
@@ -200,7 +198,7 @@ YLDEFNF(unload_cnf, 1, 1) {
         goto bail;
     }
 
-    (*unregister_cnf)();
+    (*unregister_cnf)(cxt);
 
     dlclose(handle);
 
@@ -257,31 +255,7 @@ YLDEFNF(interpret_file, 1, 1) {
         }
 
         { /* Just Scope */
-            ylerr_t lret; /* local return */
-
-            /*
-             * *** NOTE! ***
-             * We need to unlock evaluation mutex here!
-             * In ylinterpret_internal, it create new automata thread,
-             *  and in it, it lock evaluation mutex.
-             *
-             * *** Things to consider. ***
-             * Is there anything to protect from GC?
-             */
-            ylinteval_unlock();
-
-            lret = ylinterpret_internal(buf, sz);
-
-            /*
-             * *** NOTE! ***
-             * It's time to restore mutex state (to lock)!
-             * 'ylinterpret_internal()' is returned with 'unlocked mutex'.
-             * And, original state of mutex is 'locked'.
-             * Restore it back to origin!
-             */
-            ylinteval_lock();
-
-            if(YLOk != lret) {
+            if(YLOk != ylinterpret_internal(cxt, buf, sz)) {
                 ylnflogE1("ERROR at interpreting [%s]\n", fname);
                 goto bail;
             }
@@ -309,11 +283,6 @@ YLDEFNF(interpret_file, 1, 1) {
 /**********************************************************
  * Functions for managing interpreter internals.
  **********************************************************/
-YLDEFNF(gc, 0, 0) {
-    ylmp_gc();
-    return ylt();
-} YLENDNF(gc)
-
 ylerr_t
 ylnfunc_init() {
     /* dlopen(0, RTLD_LAZY | RTLD_GLOBAL); */

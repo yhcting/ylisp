@@ -23,7 +23,6 @@
  */
 
 #include <string.h>
-#include "yltrie.h"
 #include "lisp.h"
 
 typedef struct _value {
@@ -32,9 +31,17 @@ typedef struct _value {
     yle_t*     e;
 } _value_t;
 
+/*
+ * Globally singleton!!
+ */
+static char              _dummy_empty_desc = 0;
+static yltrie_t*         _trie = NULL;
 
-static char       _dummy_empty_desc = 0;
-static yltrie_t*  _trie = NULL;
+/*
+ * Global Symbol Trie Should not be corrupted!!
+ * This mutex is to secure TRIE structrue's completeness.
+ */
+static pthread_mutex_t   _mut;
 
 static inline void
 _free_description(char* desc) {
@@ -70,6 +77,7 @@ _free_value(_value_t* v) {
 
 ylerr_t
 ylgsym_init() {
+    pthread_mutex_init(&_mut, ylmutexattr());
     _trie = yltrie_create( (void(*)(void*))&_free_value );
     return YLOk;
 }
@@ -77,14 +85,19 @@ ylgsym_init() {
 void
 ylgsym_deinit() {
     yltrie_destroy(_trie);
-    _trie = NULL;
+    pthread_mutex_destroy(&_mut);
 }
 
 int
 ylgsym_insert(const char* sym, int sty, yle_t* e) {
-    _value_t*     v = _alloc_value(sty, e);
-    unsigned int  slen = strlen(sym);
-    _value_t*     ov = yltrie_get(_trie, (unsigned char*)sym, slen);
+    int           ret;
+    _value_t*     v;
+    unsigned int  slen;
+    _value_t*     ov;
+    v = _alloc_value(sty, e);
+    slen = strlen(sym);
+    _mlock(&_mut);
+    ov = yltrie_get(_trie, (unsigned char*)sym, slen);
     if(ov) {
         /*
          * in case of overwritten, description should be preserved.
@@ -99,17 +112,26 @@ ylgsym_insert(const char* sym, int sty, yle_t* e) {
         /* to prevent from freeing inside trie! - HACK */
         ov->desc = &_dummy_empty_desc;
     }
-    return yltrie_insert(_trie, (unsigned char*)sym, slen, (void*)v);
+    ret = yltrie_insert(_trie, (unsigned char*)sym, slen, (void*)v);
+    _munlock(&_mut);
+    
+    return ret;
 }
 
 int
 ylgsym_delete(const char* sym) {
-    return yltrie_delete(_trie, (unsigned char*)sym, strlen(sym));
+    int ret;
+    _mlock(&_mut);
+    ret = yltrie_delete(_trie, (unsigned char*)sym, strlen(sym));
+    _munlock(&_mut);
+    return ret;
 }
 
 int
 ylgsym_set_description(const char* sym, const char* description) {
-    _value_t* v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
+    _value_t* v;
+    _mlock(&_mut);
+    v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
     if(v) {
         unsigned int sz;
         char*        desc;
@@ -126,21 +148,29 @@ ylgsym_set_description(const char* sym, const char* description) {
 
         _free_description(v->desc);
         v->desc = desc;
+        _munlock(&_mut);
         return 0;
     } else {
+        _munlock(&_mut);
         return -1;
     }
 }
 
 const char*
 ylgsym_get_description(const char* sym) {
-    _value_t* v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
+    _value_t* v;
+    _mlock(&_mut);
+    v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
+    _munlock(&_mut);
     return v? v->desc: NULL;
 }
 
 yle_t*
 ylgsym_get(int* outty, const char* sym) {
-    _value_t* v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
+    _value_t* v;
+    _mlock(&_mut);
+    v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
+    _munlock(&_mut);
     if(v) {
         if(outty) { *outty = v->ty; }
         return v->e;
@@ -161,20 +191,26 @@ _cb_gcmark(void* user,
 
 void
 ylgsym_gcmark() {
-    /* This is called by 'Scanning GC' */
+    /* This is called by only 'GC in Mempool' */
     if(_trie) {
+        _mlock(&_mut);
         yltrie_walk(_trie, NULL, (unsigned char*)"", 0,
                     (int(*)(void*, const unsigned char*,
                             unsigned int, void*))&_cb_gcmark);
+        _munlock(&_mut);
     }
 }
 
 int
 ylgsym_auto_complete(const char* start_with,
                      char* buf, unsigned int bufsz) {
-    return yltrie_auto_complete(_trie, (unsigned char*)start_with,
-                                (unsigned int)strlen(start_with),
-                                (unsigned char*)buf, bufsz);
+    int ret;
+    _munlock(&_mut);
+    ret =yltrie_auto_complete(_trie, (unsigned char*)start_with,
+                              (unsigned int)strlen(start_with),
+                              (unsigned char*)buf, bufsz);
+    _munlock(&_mut);
+    return ret;
 }
 
 typedef struct {
@@ -197,12 +233,15 @@ ylgsym_nr_candidates(const char* start_with,
     _candidates_sz_t   st;
     st.cnt = st.maxlen = 0;
 
+    _mlock(&_mut);
     if(0 > yltrie_walk(_trie, &st, (unsigned char*)start_with,
                        (unsigned int)strlen(start_with),
                        (int(*)(void*, const unsigned char*,
                                unsigned int, void*))&_cb_nr_candidates)) {
+        _munlock(&_mut);
         return 0;
     }
+    _munlock(&_mut);
 
     if(max_symlen) { *max_symlen = st.maxlen; }
     return st.cnt;
@@ -235,12 +274,15 @@ ylgsym_candidates(const char* start_with, char** ppbuf,
     st.ppbsz = ppbsz;
     st.i = 0;
 
+    _mlock(&_mut);
     if(0 > yltrie_walk(_trie, &st, (unsigned char*)start_with,
                        (unsigned int)strlen(start_with),
                        (int(*)(void*, const unsigned char*,
                                unsigned int, void*))&_cb_candidates)) {
+        _munlock(&_mut);
         return -1;
     }
+    _munlock(&_mut);
     return st.i;
 }
 

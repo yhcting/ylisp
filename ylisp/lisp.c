@@ -22,23 +22,13 @@
 
 #include <string.h>
 #include <stdio.h>
-
-#include "gsym.h"
-#include "mempool.h"
 #include "lisp.h"
-#include "yltrie.h"
 
 
 /*=======================
  * Local varaible
  *=======================*/
 static ylsys_t* _sysv = NULL;
-
-/*
- * print buffer. This is used in ylechain_print
- * (DO NOT USE THIS ELSEWHERE)
- */
-static yldynb_t _prdynb = {0, 0, NULL};
 
 /*
  * static variable is initialized as 0!
@@ -54,9 +44,9 @@ const yle_t* const ylg_predefined_nil    = &_predefined_nil;
 const yle_t* const ylg_predefined_quote  = &_predefined_quote;
 
 /*=======================
- * Global functions
+ * Globally used one
  *=======================*/
-
+static pthread_mutexattr_t _mattr;
 
 /*---------------------------------
  * For debugging !
@@ -364,6 +354,16 @@ ylsysv() {
     return _sysv;
 }
 
+pthread_mutexattr_t*
+ylmutexattr() {
+    return &_mattr;
+}
+
+struct yldynb*
+ylethread_buf(yletcxt_t* cxt) {
+    return &cxt->dynb;
+}
+
 int
 ylelist_size(const yle_t* e) {
     register int i;
@@ -398,7 +398,7 @@ _aprint(yldynb_t* b, yle_t* e) {
     int  cw; /* character written */
     if(ylaif(e)->to_string) {
         while(1) {
-            cw = ylaif(e)->to_string(e, (char*)ylutstr_ptr(b), yldynb_freesz(b));
+            cw = ylaif(e)->to_string(e, (char*)yldynbstr_ptr(b), yldynb_freesz(b));
             if( cw >= 0) {
                 b->sz += cw;
                 b->b[b->sz-1] = 0; /* add trailing 0 */
@@ -410,7 +410,7 @@ _aprint(yldynb_t* b, yle_t* e) {
     } else {
         yllogW0("There is an atom that doesn't support/allow PRINT!\n");
         /* !X! is special notation to represet 'it's not printable' */
-        _fcall(ylutstr_append(b, "!X!"));
+        _fcall(yldynbstr_append(b, "!X!"));
     }
     return 0;
 
@@ -436,47 +436,47 @@ _eprint(yldynb_t* b, yle_t* e, yltrie_t* map) {
                 if(1 == yltrie_insert(map, (unsigned char*)&car_e,
                                       sizeof(yle_t*), ylnil())) {
                     /* Overwritten! cycle detected ! */
-                    _fcall(ylutstr_append(b, "!CYCLE DETECTED!"));
+                    _fcall(yldynbstr_append(b, "!CYCLE DETECTED!"));
                     /*
                      * car_e already exists in map.
                      * So, it should not be deleted from map
                      */
                     car_e = NULL;
                 } else {
-                    _fcall(ylutstr_append(b, "("));
+                    _fcall(yldynbstr_append(b, "("));
                     _fcall(_eprint(b, car_e, map));
-                    _fcall(ylutstr_append(b, ")"));
+                    _fcall(yldynbstr_append(b, ")"));
                 }
             } else {
                 _fcall(_aprint(b, car_e));
             }
         } else {
-            _fcall(ylutstr_append(b, "NULL "));
+            _fcall(yldynbstr_append(b, "NULL "));
         }
 
         if(cdr_e) {
             if( yleis_atom(cdr_e) ) {
                 if(!yleis_nil(cdr_e)) {
-                    _fcall(ylutstr_append(b, "."));
+                    _fcall(yldynbstr_append(b, "."));
                     _fcall(_aprint(b, cdr_e));
                 }
             } else {
                 if(1 == yltrie_insert(map, (unsigned char*)&cdr_e,
                                       sizeof(yle_t*), ylnil())) {
                     /* Overwritten! cycle detected ! */
-                    _fcall(ylutstr_append(b, "!CYCLE DETECTED!"));
+                    _fcall(yldynbstr_append(b, "!CYCLE DETECTED!"));
                     /*
                      * car_e already exists in map.
                      * So, it should not be deleted from map
                      */
                     cdr_e = NULL;
                 } else {
-                    _fcall(ylutstr_append(b, " "));
+                    _fcall(yldynbstr_append(b, " "));
                     _fcall(_eprint(b, cdr_e, map));
                 }
             }
         } else {
-            _fcall(ylutstr_append(b, "NULL"));
+            _fcall(yldynbstr_append(b, "NULL"));
         }
 
         /*
@@ -492,14 +492,14 @@ _eprint(yldynb_t* b, yle_t* e, yltrie_t* map) {
     return -1;
 }
 
-int
-ylechain_print_internal(const yle_t* e, yldynb_t* b, yltrie_t* map) {
+static int
+_echain_print(const yle_t* e, yldynb_t* b, yltrie_t* map) {
     if(yleis_atom(e)) {
         _fcall(_aprint(b, (yle_t*)e));
     } else {
-        _fcall(ylutstr_append(b, "("));
+        _fcall(yldynbstr_append(b, "("));
         _fcall(_eprint(b, (yle_t*)e, map));
-        _fcall(ylutstr_append(b, ")"));
+        _fcall(yldynbstr_append(b, ")"));
     }
     return 0;
 
@@ -512,32 +512,25 @@ ylechain_print_internal(const yle_t* e, yldynb_t* b, yltrie_t* map) {
  * Print is used for debugging perforce too.
  * So, it should handle circular list....
  * And we don't need to worry about performance too much for printing.
- * @return: buffer pointer. MAX buffer size is 1KB
  */
 const char*
-ylechain_print(const yle_t* e) {
-#define __DEFAULT_BSZ         4096
+ylechain_print(struct yldynb* dynb, const yle_t* e) {
+#define __ERRMSG       "print error: out of memory\n"
     /* Trie for address map */
     yltrie_t*  map = yltrie_create(NULL);
 
+    yldynbstr_reset(dynb);
     /* new allocates or shrinks */
-    if(!_prdynb.b || ylutstr_len(&_prdynb) > __DEFAULT_BSZ) {
-        yldynb_clean(&_prdynb);
-        _fcall(ylutstr_init(&_prdynb, __DEFAULT_BSZ));
-    } else {
-        ylutstr_reset(&_prdynb);
-    }
-
-    _fcall(ylechain_print_internal(e, &_prdynb, map));
-
+    _fcall(_echain_print(e, dynb, map));
     yltrie_destroy(map);
-    return (const char*)ylutstr_string(&_prdynb);
+    return (char*)yldynbstr_string(dynb);
 
  bail:
     yltrie_destroy(map);
-    return "print error: out of memory\n";
-
-#undef __DEFAULT_BSZ
+    ylassert(yldynb_sz(dynb) > sizeof(__ERRMSG));
+    memcpy(yldynb_buf(dynb), (unsigned char*)__ERRMSG, sizeof(__ERRMSG));
+    return (char*)yldynbstr_string(dynb);
+#undef __ERRMSG
 }
 
 #undef _fcall
@@ -563,6 +556,21 @@ ylsym_auto_complete(const char* start_with, char* buf, unsigned int bufsz) {
     return ylgsym_auto_complete(start_with, buf, bufsz);
 }
 
+ylerr_t
+ylinit_thread_context(yletcxt_t* cxt) {
+    /* TODO -- Error check!! */
+    cxt->id = pthread_self();
+    cxt->evalstk = ylstk_create(0, NULL);
+    yldynb_init(&cxt->dynb, 4096);
+    return 0;
+}
+
+void
+yldeinit_thread_context(yletcxt_t* cxt) {
+    yldynb_clean(&cxt->dynb);
+    ylstk_destroy(cxt->evalstk);
+}
+
 
 
 /* =======================
@@ -586,6 +594,10 @@ ylinit(ylsys_t* sysv) {
     }
 
     _sysv = sysv;
+
+    if(pthread_mutexattr_init(&_mattr)) { ylassert(0); }
+    if(pthread_mutexattr_settype(&_mattr, PTHREAD_MUTEX_ERRORCHECK)) { ylassert(0); }
+
 
     /* Basic Arhitecture Assumption!! */
     if(!(8 == sizeof(double)
@@ -632,8 +644,8 @@ ylinit(ylsys_t* sysv) {
 
 void
 yldeinit() {
+    pthread_mutexattr_destroy(&_mattr);
     ylgsym_deinit();
     ylmp_deinit();
     ylinterp_deinit();
-    yldynb_clean(&_prdynb);
 }

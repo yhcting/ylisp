@@ -23,6 +23,8 @@
 #ifndef ___LISp_h___
 #define ___LISp_h___
 
+#include <pthread.h>
+#include <errno.h>
 #include "config.h"
 /*
  * For debugging
@@ -52,10 +54,35 @@
 #   define dbg_mutex(x)
 #endif /* CONFIG_DBG_INTEVAL */
 
+#include "ylisp.h"
 #include "ylsfunc.h"
+#include "yldynb.h"
 #include "ylut.h"
 #include "stack.h"
+#include "yllist.h"
+#include "mempool.h"
+#include "yltrie.h"
+#include "gsym.h"
 
+
+/**********************************************
+ *
+ * Macro Overriding!
+ * (For Internal Use!)
+ *
+ **********************************************/
+
+
+/**********************************************
+ *
+ * Evaluation Thread Context
+ *
+ **********************************************/
+struct _etcxt {
+    pthread_t          id;
+    ylstk_t*           evalstk;
+    yldynb_t           dynb;
+}; /* Evaluation Thread ConteXT */
 
 extern ylerr_t ylnfunc_init();
 extern ylerr_t ylsfunc_init();
@@ -69,33 +96,30 @@ yleclean(yle_t* e);
  * GC Protection required to caller
  */
 extern yle_t*
-ylapply(yle_t* f, yle_t* args, yle_t* a);
+ylapply(yletcxt_t* cxt, yle_t* f, yle_t* args, yle_t* a);
 
+
+#ifdef CONFIG_DBG_EVAL
 /*
  * get current evaluation id.
  */
 extern unsigned int
 yleval_id();
 
-/*
- * To show 'eval' stack when interpreting fails
- */
-extern void
-ylevalinfo_push(const yle_t* e);
-
-extern void
-ylevalinfo_pop();
-
+#endif /* CONFIG_DBG_EVAL */
 
 /*
  * Internal use only. (between interpret.c -> syntax.c)
  * (This struct is totally dependent on internal code!)
  */
 struct __interpthd_arg {
+    yletcxt_t*           cxt;
     const unsigned char* s;
     unsigned int         sz;
     int                 *line;
     ylstk_t             *ststk, *pestk;
+    unsigned char*       b; /* buffer for parsing syntax */
+    unsigned int         bsz; /* buffer size */
 };
 
 
@@ -114,7 +138,80 @@ ylinterp_automata(void* arg);
  * (To know whether interpreting started by user request or by batch script)
  */
 extern ylerr_t
-ylinterpret_internal(const unsigned char* stream, unsigned int streamsz);
+ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int streamsz);
+
+extern ylerr_t
+ylinit_thread_context(yletcxt_t* cxt);
+
+extern void
+yldeinit_thread_context(yletcxt_t* cxt);
+
+extern pthread_mutexattr_t* ylmutexattr();
+
+static inline int
+__mtrylock(pthread_mutex_t* m) {
+    int r;
+    r = pthread_mutex_trylock(m);
+    if(!r) { return 1; }
+    else if(EBUSY == r) { return 0; }
+    else {
+        yllogE1("ERROR TRYLOCK Mutex [%s]\n", strerror(r));
+        ylassert(0);
+        return 0; /* to make compiler be happy */
+    }
+}
+
+
+static inline void
+__mlock(pthread_mutex_t* m) {
+    int r;
+    r = pthread_mutex_lock(m);
+    if(r) {
+        yllogE1("ERROR LOCK Mutex [%s]\n", strerror(r));
+        ylassert(0);
+    }
+}
+
+static inline void
+__munlock(pthread_mutex_t* m) {
+   int r;
+    r = pthread_mutex_unlock(m);
+    if(r) {
+        yllogE1("ERROR UNLOCK Mutex [%s]\n", strerror(r));
+        ylassert(0);
+    }
+}
+
+#ifdef CONFIG_DBG_MUTEX
+
+#define _mlock(m)                                                       \
+    do {                                                                \
+        yllogI3("+MLock: %p [%s][%d] ... ", m, __FILE__, __LINE__);     \
+        __mlock(m);                                                     \
+        yllogI0("OK\n");                                                \
+    } while(0)
+
+#define _munlock(m)                                                     \
+    do {                                                                \
+        yllogI3("+MUnlock: %p [%s][%d]\n", m, __FILE__, __LINE__);      \
+        __munlock(m);                                                   \
+    } while(0)
+
+#define _mtrylock(m)                                                    \
+    do {                                                                \
+        int r;                                                          \
+        yllogI3("+MTrylock: %p [%s][%d] ... ", m, __FILE__, __LINE__);  \
+        r = __mtrylock(m);                                              \
+        yllogI1("%s\n", r? "OK\n": "Fail\n");                           \
+    } while(0)
+
+#else /* CONFIG_DBG_MUTEX */
+
+#define _mlock(m)    __mlock(m)
+#define _munlock(m)  __munlock(m)
+#define _mtrylock(m) __mtrylock(m)
+
+#endif /* CONFIG_DBG_MUTEX */
 
 /*
  * to avoid symbol name (function name) conflicts with plug-ins

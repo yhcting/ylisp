@@ -80,14 +80,15 @@ ylstk_size(ylstk_t* s) {
     return s->sz;
 }
 
-static inline void
+static inline int
 ylstk_push(ylstk_t* s, void* item) {
     if(s->sz >= s->limit) {
         /* doubling stack size */
         void** tmp = (void**)ylmalloc(s->limit * sizeof(void*) * 2);
         if(!tmp) {
             yllogE1("Internal Error in Stack(OOM). Fail to doubling! : Limit: %d\n", s->limit);
-            ylinterpret_undefined(YLErr_internal);
+            ylassert(0);
+            return -1;
         }
         memcpy(tmp, s->item, sizeof(void*) * s->sz);
         ylfree(s->item);
@@ -95,6 +96,7 @@ ylstk_push(ylstk_t* s, void* item) {
         s->limit *= 2;
     }
     s->item[s->sz++] = item;
+    return 0;
 }
 
 static inline void*
@@ -103,7 +105,7 @@ ylstk_pop(ylstk_t* s) {
         return s->item[--s->sz];
     } else {
         yllogE0("Internal Error in Stack. Try to pop on empty stack!\n");
-        ylinterpret_undefined(YLErr_internal);
+        ylassert(0);
     }
     return NULL; /* to make compiler happy */
 }
@@ -114,7 +116,7 @@ ylstk_peek(ylstk_t* s) {
         return s->item[s->sz-1];
     } else {
         yllogE0("Internal Error in Stack. Try to peek on empty stack!\n");
-        ylinterpret_undefined(YLErr_internal);
+        ylassert(0);
     }
     return NULL; /* to make compiler happy */
 }

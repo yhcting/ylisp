@@ -290,8 +290,9 @@
 (set 't (list '('a 'b) 'c))
 (setcar (cdar t) t)
 (print t '"\n") ; ylisp should be able to print circular list!
-(unset 't)
 
+(unset 'ee)
+(unset 't)
 (unset 'rrr)
 (unset 'yyy)
 (unset 'ttt)

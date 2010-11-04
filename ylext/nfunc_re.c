@@ -32,6 +32,13 @@
 
 #include "ylsfunc.h"
 
+/*
+ * !!! NOTE !!!
+ * PCRE functions are 'Thread Safe'!
+ * So, we don't need to worry about Multi-Threaded-Evaluation.
+ * (See MULTITHREADING section in "http://www.pcre.org/pcre.txt")
+ */
+
 /* out vector count : should be multiple of 3 */
 #define _OVECCNT 60
 

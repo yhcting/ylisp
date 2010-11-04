@@ -39,10 +39,11 @@
 #include "ylisp.h"
 
 /*
- * "ylut.h" is optional.
+ * "yldynb.h, ylut.h" is optional.
  * This is included to use utility functions.
- * (Using 'ylut.h' is not essential!)
+ * (Using 'yldynb.h, ylut.h' is not essential!)
  */
+#include "yldynb.h"
 #include "ylut.h"
 
 #include <assert.h>
@@ -87,7 +88,7 @@ static void
 _assert(int a) { assert(a); }
 
 
-yldynb_t dynb = {0, 0, NULL};
+static yldynb_t _dynb = {0, 0, NULL};
 
 /* ===========================================
  * JNI Functions - START
@@ -107,7 +108,7 @@ _jni_Main_nativeInterpret
 
     stream = (*jenv)->GetStringUTFChars(jenv, jstr, NULL);
 
-    ylutstr_reset(&dynb);
+    yldynbstr_reset(&_dynb);
     if( YLOk != ylinterpret((unsigned char*)stream,
                             (unsigned int)strlen(stream)) ) {
         jret = JNI_FALSE;
@@ -140,16 +141,16 @@ static jstring JNICALL
 _jni_Main_nativeGetLastNativeMessage
 (JNIEnv* jenv, jobject jobj) {
     jstring jret;
-    jret = ((*jenv)->NewStringUTF(jenv, (char*)ylutstr_string(&dynb)));
+    jret = ((*jenv)->NewStringUTF(jenv, (char*)yldynbstr_string(&_dynb)));
     if(!jret) {
         _print("Not enough Java memory to get native message!\n"
-               "Native message size : %d\n", ylutstr_len(&dynb));
+               "Native message size : %d\n", yldynbstr_len(&_dynb));
     }
 
     /* shrink */
-    if(ylutstr_len(&dynb) > _INIT_OUTBUFSZ) {
-        yldynb_clean(&dynb);
-        if( 0 > ylutstr_init(&dynb, _INIT_OUTBUFSZ) ) {
+    if(yldynbstr_len(&_dynb) > _INIT_OUTBUFSZ) {
+        yldynb_clean(&_dynb);
+        if( 0 > yldynbstr_init(&_dynb, _INIT_OUTBUFSZ) ) {
             /* fail to alloc page... may be due to external fragmentation?? */
             assert(0);
         }
@@ -184,14 +185,14 @@ _jni_Main_nativeAutoComplete
 
     prefix = (*jenv)->GetStringUTFChars(jenv, jprefix, NULL);
 
-    ylutstr_reset(&dynb);
-    ret = ylsym_auto_complete(prefix, (char*)ylutstr_ptr(&dynb), yldynb_freesz(&dynb));
+    yldynbstr_reset(&_dynb);
+    ret = ylsym_auto_complete(prefix, (char*)yldynbstr_ptr(&_dynb), yldynb_freesz(&_dynb));
     /* we need to assess directly..here... due to limitation of API */
-    dynb.sz += strlen((char*)ylutstr_string(&dynb));
+    _dynb.sz += strlen((char*)yldynbstr_string(&_dynb));
 
     switch(ret) {
         case 0: {
-            if(ylutstr_len(&dynb) > 0) {
+            if(yldynbstr_len(&_dynb) > 0) {
                 ret = _AC_MORE_PREFIX;
             } else {
                 /* we need to retrieve candidates.. */
@@ -336,7 +337,7 @@ main(int argc, char* argv[]) {
     }
 
     /* This should be called after ylinit() */
-    ylutstr_init(&dynb, _INIT_OUTBUFSZ);
+    yldynbstr_init(&_dynb, _INIT_OUTBUFSZ);
 
     /* run initial scripts if required */
     if(argc > 1) {

@@ -20,18 +20,17 @@
 
 
 
-#include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include "gsym.h"
 #include "lisp.h"
 
-/* global error number */
-extern int errno;
-
-
-/* this is for debugging perforce */
+#ifdef CONFIG_DBG_EVAL
+/*
+ * this is for debugging perforce
+ * Let's ignore Race Condition in MT evaluation.
+ * It's just for debugging and not a big deal!
+ */
 static unsigned int _eval_id = 0;
 
 /* -------------------------------
@@ -40,6 +39,7 @@ static unsigned int _eval_id = 0;
 unsigned int
 yleval_id() { return _eval_id; }
 
+#endif /* CONFIG_DBG_EVAL */
 
 /* -------------------------------
  * Utility Functions
@@ -203,11 +203,6 @@ _mreplace(yle_t* e, yle_t* a) {
         return -1;
     }
 
-    dbg_eval(yllogV1("---- macro replace -------\n"
-                     "    From :%s\n", ylechain_print(e));
-             yllogV1("    To   :%s\n"
-                     "--------------------------\n", ylechain_print(a)););
-
     /*
      * 'e' may be in global space. So, changing 'e' may affects global state.
      * And this should not be happened.
@@ -319,7 +314,7 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
 
 
 yle_t*
-yleval(yle_t* e, yle_t* a) {
+yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
 #define _cmp(x, e) !strcmp(#x, ylasym(e).sym)
 
     yle_t*       r = NULL;
@@ -329,11 +324,11 @@ yleval(yle_t* e, yle_t* a) {
 #endif /* CONFIG_DBG_EVAL */
 
     /* Add evaluation stack -- for debugging */
-    ylevalinfo_push(e);
+    ylstk_push(cxt->evalstk, (void*)e);
 
-    dbg_eval(yllogV2("[%d] eval In:\n"
-                     "    %s\n", evid, ylechain_print(e)););
-    dbg_eval(yllogV1("    =>%s\n", ylechain_print(a)););
+    dbg_eval(yllogD2("[%d] eval In:\n"
+                     "    %s\n", evid, ylechain_print(ylperthread_buf(cxt), e));
+             yllogD1("    =>%s\n", ylechain_print(ylperthread_buf(cxt), a)););
 
     /*
      * 'e' and 'a' should be preserved during evaluation.
@@ -348,7 +343,7 @@ yleval(yle_t* e, yle_t* a) {
             r = (yle_t*)_assoc(&vty, e, a);
             if(ylasymis_macro(vty)) {
                 /* this is macro!. evaluate it again */
-                r = yleval(r, a);
+                r = yleval(cxt, r, a);
             }
         } else {
             yllogE0("ERROR to evaluate atom(only symbol can be evaluated!.\n");
@@ -364,17 +359,17 @@ yleval(yle_t* e, yle_t* a) {
                  * This is macro symbol! replace target expression with symbol.
                  * And evaluate it with replaced value!
                  */
-                r = yleval( ylcons(r, ylcdr(e)), a );
+                r = yleval(cxt, ylcons(r, ylcdr(e)), a );
             } else {
                 if(yleis_atom(r)) {
                     if(ylaif_nfunc() == ylaif(r)) {
-                        yle_t* param = ylevlis(ylcdr(e), a);
+                        yle_t* param = ylevlis(cxt, ylcdr(e), a);
                         ylmp_add_bb1(param); /* preserve! */
-                        r = (*(ylanfunc(r).f))(param, a);
+                        r = (*(ylanfunc(r).f))(cxt, param, a);
                         ylmp_rm_bb1(param);
                     } else if(ylaif_sfunc() == ylaif(r)) {
                         /* parameters are not evaluated before being passed! */
-                        r = (*(ylanfunc(r).f))(ylcdr(e), a);
+                        r = (*(ylanfunc(r).f))(cxt, ylcdr(e), a);
                     } else {
                         yllogE0("ERROR to evaluate. First element should be a function!\n");
                         ylinterpret_undefined(YLErr_eval_undefined);
@@ -392,32 +387,32 @@ yleval(yle_t* e, yle_t* a) {
         yle_t* ce = ylcaar(e);
         if(_cmp(label, ce)) {
             /* eq [caar [e]; LABEL] -> eval [cons [caddar [e]; cdr [e]]; cons [list [cadar [e]; car [e]]; a]] */
-            r = yleval(ylcons(ylcaddar(e), ylcdr(e)), ylcons(yllist(ylcadar(e), ylcar(e)), a));
+            r = yleval(cxt, ylcons(ylcaddar(e), ylcdr(e)), ylcons(yllist(ylcadar(e), ylcar(e)), a));
         } else if(_cmp(lambda, ce)) {
             /* eq [caar [e] -> LAMBDA] -> eval [caddar [e]; append [pair [cadar [e]; evlis [cdr [e]; a]]; a]] */
             /* ylpair and ylappend don't call yleval in it. So, we don't need to preserve base blocks explicitly */
-            r = yleval(ylcaddar(e), ylappend(ylpair(ylcadar(e), ylevlis(ylcdr(e), a)), a));
+            r = yleval(cxt, ylcaddar(e), ylappend(ylpair(ylcadar(e), ylevlis(cxt, ylcdr(e), a)), a));
         } else if(_cmp(mlambda, ce)) {
             if( yleis_nil(ylcadar(e)) && !yleis_nil(ylcaddar(e)) ) {
                 /*
                  * !!! Special usage of mlambda !!!
                  * If parameter is nil, than, arguments are appended to the body!
                  */
-                yle_t* we = ylcaddar(e);
-                while(!yleis_nil(ylcdr(we))) { we = ylcdr(we); }
 
                 /*
-                 * Expression itself is preserved at any case.
-                 * So, we don't need to care about replacement of expression.
-                 * (restoring link is enough!)
-                 *
-                 * original '(cdr we)' is nil. So we don't need to preserved 'we' before eval!
+                 * At below, we should change cdr value.
+                 * In case of MT evaluation, this may cause racing condition.
+                 * Use list-copied one!
                  */
+                yle_t* exp = _list_clone(ylcaddar(e));
+                yle_t* we = exp;
+                while(!yleis_nil(ylcdr(we))) { we = ylcdr(we); }
+
                 /* connect body with argument */
                 ylpsetcdr(we, ylcdr(e));
-                r = yleval(ylcaddar(e), a);
-                /* restore to original value - nil */
-                ylpsetcdr(we, ylnil());
+                r = yleval(cxt, exp, a);
+                /* we don't need to restore. it was just copied one. */
+                /* ylpsetcdr(we, ylnil()); */
             } else {
                 /*
                  * NOTE!!
@@ -430,12 +425,12 @@ yleval(yle_t* e, yle_t* a) {
                     yllogE0("Fail to mreplace!!\n");
                     ylinterpret_undefined(YLErr_eval_undefined);
                 } else {
-                    r = yleval(exp, a);
+                    r = yleval(cxt, exp, a);
                 }
             }
         } else {
             /* my extention */
-            r = yleval(ylcons(yleval(ylcar(e), a), ylcdr(e)), a);
+            r = yleval(cxt, ylcons(yleval(cxt, ylcar(e), a), ylcdr(e)), a);
             /* ylinterpret_undefined(YLErr_eval_undefined); */
         }
     }
@@ -444,15 +439,15 @@ yleval(yle_t* e, yle_t* a) {
 
     if(r) {
 
-        dbg_eval(yllogV2("[%d] eval Out:\n"
-                         "    %s\n", evid, ylechain_print(r)););
+        dbg_eval(yllogD2("[%d] eval Out:\n"
+                         "    %s\n", evid, ylechain_print(ylperthread_buf(cxt), r)););
         ylmp_rm_bb2(e, a);
 
         /*
          * pop evaluation stack -- for debugging
          * (Push and Pop should be in one 'evaluatin-step' -- before unlock inteval_mutex)
          */
-        ylevalinfo_pop();
+        ylstk_pop(cxt->evalstk);
 
         /* Returned value should be pretected from GC. */
         ylmp_add_bb1(r);
@@ -461,12 +456,14 @@ yleval(yle_t* e, yle_t* a) {
          * This is right place to interrupt evaluation!
          * - Evaulation is pushed to debugging stack.
          * - Parameter's are kept from GC.
-         * So, now interrupting is acceptable!
+         * Now interrupting is acceptable!
+         * Let's notify memory module that evaluation thread is in safe state!
+         * (I need to find more places to put this function!.
+         *   -> make SW stable! And then find more places!
+         *   [ex. Starting point of evaluation!])
          */
-        ylinteval_unlock();
-        ylinteval_lock();
+        ylmp_notify_safe_state(cxt);
 
-        ylmp_gc_if_needed();
         /* Pass responsibility about preserving return value to the caller! */
         ylmp_rm_bb1(r);
 
@@ -496,8 +493,8 @@ _appq(yle_t* m) {
  * apply [f; args] = eval [cons [f; appq [args]]; NIL]
  */
 yle_t*
-ylapply(yle_t* f, yle_t* args, yle_t* a) {
-    return yleval(ylcons(f, _appq(args)), a);
+ylapply(yletcxt_t* cxt, yle_t* f, yle_t* args, yle_t* a) {
+    return yleval(cxt, ylcons(f, _appq(args)), a);
 }
 
 /*=================================

@@ -84,7 +84,8 @@
  *===================================*/
 
 struct yle;
-
+struct _etcxt;
+typedef struct _etcxt yletcxt_t;
 /* -------------------------
  * Structures for atom data type
  * -------------------------*/
@@ -152,7 +153,7 @@ typedef struct {
 } ylatomif_t; /* atom inteface */
 
 /* nfunc : Native FUNCtion */
-typedef struct yle* (*ylnfunc_t)(struct yle*, struct yle*);
+typedef struct yle* (*ylnfunc_t)(yletcxt_t*, struct yle*, struct yle*);
 
 typedef struct yle {
     int               t; /**< type */
@@ -513,7 +514,7 @@ extern void ylinterpret_undefined(int reason);
 
 
 
-#define YLDECLNF(n) yle_t* YLNFN(n)(yle_t* e, yle_t* a)
+#define YLDECLNF(n) yle_t* YLNFN(n)(yletcxt_t* cxt, yle_t* e, yle_t* a)
 /*
  * Native Function EXPORT
  * @p: number of parameter that this function expected.
@@ -552,6 +553,14 @@ extern void ylinterpret_undefined(int reason);
 /* get system value */
 extern const ylsys_t*
 ylsysv();
+
+/*
+ * Get perthread dynamic buffer.
+ * We can use this without worry about memory leak of dynamic buffer!
+ */
+struct yldynb;
+struct yldynb*
+ylethread_buf(yletcxt_t* cxt);
 
 /* -------------------------------
  * Interface to (un)register native functions
@@ -619,13 +628,27 @@ ylmp_rm_bb(yle_t* e);
 extern void
 ylmp_clean_bb();
 
+/*
+ * Memory Sharing is most important part to handle in Multi-Threaded model.
+ * So, 'ylmp' module is in charge of this!
+ *
+ * To notify that evaluation thread is in GC safe state.
+ * Thread usually enter GC safe state at the end of evaluation.
+ * But in some cases, one-evaluation-cycle takes quite long time.
+ * (Usually, inside CNF)
+ * And, this thread can be bottle-neck to trigger GC.
+ * To avoid this, thread may notify "I'm safe to GC" manually!
+ * Interrupt evaluation (including GC) only can be triggerred at only this point.
+ * (Where 'ylmp_notify_safe_state' is called.)
+ */
 extern void
-ylmp_gc_if_needed();
+ylmp_notify_safe_state(yletcxt_t*);
 
 /* -------------------------------
  * Interface for multi-threaded evaluation
  * -------------------------------*/
 
+#if 0
 /*
  * Following 2 ylprocinfo_xxxx are for handling child process that ylisp waits for.
  */
@@ -639,19 +662,7 @@ ylprocinfo_add(long pid);
 
 extern void
 ylprocinfo_del(long pid);
-
-
-/*
- * !!! EXTREAMLY SENSITIVE !!!
- * Following is for lock/unlock evaluation.
- * If you are not sure what you are doing, DO NOT USE THIS!
- */
-extern void
-ylinteval_lock();
-
-extern void
-ylinteval_unlock();
-
+#endif
 
 /* -------------------------------
  * Interface to handle ylisp element.
@@ -667,13 +678,12 @@ extern int
 ylelist_size(const yle_t* e);
 
 /*
- * get print string.
- * returned memory SHOULD NOT be freed.
- * (This function uses static buffer, So please keep this in mind!)
- * -> Wrong usage : printf("%s / %s", yleprint(e1), yleprint(e2));
+ * Buffer of dynb should end with trailing 0!
  */
+struct yldynb;
 extern const char*
-ylechain_print(const yle_t* e);
+ylechain_print(struct yldynb* dynb, const yle_t* e);
+
 
 /*===================================
  *

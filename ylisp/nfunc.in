@@ -145,15 +145,3 @@ NFUNC(interpret_file,         "interpret-file",          ylaif_nfunc(),
     "    @file name [Symbol]: file path\n"
     "    *ex\n"
     "        (interpret-file 'ylbase.yl)\n")
-
-/**********************************************************
- * Functions for managing interpreter internals.
- **********************************************************/
-NFUNC(gc,                     "gc",                      ylaif_nfunc(),
-    "gc\n"
-    "    -Trigger Full-Scanning-GC manually!\n"
-    "     Summary is shown when done.\n"
-    "     NOTE!\n"
-    "         This is very sensitive and dangerous function!.\n"
-    "         This may corrupt current running interpreting.\n"
-    "         So, if you don't know what you are doing, DON'T DO THIS!\n")

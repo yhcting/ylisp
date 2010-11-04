@@ -25,12 +25,7 @@
 
 #include <string.h>
 #include "lisp.h"
-#include "ylisp.h"
-#include "mempool.h"
-#include "stack.h"
 
-/* single element string should be less than */
-#define _MAX_SINGLE_ELEM_STR_LEN    4096
 
 
 /* =====================================
@@ -54,22 +49,22 @@ typedef struct {
 
 typedef struct _fsas {
     const char*  name;  /* state name. usually used for debugging */
-    void         (*enter)        (const struct _fsas*, _fsa_t*);
-    void         (*come_back)    (const struct _fsas*, _fsa_t*);
+    void         (*enter)        (yletcxt_t*, const struct _fsas*, _fsa_t*);
+    void         (*come_back)    (yletcxt_t*, const struct _fsas*, _fsa_t*);
     /*
      * @_fsas_t**:  next state. NULL menas 'exit current state'
      * @return: TRUE if character is handled. Otherwise FALSE.
      */
-    int          (*next_char)    (const struct _fsas*, _fsa_t*, char, const struct _fsas**);
-    void         (*exit)         (const struct _fsas*, _fsa_t*);
+    int          (*next_char)    (yletcxt_t*, const struct _fsas*, _fsa_t*, char, const struct _fsas**);
+    void         (*exit)         (yletcxt_t*, const struct _fsas*, _fsa_t*);
 } _fsas_t; /* FSA State */
 
 
 #define _DECL_FSAS_FUNC(nAME)                                           \
-    static void _fsas_##nAME##_enter(const _fsas_t*, _fsa_t*);          \
-    static void _fsas_##nAME##_come_back(const _fsas_t*, _fsa_t*);      \
-    static int  _fsas_##nAME##_next_char(const _fsas_t*, _fsa_t*, char, const _fsas_t**); \
-    static void _fsas_##nAME##_exit(const _fsas_t*, _fsa_t*);
+    static void _fsas_##nAME##_enter(yletcxt_t*, const _fsas_t*, _fsa_t*); \
+    static void _fsas_##nAME##_come_back(yletcxt_t*, const _fsas_t*, _fsa_t*); \
+    static int  _fsas_##nAME##_next_char(yletcxt_t*, const _fsas_t*, _fsa_t*, char, const _fsas_t**); \
+    static void _fsas_##nAME##_exit(yletcxt_t*, const _fsas_t*, _fsa_t*);
 
 _DECL_FSAS_FUNC(init)
 _DECL_FSAS_FUNC(list)
@@ -225,12 +220,10 @@ _create_atom_sym(unsigned char* sym, unsigned int len) {
 }
 
 static inline void
-_eval_exp(yle_t* e) {
-    yle_t*  ev;
-
+_eval_exp(yletcxt_t* cxt, yle_t* e) {
     dbg_gen(yllogD1(">>>>> Eval exp:\n"
-                    "    %s\n", ylechain_print(e)););
-    ev = yleval(e, ylnil());
+                    "    %s\n", ylechain_print(ylperthread_buf(cxt), e)););
+    yleval(cxt, e, ylnil());
 }
 
 /* =====================================
@@ -239,7 +232,7 @@ _eval_exp(yle_t* e) {
 
 
 static void
-_fsas_init_enter(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_init_enter(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
     /*
      * Initialise sentinel.
      * At first, set invalid(NULL) car/cdr
@@ -252,11 +245,11 @@ _fsas_init_enter(const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static void
-_fsas_init_come_back(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_init_come_back(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
     /* check that there is expression to evaluate*/
     if(&fsa->sentinel != fsa->pe) {
         dbg_gen(yllogD1("\n\n\n------ Line : %d -------\n", *fsa->line););
-        _eval_exp(ylcadr(&fsa->sentinel));
+        _eval_exp(cxt, ylcadr(&fsa->sentinel));
     }
     /* unrefer to free dangling block */
     ylpassign(&fsa->sentinel, NULL, NULL);
@@ -266,7 +259,8 @@ _fsas_init_come_back(const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static int
-_fsas_init_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** nexts) {
+_fsas_init_next_char(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa,
+                     char c, const _fsas_t** nexts) {
     int  bhandled = TRUE;
     switch(c) {
         case '"':  *nexts = &_fsas_dquote;                       break;
@@ -287,7 +281,7 @@ _fsas_init_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** n
 }
 
 static void
-_fsas_init_exit(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_init_exit(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
     /*
      * we need to unref memory blocks that is indicated by sentinel
      * (Usually, both are nil.
@@ -298,7 +292,7 @@ _fsas_init_exit(const _fsas_t* fsas, _fsa_t* fsa) {
 /* ------------------------------------------ */
 
 static void
-_fsas_list_enter(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_list_enter(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
     yle_t*  pe = NULL;
     /* add new pair node for list */
     yle_t*  pair = ylcons(ylnil(), ylnil());
@@ -314,11 +308,11 @@ _fsas_list_enter(const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static void
-_fsas_list_come_back(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_list_come_back(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static int
-_fsas_list_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** nexts) {
+_fsas_list_next_char(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** nexts) {
     int  bhandled = TRUE;
     switch(c) {
         case '"':  *nexts = &_fsas_dquote;                        break;
@@ -337,7 +331,7 @@ _fsas_list_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** n
 }
 
 static void
-_fsas_list_exit(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_list_exit(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
     yle_t* pe = ylstk_pop(fsa->pestk);
     /* connect to real expression chain - exclude sentinel */
     ylpsetcar(pe, ylcdar(pe));
@@ -347,7 +341,7 @@ _fsas_list_exit(const _fsas_t* fsas, _fsa_t* fsa) {
 /* ------------------------------------------ */
 
 static void
-_fsas_squote_enter(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_squote_enter(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
     /* add quote and connect with it*/
     yle_t*   pair = ylcons(ylnil(), ylnil());
     yle_t*   pe;
@@ -360,11 +354,12 @@ _fsas_squote_enter(const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static void
-_fsas_squote_come_back(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_squote_come_back(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static int
-_fsas_squote_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** nexts) {
+_fsas_squote_next_char(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa,
+                       char c, const _fsas_t** nexts) {
     int  bhandled = TRUE;
     switch(c) {
         case '"':  *nexts = &_fsas_dquote;                        break;
@@ -384,7 +379,7 @@ _fsas_squote_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t**
 }
 
 static void
-_fsas_squote_exit(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_squote_exit(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
     /* in single quote case, sentinel isn't used. */
     fsa->pe = ylstk_pop(fsa->pestk);
 }
@@ -392,16 +387,17 @@ _fsas_squote_exit(const _fsas_t* fsas, _fsa_t* fsa) {
 /* ------------------------------------------ */
 
 static void
-_fsas_symbol_enter(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_symbol_enter(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
     fsa->pb = fsa->b; /* initialize buffer pointer */
 }
 
 static void
-_fsas_symbol_come_back(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_symbol_come_back(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static int
-_fsas_symbol_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** nexts) {
+_fsas_symbol_next_char(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa,
+                       char c, const _fsas_t** nexts) {
     int  bhandled = TRUE;
     switch(c) {
         case '"':  *nexts = &_fsas_exit;    bhandled = FALSE;  break;
@@ -421,7 +417,7 @@ _fsas_symbol_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t**
 }
 
 static void
-_fsas_symbol_exit(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_symbol_exit(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
     yle_t* pair = ylcons(ylnil(), ylnil());
     yle_t* se = _create_atom_sym(fsa->b, (unsigned int)(fsa->pb - fsa->b));
     ylpsetcar(pair, se);
@@ -434,16 +430,17 @@ _fsas_symbol_exit(const _fsas_t* fsas, _fsa_t* fsa) {
 /* ------------------------------------------ */
 
 static void
-_fsas_dquote_enter(const _fsas_t* fsas, _fsa_t* fsa) {
-    _fsas_symbol_enter(fsas, fsa);
+_fsas_dquote_enter(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
+    _fsas_symbol_enter(cxt, fsas, fsa);
 }
 
 static void
-_fsas_dquote_come_back(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_dquote_come_back(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static int
-_fsas_dquote_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** nexts) {
+_fsas_dquote_next_char(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa,
+                       char c, const _fsas_t** nexts) {
     int  bhandled = TRUE;
     switch(c) {
         case '"':  *nexts = &_fsas_exit;         break;
@@ -455,22 +452,23 @@ _fsas_dquote_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t**
 }
 
 static void
-_fsas_dquote_exit(const _fsas_t* fsas, _fsa_t* fsa) {
-    _fsas_symbol_exit(fsas, fsa);
+_fsas_dquote_exit(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
+    _fsas_symbol_exit(cxt, fsas, fsa);
 }
 
 /* ------------------------------------------ */
 
 static void
-_fsas_comment_enter(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_comment_enter(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static void
-_fsas_comment_come_back(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_comment_come_back(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static int
-_fsas_comment_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** nexts) {
+_fsas_comment_next_char(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa, char c,
+                        const _fsas_t** nexts) {
     int  bhandled = TRUE;
     switch(c) {
         case '\n': *nexts = &_fsas_exit;         break;
@@ -480,21 +478,22 @@ _fsas_comment_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t*
 }
 
 static void
-_fsas_comment_exit(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_comment_exit(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 /* ------------------------------------------ */
 
 static void
-_fsas_escape_enter(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_escape_enter(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static void
-_fsas_escape_come_back(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_escape_come_back(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 static int
-_fsas_escape_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t** nexts) {
+_fsas_escape_next_char(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa,
+                       char c, const _fsas_t** nexts) {
     int      bhandled = TRUE;
     char     ch = c;
 
@@ -514,46 +513,41 @@ _fsas_escape_next_char(const _fsas_t* fsas, _fsa_t* fsa, char c, const _fsas_t**
 }
 
 static void
-_fsas_escape_exit(const _fsas_t* fsas, _fsa_t* fsa) {
+_fsas_escape_exit(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
 }
 
 /* ------------------------------------------ */
-
 void*
 ylinterp_automata(void* arg) {
     /* Declar space to use */
-    static unsigned char elembuf[_MAX_SINGLE_ELEM_STR_LEN];
-
-    void*                 ret = (void*)YLOk;
+    ylerr_t               ret = YLOk;
     const unsigned char*  p;
     const _fsas_t        *st, *nst; /* current st, next st */
     _fsa_t                fsa;
+    yletcxt_t            *cxt; /* This Evaluation Thread Context */
 
-    /*
-     * NOTE! : We SHOULD NOT initialize sentinel here!
-     */
-    fsa.pb = fsa.b = elembuf;
-    fsa.bend = fsa.b + _MAX_SINGLE_ELEM_STR_LEN;
-    fsa.s = ((struct __interpthd_arg*)arg)->s;
-    fsa.send = fsa.s + ((struct __interpthd_arg*)arg)->sz;
-    fsa.line = ((struct __interpthd_arg*)arg)->line;
-    fsa.ststk = ((struct __interpthd_arg*)arg)->ststk;
-    fsa.pestk = ((struct __interpthd_arg*)arg)->pestk;
+    { /* Just scope */
+        struct __interpthd_arg* parg = (struct __interpthd_arg*)arg;
+        cxt = parg->cxt;
 
-    /*
-     * we need to lock here... we are about to start evaluation!
-     */
-    ylinteval_lock();
+        fsa.pb = fsa.b = parg->b;
+        fsa.bend = fsa.b + parg->bsz;
+        fsa.s = parg->s;
+        fsa.send = fsa.s + parg->sz;
+        fsa.line = parg->line;
+        fsa.ststk = parg->ststk;
+        fsa.pestk = parg->pestk;
+    }
 
     p = fsa.s;
 
     st = &_fsas_init;
     ylstk_push(fsa.ststk, (void*)st);
-    (*_fsas_init.enter)(&_fsas_init, &fsa);
+    (*_fsas_init.enter)(cxt, &_fsas_init, &fsa);
 
     while(*p) {
         /* yllogV(("+++ [%s] : '%c' => ", st->name, ('\n' == *p)? '@': *p)); */
-        if((*st->next_char)(st, &fsa, *p, &nst)) {
+        if((*st->next_char)(cxt, st, &fsa, *p, &nst)) {
             if('\n' == *p) { (*fsa.line)++; }
             p++;
         }
@@ -562,12 +556,12 @@ ylinterp_automata(void* arg) {
         if(&_fsas_nochg == nst) {
             ; /* nothing to do */
         } else if(&_fsas_exit == nst) {
-            (*st->exit)(st, &fsa);
+            (*st->exit)(cxt, st, &fsa);
             /* pop current state from stack */
             ylstk_pop(fsa.ststk);
             /* move to previous state */
             st = ylstk_peek(fsa.ststk);
-            (*st->come_back)(st, &fsa);
+            (*st->come_back)(cxt, st, &fsa);
             /* yllogV1(" => [%s]", st->name); */
         } else if(&_fsas_escape == nst) {
             /* special case */
@@ -579,14 +573,14 @@ ylinterp_automata(void* arg) {
                  *   So, we don't need to handle specially not only 'symbol' but also 'dquote' state.
                  */
                 ylstk_push(fsa.ststk, (void*)&_fsas_symbol);
-                (_fsas_symbol.enter)(&_fsas_symbol, &fsa);
+                (_fsas_symbol.enter)(cxt, &_fsas_symbol, &fsa);
             }
             ylstk_push(fsa.ststk, (void*)nst);
-            (*nst->enter)(nst, &fsa);
+            (*nst->enter)(cxt, nst, &fsa);
              st = nst;
         } else {
             ylstk_push(fsa.ststk, (void*)nst);
-            (*nst->enter)(nst, &fsa);
+            (*nst->enter)(cxt, nst, &fsa);
              st = nst;
         }
         /* yllogV0("\n"); */
@@ -599,22 +593,21 @@ ylinterp_automata(void* arg) {
 
     st = ylstk_pop(fsa.ststk);
     if(&_fsas_init == st) {
-        (*_fsas_init.exit)(&_fsas_init, &fsa);
+        (*_fsas_init.exit)(cxt, &_fsas_init, &fsa);
         if(0 == ylstk_size(fsa.pestk)) {
             goto done;
         } else {
             yllogE0("Syntax Error!!!!!!\n");
-            ret = (void*)YLErr_syntax_unknown;
+            ret = YLErr_syntax_unknown;
             goto done;
         }
     } else {
         yllogE0("Syntax Error!!!!!!\n");
-        ret = (void*)YLErr_syntax_unknown;
+        ret = YLErr_syntax_unknown;
         goto done;
     }
 
  done:
-    ylinteval_unlock();
-    return ret;
+    return (void*)ret;
 }
 

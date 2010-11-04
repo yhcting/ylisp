@@ -53,9 +53,7 @@
  */
 #include <memory.h>
 #include <string.h>
-#include "config.h"
-#include "yltrie.h"
-#include "yldev.h"
+#include "lisp.h"
 
 #define _MAX_KEY_LEN  1024
 
@@ -92,7 +90,7 @@ _alloc_node() {
 static inline void
 _free_node(_node_t* n, void(*fcb)(void*) ) {
     if(n->v) {
-        if(fcb) { fcb(n->v); }
+        if(fcb) { (*fcb)(n->v); }
     }
     ylfree(n);
 }
@@ -175,7 +173,7 @@ _delete_key(_node_t* n, const unsigned char* p,
          * If not, symbol name is not valid one!
          */
         if(n->v) {
-            if(fcb) { fcb(n->v); }
+            if(fcb) { (*fcb)(n->v); }
             n->v = NULL;
             return 1;
         } else {
@@ -279,7 +277,7 @@ _walk_internal(void* user, _node_t* n,
         ylassert(0 == bitoffset%8);
         /* if(buf) { buf[bitoffset>>3] = 0 ; } */
         /* keep going? */
-        if(!cb(user, buf, bitoffset/8, n->v)) { return 0; }
+        if(!(*cb)(user, buf, bitoffset/8, n->v)) { return 0; }
     }
 
     for(i=0; i<16; i++) {
@@ -343,7 +341,7 @@ yltrie_insert(_trie_t* t, const unsigned char* key, unsigned int sz, void* v) {
 
     n = _get_node(t, key, sz, TRUE);
     if(n->v) {
-        if(t->fcb) { t->fcb(n->v); }
+        if(t->fcb) { (*t->fcb)(n->v); }
         n->v = v;
         return 1; /* overwritten */
     } else {

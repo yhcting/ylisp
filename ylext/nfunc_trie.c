@@ -31,7 +31,7 @@
 
 #include "ylsfunc.h"
 #include "yltrie.h"
-#include "ylut.h"
+#include "yldynb.h"
 
 static int
 _trie_value_cmp(const yle_t* e0, const yle_t* e1) {
@@ -87,14 +87,14 @@ _aif_trie_to_string(const yle_t* e, char* b, unsigned int sz) {
     yltrie_t* t = (yltrie_t*)ylacd(e);
     int       bw = 0;
 
-    if(0 > ylutstr_init(&dyb, 1024)) { ylassert(0); }
-    ylutstr_append(&dyb, "[");
+    if(0 > yldynbstr_init(&dyb, 1024)) { ylassert(0); }
+    yldynbstr_append(&dyb, "[");
     yltrie_walk(t, &dyb, (unsigned char*)"", 0, &_cb_trie_print_walk);
-    ylutstr_append(&dyb, "]");
+    yldynbstr_append(&dyb, "]");
 
-    bw = ylutstr_len(&dyb);
+    bw = yldynbstr_len(&dyb);
     if(sz < bw) { bw = -1; }
-    else { memcpy(b, ylutstr_string(&dyb), bw); }
+    else { memcpy(b, yldynbstr_string(&dyb), bw); }
     yldynb_clean(&dyb);
 
     return bw;
@@ -113,7 +113,7 @@ static int
 _aif_trie_visit_cb(void* user, const unsigned char* key,
                    unsigned int sz, void* v) {
     struct _trie_walk_user* u = (struct _trie_walk_user*)user;
-    u->cb(u->user, (yle_t*)v);
+    (*u->cb)(u->user, (yle_t*)v);
     return 1; /* keep going */
 }
 
@@ -181,7 +181,7 @@ YLDEFNF(make_trie, 0, 1) {
         yle_t*  v;
         w = ylcar(e);
         ylelist_foreach(w) {
-            v = yleval(ylcadar(w), a);
+            v = yleval(cxt, ylcadar(w), a);
             if(1 == yltrie_insert(t, (unsigned char*)ylasym(ylcaar(w)).sym,
                                   (unsigned int)strlen(ylasym(ylcaar(w)).sym), v) ) {
                 ylnflogW1("Trie duplicated intial value : %s\n", ylasym(ylcaar(w)).sym);

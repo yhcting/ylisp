@@ -90,7 +90,7 @@ ylmset(yle_t* x, yle_t* y, yle_t* a, const char* desc);
  *
  */
 extern yle_t*
-yleval(yle_t* e, yle_t* a);
+yleval(yletcxt_t* cxt, yle_t* e, yle_t* a);
 
 /*=================================
  * Elementary S-functions - START
@@ -304,14 +304,14 @@ ylsublis(yle_t* x, yle_t* y) {
  * GC Protection required to caller.
  */
 static inline yle_t*
-ylevlis(yle_t* m, yle_t* a) {
+ylevlis(yletcxt_t* cxt, yle_t* m, yle_t* a) {
     if(yleis_nil(m)) { return ylnil(); }
     else {
         yle_t* r; /* return value */
-        yle_t* p = yleval(ylcar(m), a);
+        yle_t* p = yleval(cxt, ylcar(m), a);
         /* p should be preserved from GC */
         ylmp_add_bb1(p);
-        r = ylcons(p, ylevlis(ylcdr(m), a));
+        r = ylcons(p, ylevlis(cxt, ylcdr(m), a));
         /* Now p is not base block anymore */
         ylmp_rm_bb1(p);
         return r;

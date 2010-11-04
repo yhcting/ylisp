@@ -33,7 +33,7 @@
 
 #define _LOGLV  YLLogW
 
-static int _mblk = 0;
+static unsigned int _mblk = 0;
 
 static const char* _exp =
     "(interpret-file '../yls/base.yl)\n"
@@ -49,7 +49,7 @@ _malloc(unsigned int size) {
 
 void
 _free(void* p) {
-    assert(_mblk >= 0);
+    assert(_mblk > 0);
     _mblk--;
     free(p);
 }
@@ -122,7 +122,7 @@ main(int argc, char* argv[]) {
 
 
 void
-ylcnf_onload() {
+ylcnf_onload(yletcxt_t* cxt) {
 
     /* return if fail to register */
 #define NFUNC(n, s, type, desc) \
@@ -133,7 +133,7 @@ ylcnf_onload() {
 }
 
 void
-ylcnf_onunload() {
+ylcnf_onunload(yletcxt_t* cxt) {
 
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc.in"

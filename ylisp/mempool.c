@@ -19,15 +19,23 @@
  *****************************************************************************/
 
 
-
-#include "mempool.h"
-#include "stack.h"
-#include "gsym.h"
+#include "lisp.h"
 
 typedef struct {
     unsigned int i;     /**< index of free block pointer */
     yle_t        e;
 } _blk_t;
+
+typedef struct {
+    yllist_link_t   lk;
+    yletcxt_t*      cxt;
+    int             mark;
+} _cxt_t;
+
+#define _MKSAFE          0x01 /* mark ethread context is in safe state */
+#define _mkset(c, m)     do { (c)->mark |=  m; } while(0)
+#define _mkclear(c, m)   do { (c)->mark &= ~m; } while(0)
+#define _mkisset(c, m)   ((c)->mark & m)
 
 /*
  * memory pool
@@ -61,13 +69,23 @@ static struct {
     int        fbi;     /**< Free Block Index - grow to bottom */
 } _m; /**< s-Expression PooL */
 
+
 /*
  * Stack is enough!
  * Usually, "ylmp_rm_bb" is very close with "ylmp_add_bb".
  * So, searching backward can be very efficient!
  * And there are not many blocks to adjust array (because it's very close to top!)
  */
-ylstk_t* _bbs;       /**< Base-Block-Stack */
+static ylstk_t*         _bbs;   /**< Base-Block-Stack */
+static yllist_link_t    _cxtl;  /**< thread context list */   
+static int              _gctrigger = 0; /* flag - used to trigger GC manually */
+
+
+/* condition - used at GC */
+pthread_cond_t          _condgc = PTHREAD_COND_INITIALIZER;
+
+static pthread_mutex_t  _mbbs;
+static pthread_mutex_t  _mm;
 
 static inline int
 _used_block_count() { return ylmpsz() - _m.fbi; }
@@ -80,7 +98,9 @@ _usage_ratio() { return _used_block_count() * 100 / ylmpsz(); }
 
 yle_t*
 ylmp_block() {
+    _mlock(&_mm);
     if(_m.fbi <= 0) {
+        _munlock(&_mm);
         yllogE1("Not enough Memory Pool.. Current size is %d\n", ylmpsz());
         ylassert(0);
         return NULL; /* to make compiler happy */
@@ -89,6 +109,8 @@ ylmp_block() {
         --_m.fbi;
         /* it's taken out from pool! */
         e = _m.fbp[_m.fbi];
+        _munlock(&_mm);
+
         dbg_mem(e->evid = yleval_id(););
         /*
          * initialize block (make car and cdr be NULL)
@@ -102,7 +124,9 @@ ylmp_block() {
 
 void
 ylmp_add_bb(yle_t* e) {
+    _mlock(&_mbbs);
     ylstk_push(_bbs, e);
+    _munlock(&_mbbs);
 }
 
 /*
@@ -110,16 +134,20 @@ ylmp_add_bb(yle_t* e) {
  */
 void
 ylmp_rm_bb(yle_t* e) {
-    register int i = ylstk_size(_bbs)-1; /* top */
+    register int i;
+    _mlock(&_mbbs);
+    i = ylstk_size(_bbs)-1; /* top */
     for(;i>=0; i--) {
         if(_bbs->item[i] == (void*)e) {
             /* we found! */
             memmove(&_bbs->item[i], &_bbs->item[i+1],
                     sizeof(_bbs->item[i])*(ylstk_size(_bbs)-i-1));
             _bbs->sz--;
+            _munlock(&_mbbs);
             return; /* done! */
         }
     }
+    _munlock(&_mbbs);
     if(i<0) {
         yllogW1("WARN!! Try to remove unregistered base block! : %p\n", e);
     }
@@ -127,12 +155,42 @@ ylmp_rm_bb(yle_t* e) {
 
 void
 ylmp_clean_bb() {
+    _mlock(&_mbbs);
     ylstk_clean(_bbs);
+    _munlock(&_mbbs);
 }
 
 /* =========================
  * GC !!! (START)
  * =========================*/
+static inline void
+_cxtmark_set(yletcxt_t* cxt, int mark) {
+    _cxt_t*  ct;
+    yllist_foreach_item(ct, &_cxtl, _cxt_t, lk) {
+        if(ct->cxt == cxt) {
+            _mkset(ct, mark);
+            return;
+        }
+    }
+    yllogW1("WARN! Try to set mark to unlisted context! : %p\n", cxt);
+}
+
+static inline void
+_cxtmark_clear_all(int mark) {
+    _cxt_t*  ct;
+    yllist_foreach_item(ct, &_cxtl, _cxt_t, lk) {
+        _mkclear(ct, mark);
+    }
+}
+
+static int
+_cxtmark_is_all_marked(int mark) {
+    _cxt_t*  ct;
+    yllist_foreach_item(ct, &_cxtl, _cxt_t, lk) {
+        if(!_mkisset(ct, mark)) { return 0; }
+    }
+    return 1;
+}
 
 static void
 _clean_block(yle_t* e) {
@@ -169,10 +227,12 @@ _gc() {
         yleclear_gcmark(_m.fbp[i]);
     }
 
+    _mlock(&_mbbs);
     /* we should keep memory blocks reachable from base blocks */
     stack_foreach(_bbs, e, i) {
         _gcmark(NULL, e);
     }
+    _munlock(&_mbbs);
 
     /* memory blocks reachable from global symbol should be preserved */
     ylgsym_gcmark();
@@ -193,21 +253,86 @@ _gc() {
             cnt, ylstk_size(_bbs));
 }
 
-void
-ylmp_gc_if_needed() {
-    if(_usage_ratio() >= ylgctp()) {
-        _gc();
+static inline void
+_trigger_gc() {
+    _gc();
+    _gctrigger = 0;
+    _cxtmark_clear_all(_MKSAFE);
+    dbg_mutex(yllogI0("+CondBroadcast : GC done\n"););
+    pthread_cond_broadcast(&_condgc);
+}
+
+static inline void
+_try_gc(yletcxt_t* cxt) {
+    _gctrigger = 1;
+    _cxtmark_set(cxt, _MKSAFE);
+    /* check all ethreads are in safe state? */
+    if(_cxtmark_is_all_marked(_MKSAFE)) {
+        _trigger_gc();
+    } else {
+        dbg_mutex(yllogI0("+CondWait : TryGC ..."););
+        if(pthread_cond_wait(&_condgc, &_mm)) { ylassert(0); }
+        dbg_mutex(yllogI0("OK\n"););
     }
+}
+
+void
+ylmp_thread_context_add(yletcxt_t* cxt) {
+    _cxt_t* ct = ylmalloc(sizeof(_cxt_t));
+    ct->cxt = cxt;
+    ct->mark = 0;
+    /*
+     * While GC new thread may start.
+     * (We need to avoid this! - '_mm' is additionally used.)
+     */
+    _mlock(&_mm);
+    yllist_add_last(&_cxtl, &ct->lk);
+    _munlock(&_mm);
+}
+
+void
+ylmp_thread_context_rm(yletcxt_t* cxt) {
+    _cxt_t* ct;
+    /* add/rm should be done in the same thread! */
+    ylassert(pthread_self() == cxt->id);
+    _mlock(&_mm);
+    yllist_foreach_item(ct, &_cxtl, _cxt_t, lk) {
+        if(ct->cxt == cxt) {
+            yllist_del(&ct->lk);
+            ylfree(ct);
+            /*
+             * - GC is triggered, but there are threads those are not in safe state.
+             *   So, triggering thread waits.
+             * - But, some of remaining threads already finish evaluation.
+             *   So, exit without evaluation.
+             * => In this case previous-waiting-threads are stucked!
+             *   (To prevent this, we need to check gc here one more time.)
+             *
+             * [ GC is required? ] && [ all ethreads are in safe state? ]
+             */
+            if(_gctrigger && _cxtmark_is_all_marked(_MKSAFE)) {
+                _trigger_gc();
+            }
+            goto done;
+        }
+    }
+    yllogW1("Try to remove unlisted thread context : %p\n", cxt);
+ done:
+    _munlock(&_mm);
+}
+
+void
+ylmp_notify_safe_state(yletcxt_t* cxt) {
+    _mlock(&_mm);
+    if(_gctrigger || _usage_ratio() >= ylgctp()) {
+        _try_gc(cxt);
+    }
+    _munlock(&_mm);
 }
 
 /* =========================
  * GC !!! (END)
  * =========================*/
-void
-ylmp_gc() {
-    _gc();
-}
-
 
 ylerr_t
 ylmp_init() {
@@ -217,6 +342,11 @@ ylmp_init() {
     /* initialise pointers requiring mem. alloc. */
     _m.pool = NULL; _m.fbp = NULL;
     _bbs = NULL;
+
+    pthread_mutex_init(&_mm, ylmutexattr());
+    pthread_mutex_init(&_mbbs, ylmutexattr());
+
+    yllist_init_link(&_cxtl);
 
     /* allocated memory pool */
     _m.pool = ylmalloc(sizeof(_blk_t) * ylmpsz());
@@ -244,11 +374,21 @@ ylmp_init() {
 
 void
 ylmp_deinit() {
-    /* force gc for deinit */
-    ylmp_clean_bb();
-    _gc();
+    int    i;
+    _mlock(&_mm);
+    /* Free all elements */
+    for(i=_m.fbi; i<ylmpsz(); i++) {
+        yleclean(_m.fbp[i]);
+    }
+
     if(_bbs)    { ylstk_destroy(_bbs); }
     if(_m.pool) { ylfree(_m.pool); }
     if(_m.fbp)  { ylfree(_m.fbp); }
+
+    ylassert(0 == yllist_size(&_cxtl));
+
+    pthread_mutex_destroy(&_mbbs);
+    _munlock(&_mm);
+    pthread_mutex_destroy(&_mm);
 }
 

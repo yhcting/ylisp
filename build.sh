@@ -48,6 +48,7 @@ make release
 check_exit_status
 
 cd ../test
+echo --- build test
 make clean
 make
 

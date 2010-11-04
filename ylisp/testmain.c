@@ -25,14 +25,22 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <malloc.h>
+#include <memory.h>
 #include <string.h>
 
-#include "config.h"
-#include "ylut.h"
+#include "lisp.h"
 
 #include <assert.h>
 
 #define _LOGLV  YLLogW
+
+#ifdef CONFIG_DBG_MEM
+#define _MAX_BLKS    128*1024
+static struct {
+    void*    caller;
+    void*    addr;
+} _mdbg[_MAX_BLKS];
+#endif /* CONFIG_DBG_MEM */
 
 static int _mblk = 0;
 
@@ -48,15 +56,35 @@ static const char* _exp =
     */
     ;
 
-
 static void*
 _malloc(unsigned int size) {
+    void* addr = malloc(size);
+#ifdef CONFIG_DBG_MEM
+    do {
+        register void* ra; /* return address */
+        asm ("movl 4(%%ebp), %0;"
+             :"=r"(ra));
+        _mdbg[_mblk].caller = ra;
+        _mdbg[_mblk].addr = addr;
+    } while(0);
+#endif/* CONFIG_DBG_MEM */
     _mblk++;
-    return malloc(size);
+    return addr;
 }
 
 static void
 _free(void* p) {
+#ifdef CONFIG_DBG_MEM
+    do {
+        register int i;
+        for(i=0; i<_mblk; i++) {
+            if(_mdbg[i].addr == p) {
+                memmove(&_mdbg[i], &_mdbg[i+1], (_mblk-i-1)*sizeof(_mdbg[i]));
+                break;
+            }
+        }
+    } while(0);
+#endif /* CONFIG_DBG_MEM */
     _mblk--;
     free(p);
 }
@@ -84,8 +112,6 @@ _assert(int a) {
 }
 
 
-extern void ylmp_gc();
-
 int
 main(int argc, char* argv[]) {
     ylsys_t          sys;
@@ -109,7 +135,18 @@ main(int argc, char* argv[]) {
     yldeinit();
     printf("MBLK : %d\n", get_mblk_size());
 
+#ifdef CONFIG_DBG_MEM
+    if(get_mblk_size()) {
+        register int i;
+        printf("======= Leak!! Callers ========\n");
+        for(i=0; i<get_mblk_size(); i++) {
+            printf("%p\n", _mdbg[i].caller);
+        }
+        assert(0); /* fail! memleak at somewhere! */
+    }
+#else /* CONFIG_DBG_MEM */
     assert(0 == get_mblk_size());
+#endif /* CONFIG_DBG_MEM */
 
     printf("End of Test\n");
     return 0;

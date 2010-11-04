@@ -33,7 +33,7 @@
 
 #define _LOGLV  YLLogV
 
-static int _mblk = 0;
+static unsigned int _mblk = 0;
 
 static const char* _exp =
     "(load-cnf '../lib/libylbase.so)\n"
@@ -50,6 +50,7 @@ _malloc(unsigned int size) {
 
 void
 _free(void* p) {
+    ylassert(_mblk > 0);
     _mblk--;
     free(p);
 }
@@ -78,8 +79,6 @@ _assert(int a) {
 #   include "nfunc.in"
 #undef NFUNC
 
-/* to check memory status of this library */
-extern void ylmp_gc();
 
 int
 main(int argc, char* argv[]) {
@@ -136,7 +135,7 @@ static void*  _libmhandle;
 static void*  _pcrelib;
 
 void
-ylcnf_onload() {
+ylcnf_onload(yletcxt_t* cxt) {
 
     /* load math library */
     _libmhandle = dlopen("/usr/lib/libm.so", RTLD_NOW | RTLD_GLOBAL);
@@ -156,7 +155,7 @@ ylcnf_onload() {
         libpath = ylacreate_sym(sym);
 
         if(ylis_set(sym)) {
-            libpath = yleval(libpath, ylnil());
+            libpath = yleval(cxt, libpath, ylnil());
             if(!yleis_nil(libpath) && ylais_type(libpath, ylaif_sym()) ) {
                 /* if there is pcre, let's use it! */
                 _pcrelib = dlopen(ylasym(libpath).sym, RTLD_NOW | RTLD_GLOBAL);
@@ -186,7 +185,7 @@ ylcnf_onload() {
 }
 
 void
-ylcnf_onunload() {
+ylcnf_onunload(yletcxt_t* cxt) {
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc.in"
 #undef NFUNC

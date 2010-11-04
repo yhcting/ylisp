@@ -31,7 +31,7 @@
 #include "yldev.h"
 
 /* DYNmaic Buffer */
-typedef struct {
+typedef struct yldynb {
     unsigned int    limit;
     unsigned int    sz;
     unsigned char*  b;
@@ -147,5 +147,54 @@ yldynb_append(yldynb_t* b, const unsigned char* d, unsigned int dsz) {
     b->sz += dsz;
     return 0;
 }
+
+
+
+/*================================
+ *
+ * Handling C String (Use dynamic buffer)
+ *
+ *================================*/
+/*
+ * @return: <0 means, "this is not string buffer!"
+ */
+static inline unsigned int
+yldynbstr_len(const yldynb_t* b) {
+    return b->sz - 1; /* '-1' to exclude trailing 0 */
+}
+
+static inline unsigned char*
+yldynbstr_ptr(const yldynb_t* b) {
+    return b->b + yldynbstr_len(b);
+}
+
+static inline unsigned char*
+yldynbstr_string(const yldynb_t* b) {
+    return b->b;
+}
+
+static inline void
+yldynbstr_reset(yldynb_t* b) {
+    *b->b = 0; /* add trailing 0 */
+    b->sz = 1;
+}
+
+static inline int
+yldynbstr_init(yldynb_t* b, unsigned int init_limit) {
+    if(0 <= yldynb_init(b, init_limit+1)) {
+        yldynbstr_reset(b);
+        return 0;
+    }
+    return -1;
+}
+
+/*
+ * @return:
+ *    number of bytes appended.
+ *    '0' means nothing appended. may be error?
+ */
+extern int
+yldynbstr_append(yldynb_t* b, const char* format, ...);
+
 
 #endif /* ___YLDYNb_h___ */

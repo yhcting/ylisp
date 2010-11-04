@@ -116,7 +116,7 @@ _aif_arr_visit(yle_t* e, void* user, int(*cb)(void*, yle_t*)) {
     if(at) {
         int    i;
         for(i=0; i<at->sz; i++) {
-            if(at->arr[i]) { cb(user, at->arr[i]); }
+            if(at->arr[i]) { (*cb)(user, at->arr[i]); }
         }
     }
     return 0;

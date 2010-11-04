@@ -29,55 +29,6 @@
 #ifndef ___YLUt_h___
 #define ___YLUt_h___
 
-#include "yldynb.h"
-
-
-/*================================
- *
- * Handling C String (Use dynamic buffer)
- *
- *================================*/
-/*
- * @return: <0 means, "this is not string buffer!"
- */
-static inline unsigned int
-ylutstr_len(const yldynb_t* b) {
-    return b->sz - 1; /* '-1' to exclude trailing 0 */
-}
-
-static inline unsigned char*
-ylutstr_ptr(const yldynb_t* b) {
-    return b->b + ylutstr_len(b);
-}
-
-static inline unsigned char*
-ylutstr_string(const yldynb_t* b) {
-    return b->b;
-}
-
-static inline void
-ylutstr_reset(yldynb_t* b) {
-    *b->b = 0; /* add trailing 0 */
-    b->sz = 1;
-}
-
-static inline int
-ylutstr_init(yldynb_t* b, unsigned int init_limit) {
-    if(0 <= yldynb_init(b, init_limit+1)) {
-        ylutstr_reset(b);
-        return 0;
-    }
-    return -1;
-}
-
-/*
- * @return:
- *    number of bytes appended.
- *    '0' means nothing appended. may be error?
- */
-extern int
-ylutstr_append(yldynb_t* b, const char* format, ...);
-
 /*================================
  *
  * Misc. utilities

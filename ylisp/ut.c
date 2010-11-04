@@ -73,14 +73,14 @@ ylutfile_read(unsigned int* outsz, const char* fpath, int btext) {
 
 
 int
-ylutstr_append(yldynb_t* b, const char* format, ...) {
+yldynbstr_append(yldynb_t* b, const char* format, ...) {
     va_list       args;
     int           cw = 0, cwsv; /* charactera written */
 
     va_start (args, format);
     do {
         cwsv = cw;
-        cw = vsnprintf ((char*)ylutstr_ptr(b), yldynb_freesz(b), format, args);
+        cw = vsnprintf ((char*)yldynbstr_ptr(b), yldynb_freesz(b), format, args);
         ylassert(cw >= 0);
         if( cw >= yldynb_freesz(b) ) {
             if( 0 > yldynb_expand(b) ) {

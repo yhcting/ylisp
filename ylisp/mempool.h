@@ -31,11 +31,11 @@ ylmp_init();
 extern void
 ylmp_deinit();
 
-/*
- * Hey! This is EXTREAMLY SENSITIVE and DANGEROUS FUNCTION!
- */
 extern void
-ylmp_gc();
+ylmp_thread_context_add(yletcxt_t* cxt);
+
+extern void
+ylmp_thread_context_rm(yletcxt_t* cxt);
 
 /*
  * Clean memory block.

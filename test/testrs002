@@ -199,25 +199,25 @@ FAIL
 =================================================
 
 FAIL
-(unset a)
-(case a
+(unset rs002a)
+(case rs002a
     (b 't))
 
 =================================================
 
 FAIL
-(unset a)
-(unset b)
-(case a
-    ((b) 't))
+(unset rs002a)
+(unset rs002b)
+(case rs002a
+    ((rs002b) 't))
 
 =================================================
 
 FAIL
-(unset a)
-(set 'b 1)
-(case a
-    (((b)) 't))
+(unset rs002a)
+(set 'rs002b 1)
+(case rs002a
+    (((rs002b)) 't))
 
 =================================================
 
@@ -228,10 +228,10 @@ FAIL
 =================================================
 
 FAIL
-(set 'a 1)
-(set 'b 1)
-(case a
-    (b ()))
+(set 'rs002a 1)
+(set 'rs002b 1)
+(case rs002a
+    (rs002b ()))
 
 =================================================
 
@@ -348,26 +348,26 @@ FAIL
 
 ; invalid index
 FAIL
-(set '--a (make-array 10))
-(arr* --a 12)
+(set 'rs002--a (make-array 10))
+(arr* rs002--a 12)
 
 =================================================
 
 ; invalid index
 FAIL
-(set '--a (make-array 10))
-(arr* --a -1)
+(set 'rs002--a (make-array 10))
+(arr* rs002--a -1)
 
 =================================================
 
 ; invalid index
 FAIL
-(set '--a (make-array 10))
-(arr+ --a 1 12)
+(set 'rs002--a (make-array 10))
+(arr+ rs002--a 1 12)
 
 =================================================
 
 ; invalid index
 FAIL
-(set '--a (make-array 10))
-(arr+ --a 1 -1)
+(set 'rs002--a (make-array 10))
+(arr+ rs002--a 1 -1)

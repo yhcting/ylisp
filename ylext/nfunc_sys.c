@@ -128,16 +128,16 @@ YLDEFNF(sh, 1, 1) {
         }
 
         if(cpid) { /* parent */
-            ylprocinfo_add(cpid);
+            /*ylprocinfo_add(cpid);*/
             if(-1 == waitpid(cpid, NULL, 0)) {
                 /* my turn again! lock! */
                 ylassert(0);
                 ylnflogE0("Fail to wait child process!\n");
                 kill(cpid, SIGKILL);
-                ylprocinfo_del(cpid);
+                /*ylprocinfo_del(cpid);*/
                 goto bail;
             }
-            ylprocinfo_del(cpid);
+            /*ylprocinfo_del(cpid);*/
 
         } else { /* child */
             /*

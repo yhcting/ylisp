@@ -8,12 +8,15 @@
 #include <memory.h>
 #include <malloc.h>
 #include <stdarg.h>
+#include <time.h>
+#include <pthread.h>
 
 #define CONFIG_LOG
 #define CONFIG_ASSERT
 
 #include "ylisp.h"
 #include "yllist.h"
+#include "yldynb.h"
 #include "ylut.h"
 
 /*
@@ -24,16 +27,38 @@
 #define _LOGLV YLLogW
 
 #define _NR_MAX_COLUMN 4096
+#define _MAX_SLEEP_MS  20   /* max sleep in miliseconds */
 
 typedef struct {
     yllist_link_t    lk;
     char*            f;
 } _rsn_t; /* script file node */
 
+typedef struct {
+    unsigned char*   b;
+    unsigned int     sz;
+    int              section;
+    char*            fname;
+    int              bok;
+} _interpthd_arg_t;
+
+/*
+ * HACK!
+ * Init section (loading cnfs to test..etc)
+ * of MT skipped is MT TEST.
+ *
+ * Init section load library again and register native functions again.
+ * This has same effect with changing global symbols..
+ * (This should be syncronized....)
+ * So, temporarily, this HACK is used..
+ */
+static int _binit_section = 0;
+
 /* =================================
  * To parse script
  * ================================= */
-#define _RSPREF "testrs"
+#define _TESTRS "testrs" /* test script for single thread */
+
 
 static inline void
 _append_rsn(yllist_link_t* hd, char* fname) {
@@ -116,14 +141,14 @@ _fcmp(const void* e0, const void* e1) {
 static int
 _read_section(FILE* f, int* bOK, yldynb_t* b) {
 #define _ST_RET  0 /* state : get return */
-#define _ST_EXP  1 /* state : get exp */
+#define _ST_EXP  2 /* state : get exp */
 
     char    ln[_NR_MAX_COLUMN];
     char*   tln; /* 'trim'ed line */
     int     state = _ST_RET;
     while(1) {
         if(!fgets(ln, _NR_MAX_COLUMN, f)) {
-            if(ylutstr_len(b) > 0) { return 1; }
+            if(yldynbstr_len(b) > 0) { return 1; }
             else { return 0; }
         }
         tln = _trim(ln);
@@ -139,7 +164,7 @@ _read_section(FILE* f, int* bOK, yldynb_t* b) {
             /* printf("+++ bOK : %d\n", *bOK); */
         } else {
             if(_is_separator(tln)) { free(tln); break; }
-            ylutstr_append(b, "%s", ln);
+            yldynbstr_append(b, "%s", ln);
         }
         free(tln);
     }
@@ -152,7 +177,7 @@ _read_section(FILE* f, int* bOK, yldynb_t* b) {
 
 /* return script file name array (sorted) */
 static char**
-_testrs_files(unsigned int* nr/*out*/) {
+_testrs_files(unsigned int* nr/*out*/, const char* rsname) {
     yllist_link_t     hd;
     _rsn_t           *pos, *n;
     DIR*              dip = NULL;
@@ -167,8 +192,8 @@ _testrs_files(unsigned int* nr/*out*/) {
     /* '!!' to make compiler be happy. */
     while(!!(dit = readdir(dip))) {
         if(DT_REG == dit->d_type &&
-           0 == memcmp(dit->d_name, _RSPREF, sizeof(_RSPREF)-1)) {
-            p = dit->d_name + sizeof(_RSPREF) - 1;
+           0 == memcmp(dit->d_name, rsname, strlen(rsname))) {
+            p = dit->d_name + strlen(rsname);
             while(*p && _is_digit(*p)) { p++; }
             if(!*p) {
                 /* OK! This is script name */
@@ -194,50 +219,94 @@ _testrs_files(unsigned int* nr/*out*/) {
     return r;
 }
 
+static void*
+_interp_thread(void* arg) {
+    int                ret;
+    _interpthd_arg_t*  ia = (_interpthd_arg_t*)arg;
+    useconds_t usec;
+
+    /*
+     * To test MT interpreting at random timing
+     */
+    usec = (rand() % _MAX_SLEEP_MS) * 1000;
+    usleep(usec);
+
+    /* printf("** Interpret[%d] **\n%s\n", bOK, yldynbstr_string(&dyb)); */
+    ret = ylinterpret(ia->b, ia->sz);
+
+    if( !((ia->bok && YLOk == ret)
+          || (!ia->bok && YLOk != ret)) ) {
+        printf("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n"
+               "****        TEST FAILS             *****\n"
+               "* File : %s\n"
+               "* %d-th Section\n"
+               "* Exp\n"
+               "%s\n", ia->fname, ia->section, ia->b);
+        exit(0);
+    }
+    free(ia->b);
+    free(ia->fname);
+    free(ia);
+    return NULL;
+ }
+
 static void
-_start_test_script(const char* fname, FILE* fh) {
+_start_test_script(const char* fname, FILE* fh, int bmt) {
     int        bOK;
-    int        interp_ret;
     yldynb_t   dyb;
+    pthread_t  thd;
     int        seccnt = 0; /* section count */
+    _interpthd_arg_t*  targ;
+    void*      ret;
 
     printf("\n\n"
            "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n"
            "    Runing Test Script : %s\n"
            "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
            "\n\n\n", fname);
-    ylutstr_init(&dyb, _NR_MAX_COLUMN*8);
+    yldynbstr_init(&dyb, _NR_MAX_COLUMN*8);
     while(_read_section(fh, &bOK, &dyb)) {
         seccnt++;
-        /* printf("** Interpret[%d] **\n%s\n", bOK, ylutstr_string(&dyb)); */
-        interp_ret = ylinterpret(ylutstr_string(&dyb), ylutstr_len(&dyb));
-        if( !((bOK && YLOk == interp_ret)
-              || (!bOK && YLOk != interp_ret)) ) {
-            printf("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n"
-                   "****        TEST FAILS             *****\n"
-                   "* File : %s\n"
-                   "* %d-th Section\n"
-                   "* Exp\n"
-                   "%s\n", fname, seccnt, ylutstr_string(&dyb));
-            exit(0);
+
+        /* This is temporary HACK! */
+        if(_binit_section) {
+            _binit_section = 0;
+            goto next_section;
         }
-        ylutstr_reset(&dyb);
+
+        targ = malloc(sizeof(_interpthd_arg_t));
+        targ->b = malloc(yldynb_sz(&dyb));
+        targ->sz = yldynb_sz(&dyb);
+        memcpy(targ->b, yldynb_buf(&dyb), yldynb_sz(&dyb));
+        targ->section = seccnt;
+        targ->bok = bOK;
+        targ->fname = malloc(strlen(fname)+1);
+        strcpy(targ->fname, fname);
+
+        pthread_create(&thd, NULL, &_interp_thread, targ);
+
+        if(!bmt) {
+            pthread_join(thd, &ret);
+        }
+
+    next_section:
+        yldynbstr_reset(&dyb);
     }
     yldynb_clean(&dyb);
 }
 
 
 static void
-_start_test() {
+_start_test(const char* rsname, int bmt) {
     char**       pf;
     unsigned int nr;
     int          i;
     FILE*        fh;
-    pf = _testrs_files(&nr);
+    pf = _testrs_files(&nr, rsname);
     for(i=0; i<nr; i++) {
         fh = fopen(pf[i], "r");
         assert(fh);
-        _start_test_script(pf[i], fh);
+        _start_test_script(pf[i], fh, bmt);
         fclose(fh);
     }
 }
@@ -246,18 +315,22 @@ _start_test() {
  * To use ylisp interpreter
  * ================================= */
 
-static unsigned int _mblk = 0;
-
+static unsigned int      _mblk = 0;
+static pthread_mutex_t   _msys = PTHREAD_MUTEX_INITIALIZER;
 void*
 _malloc(unsigned int size) {
+    pthread_mutex_lock(&_msys);
     _mblk++;
+    pthread_mutex_unlock(&_msys);
     return malloc(size);
 }
 
 void
 _free(void* p) {
-    assert(_mblk >= 0);
+    pthread_mutex_lock(&_msys);
+    assert(_mblk > 0);
     _mblk--;
+    pthread_mutex_unlock(&_msys);
     free(p);
 }
 
@@ -296,10 +369,26 @@ main(int argc, char* argv[]) {
 
     ylinit(&sys);
 
-    _start_test();
+    srand( time(NULL) );
+
+    printf("\n************ Single Thread Test ************\n");
+    /* Test for single thread */
+    _start_test(_TESTRS, 0);
+
+    printf("\n************ Multi Thread Test *************\n");
+    /* Test for multi thread */
+    _binit_section = 1; /* HACK */
+    _start_test(_TESTRS, 1);
+
+    /* Let's sleep enough to wait all threads are finished! */
+    sleep(20);
 
     yldeinit();
-    assert(0 == get_mblk_size());
+
+    if(get_mblk_size()) {
+        printf("\n=== Leak : count(%d) ===\n", get_mblk_size());
+        assert(0);
+    }
 
     printf("\n\n\n"
            "=======================================\n"

@@ -37,7 +37,7 @@
  *    'c' and 'a' is already GC-protected.
  */
 static inline yle_t*
-_evcon(yle_t* c, yle_t* a) {
+_evcon(yletcxt_t* cxt, yle_t* c, yle_t* a) {
     /*
      * If there is no-true condition, 'cond' returns nil()
      * (This is some-what different from stuffs described in the S-Expression Report!
@@ -54,17 +54,17 @@ _evcon(yle_t* c, yle_t* a) {
      * 'a' is always preserved. (whole a is passed as an parameter.)
      * But, we need to preserve 'c' explicitly.
      */
-    return yleis_true(yleval(ylcaar(c), a))? yleval(ylcadar(c), a): _evcon(ylcdr(c), a);
+    return yleis_true(yleval(cxt, ylcaar(c), a))? yleval(cxt, ylcadar(c), a): _evcon(cxt, ylcdr(c), a);
 }
 
 YLDEFNF(f_cond, 1, 9999) {
     /* eq [car [e]; COND] -> evcon [cdr [e]; a]; */
-    return _evcon(e, a);
+    return _evcon(cxt, e, a);
 } YLENDNF(f_cond)
 
 YLDEFNF(f_and, 1, 9999) {
     while(!yleis_nil(e)) {
-        if( yleis_false(yleval(ylcar(e), a)) ) { return ylnil(); }
+        if( yleis_false(yleval(cxt, ylcar(e), a)) ) { return ylnil(); }
         e = ylcdr(e);
     }
     return ylt();
@@ -73,7 +73,7 @@ YLDEFNF(f_and, 1, 9999) {
 
 YLDEFNF(f_or, 1, 9999) {
     while(!yleis_nil(e)) {
-        if( yleis_true(yleval(ylcar(e), a)) ) { return ylt(); }
+        if( yleis_true(yleval(cxt, ylcar(e), a)) ) { return ylt(); }
         e = ylcdr(e);
     }
     return ylnil();
@@ -106,7 +106,7 @@ _update_assoc(yle_t** x, yle_t* y) {
  *    'e' and '*a' is already GC-protected.
  */
 static void
-_evarg(yle_t* e, yle_t** a) {
+_evarg(yletcxt_t* cxt, yle_t* e, yle_t** a) {
     if(yleis_nil(e)) { return; }
     if(yleis_atom(e)
        || yleis_atom(ylcar(e))
@@ -127,9 +127,9 @@ _evarg(yle_t* e, yle_t** a) {
     { /* Just Scope */
         void*  asv = *a;
         ylmp_add_bb1(asv);
-        _update_assoc(a, yllist(ylcaar(e), yleval(ylcadar(e), *a)));
+        _update_assoc(a, yllist(ylcaar(e), yleval(cxt, ylcadar(e), *a)));
         ylmp_rm_bb1(asv);
-        _evarg(ylcdr(e), a);
+        _evarg(cxt, ylcdr(e), a);
     }
 }
 
@@ -140,7 +140,7 @@ YLDEFNF(f_let, 2, 9999) {
         ylnflogE0("incorrect argument syntax\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
-    _evarg(ylcar(e), &a);
+    _evarg(cxt, ylcar(e), &a);
 
     /*
      * updated 'a' should be protected from GC
@@ -149,7 +149,7 @@ YLDEFNF(f_let, 2, 9999) {
     ylmp_add_bb1(a);
     e = ylcdr(e);
     ylelist_foreach(e) {
-        p = yleval(ylcar(e), a);
+        p = yleval(cxt, ylcar(e), a);
     }
     ylmp_rm_bb1(a);
     return p;
@@ -160,7 +160,7 @@ YLDEFNF(f_case, 2, 9999) {
 #define __DEFAULT_KEYWORD "otherwise"
     yle_t *key, *r = ylnil();
     ylnfcheck_parameter(yleis_pair_chain(ylcdr(e)));
-    key = yleval(ylcar(e), a);
+    key = yleval(cxt, ylcar(e), a);
     ylmp_add_bb1(key);
 
     e = ylcdr(e);
@@ -170,12 +170,12 @@ YLDEFNF(f_case, 2, 9999) {
             /* unconditionally TRUE */
             break;
         } else if(yleis_atom(ylcaar(e))) {
-            if(yleis_true(yleq(key, yleval(ylcaar(e), a)))) { break; }
+            if(yleis_true(yleq(key, yleval(cxt, ylcaar(e), a)))) { break; }
         } else {
             /* key is list (key list) */
             yle_t*     w = ylcaar(e);
             ylelist_foreach(w) {
-                if(yleis_true(yleq(key, yleval(ylcar(w), a)))) { break; }
+                if(yleis_true(yleq(key, yleval(cxt, ylcar(w), a)))) { break; }
             }
             if(!yleis_nil(w)) { break; }
         }
@@ -187,7 +187,7 @@ YLDEFNF(f_case, 2, 9999) {
         /* we found! */
         yle_t*   w = ylcdar(e);
         ylelist_foreach(w) {
-            r = yleval(ylcar(w), a);
+            r = yleval(cxt, ylcar(w), a);
         }
     }
 
@@ -202,11 +202,11 @@ YLDEFNF(f_while, 2, 9999) {
     yle_t *cond, *exp;
     int   cnt = 0;
     cond = ylcar(e);
-    while( yleis_true(yleval(cond, a)) ) {
+    while( yleis_true(yleval(cxt, cond, a)) ) {
         if(cnt < __MAX_LOOP_COUNT) {
             exp = ylcdr(e);
             ylelist_foreach(exp) {
-                yleval(ylcar(exp), a);
+                yleval(cxt, ylcar(exp), a);
             }
         } else {
             ylnflogE1("Loop count exceeded limits(%d)\n", __MAX_LOOP_COUNT);
@@ -303,10 +303,9 @@ YLDEFNF(exit, 0, 0) {
 
 YLDEFNF(print, 1, 9999) {
     ylnfcheck_parameter(!yleis_atom(e));
-    do {
-        ylprint(("%s", ylechain_print(ylcar(e)) ));
-        e = ylcdr(e);
-    } while(!yleis_nil(e));
+    ylelist_foreach(e) {
+        ylprint(("%s", ylechain_print(ylethread_buf(cxt), ylcar(e)) ));
+    }
     return ylt();
 } YLENDNF(print)
 
@@ -319,15 +318,14 @@ YLDEFNF(printf, 1, 10) {
             if(s[i]) { ylfree(s[i]); }          \
         }                                       \
         if(s) { ylfree(s); }                    \
-        yldynb_clean(&b);                       \
     }while(0)
 
     int          i;
-    yldynb_t     b;
     const char*  fmt;
     char**       s = NULL;
 
     ylnfcheck_parameter(!yleis_atom(e));
+
     /*
      * allocate memory to save print string
      * First string is 'format string'. So we don't need to alloc memory for this.
@@ -337,44 +335,33 @@ YLDEFNF(printf, 1, 10) {
     memset(s, 0, sizeof(char*) * (pcsz-1));
     fmt = ylasym(ylcar(e)).sym;
     for(i=0, e=ylcdr(e); !yleis_nil(e); i++, e=ylcdr(e)) {
-        const char* es = ylechain_print(ylcar(e));
-        s[i] = ylmalloc(strlen(es) + 1);
+        ylechain_print(ylethread_buf(cxt), ylcar(e));
+        s[i] = ylmalloc(yldynb_sz(ylethread_buf(cxt)));
         if(!s[i]) { goto bail; }
-        strcpy(s[i], es);
+        strcpy(s[i], (char*)yldynbstr_string(ylethread_buf(cxt)));
     }
 
-    { /* Just scope */
-        int        ret;
-        if(0 > yldynb_init(&b, 4096)) { goto bail; }  /* initial buffer size is 4096 */
-        yldynb_reset(&b);
-        while(1) {
-            switch(pcsz) {
-                /*
-                 * Using variable string as an printf format string, can be dangerous potentially.
-                 * But, using exsiting 'snprintf' is much easier.
-                 * So, ... allow this warning "warning: format not a string literal and no format arguments"
-                 */
-                case 1: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt); break;
-                case 2: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0]); break;
-                case 3: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1]); break;
-                case 4: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2]); break;
-                case 5: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3]); break;
-                case 6: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4]); break;
-                case 7: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5]); break;
-                case 8: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6]); break;
-                case 9: ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]); break;
-                case 10:ret = snprintf((char*)yldynb_ptr(&b), yldynb_freesz(&b), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8]); break;
-                default: ylassert(0);
-            }
-            if(ret >= yldynb_limit(&b)) {
-                yldynb_reset(&b);
-                if(0 > yldynb_expand(&b)) { goto bail; }
-            } else {
-                break;
-            }
-        }
+    yldynbstr_reset(ylethread_buf(cxt));
+    switch(pcsz) {
+        /*
+         * Using variable string as an printf format string, can be dangerous potentially.
+         * But, using exsiting 'snprintf' is much easier.
+         * So, ... allow this warning "warning: format not a string literal and no format arguments"
+         */
+        case 1: yldynbstr_append(ylethread_buf(cxt), fmt); break;
+        case 2: yldynbstr_append(ylethread_buf(cxt), fmt, s[0]); break;
+        case 3: yldynbstr_append(ylethread_buf(cxt), fmt, s[0], s[1]); break;
+        case 4: yldynbstr_append(ylethread_buf(cxt), fmt, s[0], s[1], s[2]); break;
+        case 5: yldynbstr_append(ylethread_buf(cxt), fmt, s[0], s[1], s[2], s[3]); break;
+        case 6: yldynbstr_append(ylethread_buf(cxt), fmt, s[0], s[1], s[2], s[3], s[4]); break;
+        case 7: yldynbstr_append(ylethread_buf(cxt), fmt, s[0], s[1], s[2], s[3], s[4], s[5]); break;
+        case 8: yldynbstr_append(ylethread_buf(cxt), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6]); break;
+        case 9: yldynbstr_append(ylethread_buf(cxt), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]); break;
+        case 10:yldynbstr_append(ylethread_buf(cxt), fmt, s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8]); break;
+        default: ylassert(0);
     }
-    ylprint(("%s", (char*)yldynb_ptr(&b)));
+
+    ylprint(("%s", (char*)yldynbstr_string(ylethread_buf(cxt))));
     __cleanup();
     return ylt();
 
@@ -404,7 +391,7 @@ YLDEFNF(log, 2, 9999) {
         default: goto invalid_loglv;
     }
     do {
-        yllog((loglv, "%s", ylechain_print(ylcar(e)) ));
+        yllog((loglv, "%s", ylechain_print(ylethread_buf(cxt), e)));
         e = ylcdr(e);
     } while(!yleis_nil(e));
     return ylt();
@@ -416,17 +403,16 @@ YLDEFNF(log, 2, 9999) {
 
 YLDEFNF(to_string, 1, 1) {
     unsigned int len;
-    const char*  estr;
     char*        s;
-    estr = ylechain_print(ylcar(e));
-    ylassert(estr);
-    len = strlen(estr);
+    ylechain_print(ylethread_buf(cxt), ylcar(e));
+    len = yldynbstr_len(ylethread_buf(cxt));
     s = ylmalloc(len+1); /* +1 for trailing 0 */
+    
     if(!s) {
         ylnflogE1("Fail to alloc memory for string : %d\n", len);
         return ylnil();
     }
-    strcpy(s, estr);
+    strcpy(s, (char*)yldynbstr_string(ylethread_buf(cxt)));
     return ylacreate_sym(s);
 } YLENDNF(to_string)
 
