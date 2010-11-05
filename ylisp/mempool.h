@@ -31,11 +31,21 @@ ylmp_init();
 extern void
 ylmp_deinit();
 
-extern void
-ylmp_thread_context_add(yletcxt_t* cxt);
+/*****************************************
+ * Multi-Thread
+ *****************************************/
+void
+ylmp_pre_add_thread(yletcxt_t* thd);
 
-extern void
-ylmp_thread_context_rm(yletcxt_t* cxt);
+void
+ylmp_post_add_thread(yletcxt_t* thd);
+
+void
+ylmp_pre_rm_thread(yletcxt_t* thd);
+
+void
+ylmp_post_rm_thread(yletcxt_t* thd);
+
 
 /*
  * Clean memory block.

@@ -613,6 +613,7 @@ ylinit(ylsys_t* sysv) {
     }
 
     if( YLOk != ylsfunc_init()
+        || YLOk != ylmt_init()
         || YLOk != ylgsym_init()
         || YLOk != ylnfunc_init()
         || YLOk != ylmp_init()
@@ -645,7 +646,8 @@ ylinit(ylsys_t* sysv) {
 void
 yldeinit() {
     pthread_mutexattr_destroy(&_mattr);
-    ylgsym_deinit();
-    ylmp_deinit();
     ylinterp_deinit();
+    ylmp_deinit();
+    ylgsym_deinit();
+    ylmt_deinit();
 }

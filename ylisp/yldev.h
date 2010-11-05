@@ -628,25 +628,26 @@ ylmp_rm_bb(yle_t* e);
 extern void
 ylmp_clean_bb();
 
+/* -------------------------------
+ * Interface for multi-threaded evaluation
+ * -------------------------------*/
+
 /*
  * Memory Sharing is most important part to handle in Multi-Threaded model.
  * So, 'ylmp' module is in charge of this!
  *
- * To notify that evaluation thread is in GC safe state.
+ * To notify that evaluation thread is in safe state (including GC).
  * Thread usually enter GC safe state at the end of evaluation.
  * But in some cases, one-evaluation-cycle takes quite long time.
  * (Usually, inside CNF)
  * And, this thread can be bottle-neck to trigger GC.
  * To avoid this, thread may notify "I'm safe to GC" manually!
  * Interrupt evaluation (including GC) only can be triggerred at only this point.
- * (Where 'ylmp_notify_safe_state' is called.)
+ * (Where 'ylmt_notify_safe' is called.)
  */
 extern void
-ylmp_notify_safe_state(yletcxt_t*);
+ylmt_notify_safe(const yletcxt_t*);
 
-/* -------------------------------
- * Interface for multi-threaded evaluation
- * -------------------------------*/
 
 #if 0
 /*

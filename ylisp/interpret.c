@@ -82,11 +82,11 @@ ylinterpret(const unsigned char* stream, unsigned int streamsz) {
     yletcxt_t  cxt;
     ret =  ylinit_thread_context(&cxt);
     if(YLOk != ret) { return ret; }
-    ylmp_thread_context_add(&cxt);
+    ylmt_add(&cxt);
 
     ret = ylinterpret_internal(&cxt, stream, streamsz);
 
-    ylmp_thread_context_rm(&cxt);
+    ylmt_rm(&cxt);
     yldeinit_thread_context(&cxt);
 
     return ret;

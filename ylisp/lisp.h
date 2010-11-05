@@ -61,6 +61,7 @@
 #include "stack.h"
 #include "yllist.h"
 #include "mempool.h"
+#include "mthread.h"
 #include "yltrie.h"
 #include "gsym.h"
 

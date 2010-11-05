@@ -462,7 +462,7 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
          *   -> make SW stable! And then find more places!
          *   [ex. Starting point of evaluation!])
          */
-        ylmp_notify_safe_state(cxt);
+        ylmt_notify_safe(cxt);
 
         /* Pass responsibility about preserving return value to the caller! */
         ylmp_rm_bb1(r);
