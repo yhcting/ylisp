@@ -463,6 +463,7 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
          *   [ex. Starting point of evaluation!])
          */
         ylmt_notify_safe(cxt);
+        ylmt_notify_unsafe(cxt);
 
         /* Pass responsibility about preserving return value to the caller! */
         ylmp_rm_bb1(r);

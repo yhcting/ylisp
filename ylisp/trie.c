@@ -68,7 +68,7 @@ typedef struct _node {
     void*          v;
 } _node_t;
 
-typedef struct _trie {
+typedef struct _sTrie {
     _node_t          rt;   /* root. sentinel */
     void           (*fcb)(void*); /* callback for free value */
 } _trie_t;

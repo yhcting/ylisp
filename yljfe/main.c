@@ -121,19 +121,6 @@ _jni_Main_nativeInterpret
 
 /*
  * Class:     Main
- * Method:    nativeInterrupt
- * Signature: ()Z
- */
-static jboolean JNICALL
-_jni_Main_nativeForceStop
-(JNIEnv* jenv, jobject jobj) {
-    jboolean       jret = JNI_TRUE;
-    ylforce_stop();
-    return jret;
-}
-
-/*
- * Class:     Main
  * Method:    nativeGetLastInterpretMessage
  * Signature: ()Ljava/lang/String;
  */
@@ -257,9 +244,6 @@ _register_natives(JNIEnv* jenv) {
         { "nativeInterpret",
           "(Ljava/lang/String;)Z",
           (void*)_jni_Main_nativeInterpret },
-        { "nativeForceStop",
-          "()Z",
-          (void*)_jni_Main_nativeForceStop },
         { "nativeGetLastNativeMessage",
           "()Ljava/lang/String;",
           (void*)_jni_Main_nativeGetLastNativeMessage },

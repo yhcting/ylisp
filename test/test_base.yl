@@ -284,6 +284,9 @@
 (assert (equal (list 2 3 4 5) (mapcar '1+ '(1 2 3 4))))
 (assert (equal (list 't '() 't '()) (mapcar 'not '( '() 't '() 't))))
 
+(set 't (lclone '((a b) c)))
+(assert (equal '((a b) c) t))
+
 ;
 ; test for cycle
 ; make cycle!

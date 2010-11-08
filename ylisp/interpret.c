@@ -27,10 +27,16 @@
 /* single element string should be less than */
 #define _MAX_SINGLE_ELEM_STR_LEN    4096
 
+typedef struct _sInterp_req {
+    unsigned char*  s;
+    unsigned int    sz;
+    void(*          fcb)(struct _sInterp_req*); /* callback to free argment */
+} _interp_req_t;
+
 ylerr_t
 ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int streamsz) {
     /* Declar space to use */
-    ylerr_t                  ret = YLErr_force_stopped;
+    ylerr_t                  ret = YLErr_killed;
     pthread_t                thd;
     struct __interpthd_arg   arg;
     int                      line = 1;
@@ -53,16 +59,40 @@ ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int s
         goto done;
     }
 
+    /*
+     * Why lock?
+     * Newly created thread may be in race condition with current thread.
+     * But, before actual starting of new thread,
+     *  we need to fill some parts of context with newly-create-thread-id.
+     * For this, 'cxt->m' is used at this point and at early point of 'ylinterp_automa()'.
+     */
+    _mlock(&cxt->m);
+
     if(pthread_create(&thd, NULL, &ylinterp_automata, &arg)) {
         ylassert(0);
+        _munlock(&cxt->m);
         goto done;
     }
+    ylstk_push(cxt->thdstk, (void*)thd);
+
+    _munlock(&cxt->m);
 
     if(pthread_join(thd, (void**)&ret)) {
         ylassert(0);
         pthread_cancel(thd);
         goto done;
     }
+
+    /*
+     * 'push' is located at child thread.
+     * NOTE !!
+     * There is no right place to put 'push' in this thread.
+     * Putthing 'push' before 'pthread_create' may cause race condition
+     *  between this thread and newly-created child thread.
+     *  (child thread also may call 'ylinterpret_internal'
+     *   before 'push' is called at this thread.)
+     */
+    ylstk_pop(cxt->thdstk);
 
     if(YLOk != ret) {
         ylprint(("Interpret FAILS! : ERROR Line : %d\n", line));
@@ -76,24 +106,62 @@ ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int s
     return ret;
 }
 
-ylerr_t
-ylinterpret(const unsigned char* stream, unsigned int streamsz) {
-    ylerr_t    ret;
-    yletcxt_t  cxt;
+static void*
+_interpret(void* arg) {
+    ylerr_t         ret;
+    _interp_req_t*  req = (_interp_req_t*)arg;
+    yletcxt_t       cxt;
     ret =  ylinit_thread_context(&cxt);
-    if(YLOk != ret) { return ret; }
+    if(YLOk != ret) { return (void*)ret; }
+
+    cxt.stream = req->s;
+    cxt.streamsz = req->sz;
     ylmt_add(&cxt);
 
-    ret = ylinterpret_internal(&cxt, stream, streamsz);
+    ret = ylinterpret_internal(&cxt, cxt.stream, cxt.streamsz);
 
     ylmt_rm(&cxt);
     yldeinit_thread_context(&cxt);
 
-    return ret;
+    if(req->fcb) {
+        (*req->fcb)(req);
+    }
+
+    return (void*)ret;
 }
 
-void
-ylforce_stop() {
+static void
+_fcb_interp_req(_interp_req_t* req) {
+    ylfree(req->s);
+    ylfree(req);
+}
+
+ylerr_t
+ylinterpret_async(pthread_t* thd, const unsigned char* stream, unsigned int streamsz) {
+    _interp_req_t*  req = ylmalloc(sizeof(_interp_req_t));
+
+    req->s = ylmalloc(streamsz);
+    if(!req->sz) { return YLErr_out_of_memory; }
+    memcpy(req->s, stream, streamsz);
+    req->sz = streamsz;
+    req->fcb = &_fcb_interp_req;
+
+    if(pthread_create(thd, NULL, &_interpret, req)) {
+        ylassert(0);
+    }
+
+    return YLOk;
+}
+
+ylerr_t
+ylinterpret(const unsigned char* stream, unsigned int streamsz) {
+    _interp_req_t req;
+
+    req.s = (unsigned char*)stream;
+    req.sz = streamsz;
+    req.fcb = NULL; /* DO NOT FREE */
+
+    return (ylerr_t)_interpret(&req);
 }
 
 void

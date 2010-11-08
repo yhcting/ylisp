@@ -458,6 +458,21 @@
             (cons (eval (list f (car L))) (mapcar f (cdr L))))
         ('t '())))
 
+(defun lclone (E)
+"lclone <exp>
+    -clone list structure of <exp>
+     NOTE! : atomic is not cloned! It's a kind of shallow copy!
+     Actually, default atomic data type cannot be modified in LISP.
+     (symbol, number, function etc..)
+     So, shallow copy is useful enough.
+     But BE CAREFUL for extended data type that supports self-modification.
+     (ex. trie, array etc...)
+"
+    (cond
+        ( (atom E) E)
+        ('t (cons (lclone (car E)) (lclone (cdr E))))))
+
+
 ; alias...
 (defun = (x y)
 "= <exp1> <exp2>

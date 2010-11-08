@@ -559,7 +559,13 @@ ylsym_auto_complete(const char* start_with, char* buf, unsigned int bufsz) {
 ylerr_t
 ylinit_thread_context(yletcxt_t* cxt) {
     /* TODO -- Error check!! */
-    cxt->id = pthread_self();
+    yllist_init_link(&cxt->lk);
+    cxt->base_id = pthread_self();
+    pthread_mutex_init(&cxt->m, ylmutexattr());
+    cxt->sig = 0;
+    cxt->state = 0;
+    cxt->thdstk = ylstk_create(0, NULL);
+    cxt->cpid = INVALID_PID; /* invalid process id */
     cxt->evalstk = ylstk_create(0, NULL);
     yldynb_init(&cxt->dynb, 4096);
     return 0;
@@ -569,6 +575,8 @@ void
 yldeinit_thread_context(yletcxt_t* cxt) {
     yldynb_clean(&cxt->dynb);
     ylstk_destroy(cxt->evalstk);
+    ylstk_destroy(cxt->thdstk);
+    pthread_mutex_destroy(&cxt->m);
 }
 
 

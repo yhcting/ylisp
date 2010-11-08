@@ -530,6 +530,13 @@ ylinterp_automata(void* arg) {
         struct __interpthd_arg* parg = (struct __interpthd_arg*)arg;
         cxt = parg->cxt;
 
+        /*
+         * Why lock?
+         * See comments at interpret.c : ylinterpret_internal.x
+         */
+        _mlock(&cxt->m);
+        _munlock(&cxt->m);
+
         fsa.pb = fsa.b = parg->b;
         fsa.bend = fsa.b + parg->bsz;
         fsa.s = parg->s;

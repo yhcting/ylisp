@@ -22,7 +22,7 @@ SYSLIB=$(addprefix $(SYSLIB_DIR),$(addsuffix .a,$(addprefix lib,$(SYSLIB_NAME)))
 UNALIB=$(EXTLIB) $(SYSLIB)
 
 SOURCES= lisp.c sfunc.c mempool.c mthread.c parser.c interpret.c \
-	 nfunc.c gsym.c trie.c ut.c testmain.c
+	 nfunc.c nfunc_mt.c gsym.c trie.c ut.c testmain.c
 
 
 OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES)))

@@ -205,7 +205,7 @@ int
 ylgsym_auto_complete(const char* start_with,
                      char* buf, unsigned int bufsz) {
     int ret;
-    _munlock(&_m);
+    _mlock(&_m);
     ret =yltrie_auto_complete(_trie, (unsigned char*)start_with,
                               (unsigned int)strlen(start_with),
                               (unsigned char*)buf, bufsz);

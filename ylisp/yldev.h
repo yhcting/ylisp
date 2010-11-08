@@ -18,6 +18,14 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+/*******************************************
+ *
+ * BIG RULE of CNF
+ *    - Keep considering about GC.
+ *    - Do operation as simple as possible.
+ *      (ex. spawning more than one child process is WRONG!)
+ *
+ *******************************************/
 
 
 /**
@@ -83,9 +91,9 @@
  *
  *===================================*/
 
-struct yle;
-struct _etcxt;
-typedef struct _etcxt yletcxt_t;
+struct sYle;
+struct _sEtcxt;
+typedef struct _sEtcxt yletcxt_t;
 /* -------------------------
  * Structures for atom data type
  * -------------------------*/
@@ -116,7 +124,7 @@ typedef struct {
     /*
      * @return : 1 if equal. Otherwise 0
      */
-    int           (*eq)(const struct yle*, const struct yle*);
+    int           (*eq)(const struct sYle*, const struct sYle*);
     /*
      * Deep copier
      * Values  will be shallow-copied before calling this function.
@@ -129,7 +137,7 @@ typedef struct {
      *
      * !!! NOT USED : RESERVED FOR FUTURE !!!
      */
-    int           (*copy)(void*/*map*/, struct yle*, const struct yle*);
+    int           (*copy)(void*/*map*/, struct sYle*, const struct sYle*);
     /*
      * @sz : exclude space for trailing 0.
      *       That is this is one-byte-smaller than real-buffer-size.
@@ -139,23 +147,23 @@ typedef struct {
      *    bytes written to buffer if success. -1 if fails (ex. Not enough buffer size)
      *
      */
-    int           (*to_string)(const struct yle*, char*/*buf*/, unsigned int/*sz*/);
+    int           (*to_string)(const struct sYle*, char*/*buf*/, unsigned int/*sz*/);
     /*
      * To visit referenced element of given atom.
      * (This may used to implement special atom type - ex. array, struture, class etc. if required)
      * return : 0: stop by user, 1: complete visiting.
      */
-    int           (*visit)(struct yle*, void* user,
+    int           (*visit)(struct sYle*, void* user,
                            /* 1: keep visiting / 0:stop visiting */
                            int(*)(void*/*user*/,
-                                  struct yle*/*referred element*/));
-    void          (*clean)(struct yle*);
+                                  struct sYle*/*referred element*/));
+    void          (*clean)(struct sYle*);
 } ylatomif_t; /* atom inteface */
 
 /* nfunc : Native FUNCtion */
-typedef struct yle* (*ylnfunc_t)(yletcxt_t*, struct yle*, struct yle*);
+typedef struct sYle* (*ylnfunc_t)(yletcxt_t*, struct sYle*, struct sYle*);
 
-typedef struct yle {
+typedef struct sYle {
     int               t; /**< type */
     union {
         struct {
@@ -192,7 +200,7 @@ typedef struct yle {
         } a; /**< atom */
 
         struct {
-            struct yle  *car, *cdr;
+            struct sYle  *car, *cdr;
         } p; /**< pair */
     } u;
 
@@ -633,37 +641,38 @@ ylmp_clean_bb();
  * -------------------------------*/
 
 /*
- * Memory Sharing is most important part to handle in Multi-Threaded model.
- * So, 'ylmp' module is in charge of this!
- *
- * To notify that evaluation thread is in safe state (including GC).
+ * To notify that evaluation thread enters safe state (including GC).
  * Thread usually enter GC safe state at the end of evaluation.
  * But in some cases, one-evaluation-cycle takes quite long time.
  * (Usually, inside CNF)
  * And, this thread can be bottle-neck to trigger GC.
- * To avoid this, thread may notify "I'm safe to GC" manually!
+ * To avoid this, thread may notify "I'm safe to GC from now on" manually!
  * Interrupt evaluation (including GC) only can be triggerred at only this point.
  * (Where 'ylmt_notify_safe' is called.)
  */
 extern void
-ylmt_notify_safe(const yletcxt_t*);
+ylmt_notify_safe(yletcxt_t*);
 
-
-#if 0
 /*
- * Following 2 ylprocinfo_xxxx are for handling child process that ylisp waits for.
+ * I'm not safe from now on
  */
-/*
- * Actually, 'pid_t' should be used.
- * But we don't want to include "sys/types.h" here..
- * So, long is used instead of 'pid_t'
- */
-extern int
-ylprocinfo_add(long pid);
-
 extern void
-ylprocinfo_del(long pid);
-#endif
+ylmt_notify_unsafe(yletcxt_t*);
+
+/*
+ * Set child process id that ethread is waiting for.
+ * actual type of 'cpid' is 'pid_t'
+ * But, I don't want to include header only for this.
+ * So, long is used instead.
+ */
+void
+ylmt_cpid_set(yletcxt_t* cxt, long cpid);
+
+/*
+ * Unset
+ */
+void
+ylmt_cpid_unset(yletcxt_t* cxt);
 
 /* -------------------------------
  * Interface to handle ylisp element.

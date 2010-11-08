@@ -145,3 +145,24 @@ NFUNC(interpret_file,         "interpret-file",          ylaif_nfunc(),
     "    @file name [Symbol]: file path\n"
     "    *ex\n"
     "        (interpret-file 'ylbase.yl)\n")
+
+/****************************************************
+ *
+ * To support Multi-Threading Features!
+ *
+ ****************************************************/
+NFUNC(ts,                     "ts",                      ylaif_nfunc(),
+    "ts : t\n"
+    "    -print thread list\n")
+
+NFUNC(kill,                   "kill",                    ylaif_nfunc(),
+    "kill <tid>: [t/nil]\n"
+    "    -kill thread with thread id\n"
+    "    @tid [Double] : id of thread\n")
+
+NFUNC(create_thread,          "create-thread",           ylaif_nfunc(),
+    "create-thread <code> : [Double] t\n"
+    "    -create thread and interpret given code.\n"
+    "    @code [Symbol]\n"
+    "    *ex\n"
+    "        (create-thread '\"(car '(a b))\")\n")

@@ -30,11 +30,36 @@
 
 #include "lisp.h"
 
+#define INVALID_PID -1
+#define INVALID_TID -1
+
+/* ETST : Evaluation Thread STate */
+enum {
+    ETST_SAFE = 0x00000001,
+};
+
+#define etst_set(cxt, m)    do { ((cxt)->state) |= (m); } while(0)
+#define etst_clear(cxt, m)  do { ((cxt)->state) &= ~(m); } while(0)
+#define etst_isset(cxt, m)  (!!((cxt)->state & (m)))
+
+
+/* ETSIG : Evaluation Thread SIGnals */
+enum {
+    ETSIG_KILL = 0x00000001,
+};
+
+#define etsig_set(cxt, m)    do { ((cxt)->sig) |= (m); } while(0)
+#define etsig_clear(cxt, m)  do { ((cxt)->sig) &= ~(m); } while(0)
+#define etsig_isset(cxt, m)  (!!((cxt)->sig & (m)))
+
+
+
 /*
  * All these interface are called inside lock of 'ylmt' module.
  * And most 'ylmt_xxx' functions lock mutex.
  * So, using those in below listener functions may cause deadlock!
  * DO NOT USE 'ylmt_xxx' public functions in it!
+ * And definitely, EXITING from thread is also NOT ALLOWED!
  *
  * @cxt: (last) evaluation thread entered int safe state.
  * @mtx: mutex that keeps thread in safe mode.
@@ -58,10 +83,10 @@ extern void
 ylmt_deinit();
 
 extern void
-ylmt_add(const yletcxt_t* cxt);
+ylmt_add(yletcxt_t* cxt);
 
 extern void
-ylmt_rm(const yletcxt_t* cxt);
+ylmt_rm(yletcxt_t* cxt);
 
 /*
  * This only can be called at "initialization" stage!
@@ -73,6 +98,25 @@ ylmt_register_listener(const ylmtlsn_t*);
  * Are all evaluation thread in safe state?
  */
 extern int
-ylmt_is_safe(); 
+ylmt_is_safe(yletcxt_t* cxt);
+
+/*
+ * Kill evaluation thread!
+ * Mechanism.
+ *    kill child process
+ *    Set 'KILL' signal.
+ */
+extern int
+ylmt_kill(yletcxt_t* cxt, pthread_t tid);
+
+/*
+ * @cb is called in 'lock'
+ * So, 'ylmt_xxx' SHOULD NOT be used inside callback due to risk of deadlock!
+ * See comments of 'ylmtlsn_t' for more details.
+ */
+extern void
+ylmt_walk(yletcxt_t* cxt, void* user,
+           /* return 1 to keep going, 0 to stop */
+          int(*cb)(void*, yletcxt_t* cxt));
 
 #endif /* ___ETHREAd_h___ */

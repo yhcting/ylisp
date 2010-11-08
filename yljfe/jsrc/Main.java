@@ -41,49 +41,23 @@ public class Main extends JFrame {
     private int                 _hi = -1;  // history index
     private int                 _loglv = _LogLv.Warn.v(); // default is log ouput - refer native code's implementation
     private String              _bufferText;
-    private boolean             _binterp = false;
-    private Object              _interpobj = new Object();
-    private Thread              _interpthd = new Thread( new Runnable() {
-        public void run() {
-            while(true) {
-                // We should 'synchroized' before notify/wait !!!
-                synchronized (_interpobj) {
-                    try {
-                        _interpobj.wait();
-                    } catch (Exception e){
-                        System.out.println("Fail to wait object!!");
-                    }
-                    System.out.print("\n====================== Interpret =====================\n" +
-                            _edit.getText() + "\n" +
-                            "----------------------------\n\n");
-                    nativeInterpret(_edit.getText());
-                    addToHistory(_edit.getText());
-                    _hi = -1;
-                    _edit.setText(""); // clean
-                    _binterp = false;
-                }
-            }
-        }
-    });
 
     // ============================= ACTIONS START ==============================
     private class InterpretAction extends AbstractAction {
         public void actionPerformed(ActionEvent ev) {
-            if(!_binterp) {
-                synchronized(_interpobj) {
-                        _binterp  = true;
-                        _interpobj.notify();
+            new Thread( new Runnable() {
+                public void run() {
+                    String ins = "";
+                    System.out.print("\n====================== Interpret =====================\n" +
+                            _edit.getText() + "\n" +
+                            "----------------------------\n\n");
+                    addToHistory(_edit.getText());
+                    _hi = -1;
+                    ins = _edit.getText();
+                    _edit.setText(""); // clean
+                    nativeInterpret(ins);
                 }
-            } else {
-                System.out.println("--- Previous interpreting request is under execution!\n");
-            }
-        }
-    }
-
-    private class InterruptAction extends AbstractAction {
-        public void actionPerformed(ActionEvent ev) {
-            System.out.println("----interrupt----\n");
-            nativeForceStop();
+            }).start();
         }
     }
 
@@ -202,9 +176,6 @@ public class Main extends JFrame {
 
         pack();
         setVisible(true);
-
-        // start interpreting thread!
-        _interpthd.start();
     }
 
     private void addToHistory(String cmd) {
@@ -222,9 +193,6 @@ public class Main extends JFrame {
         //Ctrl-r to start interpret.
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, Event.CTRL_MASK), "interpret");
         actionMap.put("interpret", new InterpretAction());
-
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, Event.CTRL_MASK), "interrupt");
-        actionMap.put("interrupt", new InterruptAction());
 
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, Event.CTRL_MASK), "Increase log level");
         actionMap.put("Increase log level", new InceaseLogLevelAction());

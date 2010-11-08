@@ -9,7 +9,7 @@
  *    License, or (at your option) any later version.
  *
  *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+n *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
@@ -18,27 +18,19 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+/******************************************
+ * ASSUMPTION in this module!
+ *    'ETST_SAFE' is used only in '_m' lock!
+ ******************************************/
 
-
+#include <signal.h>
 
 #include "lisp.h"
-
-typedef struct {
-    yllist_link_t       lk;
-    const yletcxt_t*    cxt;
-    int                 mark;
-} _cxt_t;
 
 typedef struct {
     yllist_link_t           lk;
     const ylmtlsn_t*        ops;
 } _lsn_t;
-
-#define _MKSAFE          0x01 /* mark ethread context is in safe state */
-#define _mkset(c, m)     do { (c)->mark |=  m; } while(0)
-#define _mkclear(c, m)   do { (c)->mark &= ~m; } while(0)
-#define _mkisset(c, m)   ((c)->mark & m)
-
 
 /*
  * Listener functions should not be between lock!
@@ -55,40 +47,24 @@ typedef struct {
         }                                               \
     } while(0)
 
+#define _walk_ethreads(exp)                             \
+    do {                                                \
+        yletcxt_t* w;                                   \
+        yllist_foreach_item(w, &_cxtl, yletcxt_t, lk) { \
+            exp                                         \
+        }                                               \
+    } while(0)
 
-static pthread_mutex_t  _m;
+
+static pthread_mutex_t  _m;     /**< lock for thread management */
 
 static yllist_link_t    _lsnl;  /**< listener list */
 static yllist_link_t    _cxtl;  /**< thread context list */
 
 
-
-static inline _cxt_t*
-_find_cxt(const yletcxt_t* cxt) {
-    _cxt_t*  ct;
-    yllist_foreach_item(ct, &_cxtl, _cxt_t, lk) {
-        if(ct->cxt == cxt) {
-            return ct;
-        }
-    }
-    yllogW1("WARN! Try to set mark to unlisted context! : %p\n", cxt);
-    return NULL;
-}
-
-static inline void
-_mark_clear_all(int mark) {
-    _cxt_t*  ct;
-    yllist_foreach_item(ct, &_cxtl, _cxt_t, lk) {
-        _mkclear(ct, mark);
-    }
-}
-
 static inline int
-_mark_is_all_marked(int mark) {
-    _cxt_t*  ct;
-    yllist_foreach_item(ct, &_cxtl, _cxt_t, lk) {
-        if(!_mkisset(ct, mark)) { return 0; }
-    }
+_etst_is_all(unsigned int state) {
+    _walk_ethreads( if(!etst_isset(w, state)) { return 0; } );
     return 1;
 }
 
@@ -110,41 +86,20 @@ _mark_is_all_marked(int mark) {
  *
  *===================================================================*/
 void
-ylmt_add(const yletcxt_t* cxt) {
-    _cxt_t* ct = ylmalloc(sizeof(_cxt_t));
-    ct->cxt = cxt;
-    ct->mark = 0;
-
+ylmt_add(yletcxt_t* cxt) {
     _mlock(&_m);
     _walk_listeners(pre_add, (cxt));
-    yllist_add_last(&_cxtl, &ct->lk);
+    yllist_add_last(&_cxtl, &cxt->lk);
     _walk_listeners(post_add, (cxt));
     _munlock(&_m);
 }
 
 void
-ylmt_rm(const yletcxt_t* cxt) {
-   _cxt_t* ct;
-    /* add/rm should be done in the same thread! */
-    ylassert(pthread_self() == cxt->id);
-    
+ylmt_rm(yletcxt_t* cxt) {
     _mlock(&_m);
     _walk_listeners(pre_rm, (cxt));
-    yllist_foreach_item(ct, &_cxtl, _cxt_t, lk) {
-        if(ct->cxt == cxt) {
-            yllist_del(&ct->lk);
-            ylfree(ct);
-            _walk_listeners(post_rm, (cxt));
-            goto done;
-        }
-    }
-
-    if(&ct->lk == &_cxtl) {
-        yllogW1("Try to remove unlisted thread context : %p\n", cxt);
-    }
-
- done:
-    _munlock(&_m);
+    yllist_del(&cxt->lk);
+    _walk_listeners(post_rm, (cxt));
 
     /*
      * Some thread are not reported that they are in safe state.
@@ -155,8 +110,7 @@ ylmt_rm(const yletcxt_t* cxt) {
      *
      * See 'ylmt_notify_safe()' for more related comments.
      */
-    _mlock(&_m);
-    if(_mark_is_all_marked(_MKSAFE)) {
+    if(_etst_is_all(ETST_SAFE)) {
         _walk_listeners(all_safe, (&_m));
     }
     _munlock(&_m);
@@ -173,13 +127,19 @@ ylmt_register_listener(const ylmtlsn_t* lsnr) {
     yllist_add_last(&_lsnl, &p->lk);
 }
 
+
 int
-ylmt_is_safe() {
+ylmt_is_safe(yletcxt_t* cxt) {
     int ret;
     _mlock(&_m);
-    ret = _mark_is_all_marked(_MKSAFE);
+    ret = _etst_is_all(ETST_SAFE);
     _munlock(&_m);
+    not_used(cxt);
     return ret;
+}
+
+void static
+_handle_etsignal(yletcxt_t* cxt) {
 }
 
 /*
@@ -187,11 +147,9 @@ ylmt_is_safe() {
  * Be careful!
  *
  * !!! Further Thought !!!
- *    We may use 'mark count' for _MKSAFE,
- *     to reduce one-list-search for '_mark_is_all_marked'
- *    We may also can use 'Trie' instead of 'List'
- *     to reduce time from O(n) to O(1) for '_find_cxt()'
- *    So, "Trie + mark_count" can make complexity of 'ylmt_notify_safe()'
+ *    We may use 'mark count' for ETST_SAFE,
+ *     to reduce one-list-search for '_etst_is_all'
+ *    So, 'mark_count' can make complexity of 'ylmt_notify_safe()'
  *     from O(n) to O(1)!.
  *
  *    If needed, consider it!
@@ -199,29 +157,107 @@ ylmt_is_safe() {
  *    Keep simple as long as possible!
  */
 void
-ylmt_notify_safe(const yletcxt_t* cxt) {
-    _cxt_t*  ct;
+ylmt_notify_safe(yletcxt_t* cxt) {
     /*
      * SHOULD NOT use 'ylmt_is_safe()' here!
-     * We SHOULD KEEP SAFE while 'now_safe' is called.
-     * So, mutex SHOULD be kept locking!
+     * We SHOULD KEEP SAFE while 'all_safe' is called.
+     * So, mutex '_m' SHOULD be kept locking to make this be atomic!
+     * Case
+     *    Threads are all in safe. So, thread A walks 'all_safe' listeners.
+     *    During this, thread B goes out from 'ylmt_notify_safe'.
+     *    (thread B is not safe anymore).
+     *    => walking 'all_safe' in thread A may give unexpected result!.
      */
     _mlock(&_m);
 
-    ct = _find_cxt(cxt);
-    ylassert(ct);
-    _mkset(ct, _MKSAFE);
-    if(_mark_is_all_marked(_MKSAFE)) {
+    /*
+     * We don't need to use 'cxt->m' lock to mark 'ETST_SAFE'.
+     * 'ETST_SAFE' is used only in '_m' lock!
+     */
+    etst_set(cxt, ETST_SAFE);
+    if(_etst_is_all(ETST_SAFE)) {
         _walk_listeners(all_safe, (&_m));
     } else {
         _walk_listeners(thd_safe, (cxt, &_m));
     }
-    _mkclear(ct, _MKSAFE);
 
+    /* Handle special signal! */
+    if(etsig_isset(cxt, ETSIG_KILL)) {
+        etst_clear(cxt, ETST_SAFE);
+        _munlock(&_m);
+
+        ylinterpret_undefined(YLErr_killed);
+        ylassert(0); /* Cannot reach here! */
+    } else {
+        _handle_etsignal(cxt);
+    }
     _munlock(&_m);
 }
 
+void
+ylmt_notify_unsafe(yletcxt_t* cxt) {
+    _mlock(&_m);
+    etst_clear(cxt, ETST_SAFE);
+    _munlock(&_m);
+}
 
+void
+ylmt_cpid_set(yletcxt_t* cxt, long cpid) {
+    /*
+     * Other may trie to kill child process. (ex. to kill thread).
+     * So, internal-synchronization is required.
+     */
+    _mlock(&cxt->m);
+    cxt->cpid = (pid_t)cpid;
+    _munlock(&cxt->m);
+}
+
+void
+ylmt_cpid_unset(yletcxt_t* cxt) {
+    ylmt_cpid_set(cxt, INVALID_PID);
+}
+
+static inline void
+_kill(yletcxt_t* cxt) {
+    /*
+     *=========================
+     * ASSUMPTION. - IMPORTANT!
+     *=========================
+     *    One CNF spwaning only ONE child process!
+     */
+    _mlock(&cxt->m);
+    if(INVALID_PID != cxt->cpid) {
+        kill(cxt->cpid, SIGKILL);
+    }
+    if(etst_isset(cxt, ETST_SAFE)) {
+        /* target thread is in safe state. We can kill it! */
+        pthread_cancel((pthread_t)ylstk_peek(cxt->thdstk));
+    } else {
+        etsig_set(cxt, ETSIG_KILL);
+    }
+    _munlock(&cxt->m);
+}
+
+int
+ylmt_kill(yletcxt_t* cxt, pthread_t tid) {
+    int ret = -1;
+    /* Killing self is not allowed! */
+    if(cxt->base_id == tid || INVALID_TID == tid) { return -1; }
+    _mlock(&_m);
+    _walk_ethreads( if(w->base_id == tid) { _kill(w); ret = 0; break; } );
+    _munlock(&_m);
+    return ret;
+}
+
+void
+ylmt_walk(yletcxt_t* cxt, void* user,
+           /* return 1 to keep going, 0 to stop */
+          int(*cb)(void*, yletcxt_t* cxt)) {
+    _mlock(&_m);
+    _walk_ethreads( if(!(*cb)(user, w)) { break; } );
+    _munlock(&_m);
+    not_used(cxt);
+}
 
 ylerr_t
 ylmt_init() {

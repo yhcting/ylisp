@@ -23,6 +23,7 @@
 #ifndef ___LISp_h___
 #define ___LISp_h___
 
+#include <unistd.h>
 #include <pthread.h>
 #include <errno.h>
 #include "config.h"
@@ -79,10 +80,20 @@
  * Evaluation Thread Context
  *
  **********************************************/
-struct _etcxt {
-    pthread_t          id;
-    ylstk_t*           evalstk;
-    yldynb_t           dynb;
+
+struct _sEtcxt {
+    yllist_link_t          lk;       /**< link for linked list */
+    pthread_t              base_id;  /**< base(owner) thread id */
+    pthread_mutex_t        m;        /**< mutex for ethread internal use */
+    unsigned int           sig;      /**< signal bits */
+    unsigned int           state;    /**< thread state */
+    ylstk_t*               thdstk;   /**< evaluation thread stack [pthraed_t] */
+    pid_t                  cpid;     /**< child process id that this threads waiting for */
+    ylstk_t*               evalstk;  /**< evaluation stack [yle_t*] - for debugging */
+    yldynb_t               dynb;
+
+    const unsigned char*   stream;   /**< target stream interpreted */
+    unsigned int           streamsz; /**< stream size */
 }; /* Evaluation Thread ConteXT */
 
 extern ylerr_t ylnfunc_init();
@@ -140,6 +151,9 @@ ylinterp_automata(void* arg);
  */
 extern ylerr_t
 ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int streamsz);
+
+extern ylerr_t
+ylinterpret_async(pthread_t* thd, const unsigned char* stream, unsigned int streamsz);
 
 extern ylerr_t
 ylinit_thread_context(yletcxt_t* cxt);

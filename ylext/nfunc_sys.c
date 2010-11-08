@@ -26,10 +26,12 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <memory.h>
+#include <pthread.h>
 
 /* enable logging & debugging */
 #define CONFIG_ASSERT
@@ -102,20 +104,28 @@ _readf(unsigned int* outsz, const char* func, const char* fpath, int btext) {
  *    Be careful of using this function when use Multi-Threaded evaluation!
  */
 YLDEFNF(sh, 1, 1) {
-#define __outf_name ".#_______ylisp___shout______#"
-
+#define __max_fname   256
+#define __outf_prefix ".#_______ylisp___shout______#"
 #define __cleanup()                                     \
     /* clean resources */                               \
     if(buf) { ylfree(buf); }                            \
-    unlink(__outf_name);
+    unlink(outfname);
 
     char*       buf = NULL;
+    char        outfname[__max_fname];
 
     /* check input parameter */
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
     /* before forking flush/clean stdout and stderr */
     fflush(stdout); fflush(stderr);
+
+    /* make hard-to-duplicatable-filename */
+    if(__max_fname <= snprintf(outfname, __max_fname, "%s%x_%x_%x",
+                               __outf_prefix, (unsigned int)pthread_self(),
+                               (unsigned int)time(NULL), (unsigned int)clock())) {
+        ylassert(0); /* Oops! Is it possible! */
+    }
 
     { /* Just scope */
         pid_t       cpid; /* child process id */
@@ -128,23 +138,34 @@ YLDEFNF(sh, 1, 1) {
         }
 
         if(cpid) { /* parent */
-            /*ylprocinfo_add(cpid);*/
+            ylmt_cpid_set(cxt, cpid);
+            /* I'm safe. And may take some time. */
+            ylmt_notify_safe(cxt);
             if(-1 == waitpid(cpid, NULL, 0)) {
-                /* my turn again! lock! */
-                ylassert(0);
-                ylnflogE0("Fail to wait child process!\n");
-                kill(cpid, SIGKILL);
-                /*ylprocinfo_del(cpid);*/
-                goto bail;
+                if(ECHILD == errno) {
+                    /*
+                     * child process already killed!.
+                     * (This is possible. This is not error.)
+                     * Nothing to do.
+                     */
+                    ;
+                } else {
+                    ylassert(0);
+                    ylmt_notify_unsafe(cxt);
+                    ylnflogE0("Fail to wait child process!\n");
+                    kill(cpid, SIGKILL);
+                    /*ylprocinfo_del(cpid);*/
+                    goto bail;
+                }
             }
-            /*ylprocinfo_del(cpid);*/
-
+            ylmt_notify_unsafe(cxt);
+            ylmt_cpid_unset(cxt);
         } else { /* child */
             /*
              * redirect to file!
              */
             FILE*    ofh;
-            if( NULL == (ofh = fopen(__outf_name, "w")) ) {
+            if( NULL == (ofh = fopen(outfname, "w")) ) {
                 perror("Fail to open target file for redirection.\n");
                 exit(0);
             }
@@ -162,14 +183,15 @@ YLDEFNF(sh, 1, 1) {
 
     { /* Just scope */
         FILE*  fh;
-        fh = fopen(__outf_name, "r");
+        fh = fopen(outfname, "r");
         if(fh) {
             /* file exists. So, there is valid output */
             fclose(fh);
-            buf = _readf(NULL, "shell", __outf_name, TRUE);
+            buf = _readf(NULL, "shell", outfname, TRUE);
             if(!buf) { ylnflogW0("Cannot read shell output!!\n"); goto bail; }
         } else {
-            /* There is no output from command */
+            /* There is no output or access denied from command */
+            ylnflogW0("No Output or Fail to access output!\n");
             buf = ylmalloc(1);
             buf[0] = 0;
         }
@@ -199,14 +221,18 @@ YLDEFNF(sh, 1, 1) {
 YLDEFNF(sleep, 1, 1) {
     /* check input parameter */
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
+    ylmt_notify_safe(cxt);
     sleep((unsigned int)yladbl(ylcar(e)));
+    ylmt_notify_unsafe(cxt);
     return ylt();
 } YLENDNF(sleep)
 
 YLDEFNF(usleep, 1, 1) {
     /* check input parameter */
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
+    ylmt_notify_safe(cxt);
     usleep((unsigned int)yladbl(ylcar(e)));
+    ylmt_notify_unsafe(cxt);
     return ylt();
 } YLENDNF(usleep)
 

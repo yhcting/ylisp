@@ -43,7 +43,7 @@ typedef enum {
 
     YLErr_io, /* io error */
 
-    YLErr_force_stopped,
+    YLErr_killed,
 
     YLErr_under_interpreting,
 
@@ -139,14 +139,6 @@ ylinit(ylsys_t* sysv);
  */
 extern void
 yldeinit();
-
-/**
- * !! IMPORTANT !!
- *    'ylinterpret' & 'ylforce_stop' can be at different thread context.
- *    Calling 'ylforce_stop' can stop 'interpret'
- *    BUT, 'ylinterpret' or 'ylforce_stop' itself CANNOT BE concurrent!
- *    (Behavior is NOT DEFINED!)
- */
 
 extern ylerr_t
 ylinterpret(const unsigned char* stream, unsigned int streamsz);

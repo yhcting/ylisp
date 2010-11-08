@@ -50,7 +50,7 @@ _malloc(unsigned int size) {
 
 void
 _free(void* p) {
-    ylassert(_mblk > 0);
+    assert(_mblk > 0);
     _mblk--;
     free(p);
 }

@@ -29,7 +29,7 @@
 #ifndef ___YLTRIe_h___
 #define ___YLTRIe_h___
 
-typedef struct _trie yltrie_t;
+typedef struct _sTrie yltrie_t;
 
 /*
  * @fcb : callback to free trie value.
