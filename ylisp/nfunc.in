@@ -64,8 +64,9 @@ NFUNC(f_mset,                 "f-mset",                  ylaif_nfunc(),
     "     'mset' circular expression may crash interpreter when it used!"
     "    @symbol[Symbol]: symbol name.\n"
     "    @exp:            lisp expression.\n"
-    "    @desc[Symbol]:   description of this symbol.\n"
-    "    @return:         <exp>.\n"
+    "    @desc[Symbol]:\n"
+    "        description of this symbol.\n"
+    "        but, in case of local symbol(let), this is ignored.\n"
     "    *ex\n"
     "        (f-mset 'a '+) ;(a 7 8) => (+ 7 8)\n"
     "        (f-mset 'zzz 'rrr)\n"
@@ -73,6 +74,9 @@ NFUNC(f_mset,                 "f-mset",                  ylaif_nfunc(),
     "        (f-mset 'ttt '(car (list yy x y)))\n"
     "        (f-mset 'yy '(car '(ab cd)))\n"
     "        ;(equal zzz 'ab) => t\n")
+
+NFUNC(f_tmset,                "f-tmset",                 ylaif_nfunc(),
+    "Per-thread symbol version of f-mset. See f-mset for details.\n")
 
 NFUNC(eq,                     "eq",                      ylaif_nfunc(),
     "eq <exp1> <exp2>: [t/nil]\n"
@@ -96,16 +100,24 @@ NFUNC(set,                    "set",                     ylaif_nfunc(),
     "     *ex\n"
     "         (set 'a '(x y)); (a) => ('(x y))\n")
 
+NFUNC(tset,                   "tset",                    ylaif_nfunc(),
+    "Per-thread symbol version of set. See set for details.\n")
+
 NFUNC(unset,                  "unset",                   ylaif_nfunc(),
     "unset <symbol>\n"
     "    -Remove symbol from the global space.\n"
     "    @return: t if removed, nil if symbol doesn't exist.\n")
+
+NFUNC(tunset,                 "tunset",                  ylaif_nfunc(),
+    "Per-thread symbol version of unset. See unset for details.\n")
 
 NFUNC(is_set,                 "set?",                    ylaif_nfunc(),
     "set? <symbol> : [t/nil]\n"
     "    -check whether specified <symbol> is set in global symbol space or not.\n"
     "    @return: t if exists. Otherwise nil\n")
 
+NFUNC(is_tset,                "tset?",                   ylaif_nfunc(),
+    "Per-thread symbol version of set?. See set? for details.\n")
 
 NFUNC(eval,                   "eval",                    ylaif_nfunc(),
     "eval <exp>\n"

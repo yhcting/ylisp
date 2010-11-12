@@ -567,6 +567,7 @@ ylinit_thread_context(yletcxt_t* cxt) {
     cxt->thdstk = ylstk_create(0, NULL);
     cxt->cpid = INVALID_PID; /* invalid process id */
     cxt->evalstk = ylstk_create(0, NULL);
+    cxt->slut = ylslu_create();
     yldynb_init(&cxt->dynb, 4096);
     return 0;
 }
@@ -574,6 +575,7 @@ ylinit_thread_context(yletcxt_t* cxt) {
 void
 yldeinit_thread_context(yletcxt_t* cxt) {
     yldynb_clean(&cxt->dynb);
+    ylslu_destroy(cxt->slut);
     ylstk_destroy(cxt->evalstk);
     ylstk_destroy(cxt->thdstk);
     pthread_mutex_destroy(&cxt->m);

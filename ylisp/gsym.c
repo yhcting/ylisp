@@ -25,17 +25,7 @@
 #include <string.h>
 #include "lisp.h"
 
-typedef struct _value {
-    int        ty;     /* this should matches symbol atom type - see 'yle_t.u.a.u.sym.ty' */
-    char*      desc;   /* description for this value */
-    yle_t*     e;
-} _value_t;
-
-/*
- * Globally singleton!!
- */
-static char              _dummy_empty_desc = 0;
-static yltrie_t*         _trie = NULL;
+static slut_t*           _t = NULL;
 
 /*
  * Global Symbol Trie Should not be corrupted!!
@@ -43,160 +33,70 @@ static yltrie_t*         _trie = NULL;
  */
 static pthread_mutex_t   _m;
 
-static inline void
-_free_description(char* desc) {
-    if(&_dummy_empty_desc != desc && desc) {
-        ylfree(desc);
-    }
-}
-
-static inline _value_t*
-_alloc_value(int sty, yle_t* e) {
-    _value_t* v = ylmalloc(sizeof(_value_t));
-    if(!v) {
-        /*
-         * if allocing such a small size of memory fails, we can't do anything!
-         * Just ASSERT IT!
-         */
-        ylassert(0);
-    }
-    v->ty = sty; v->desc = &_dummy_empty_desc;
-    v->e = e;
-    return v;
-}
-
-static inline void
-_free_value(_value_t* v) {
-    _free_description(v->desc);
-    /*
-     * we don't need to free 'v->e' explicitly here!
-     * unlinking from global is enough!
-     */
-    ylfree(v);
-}
-
 ylerr_t
 ylgsym_init() {
     pthread_mutex_init(&_m, ylmutexattr());
-    _trie = yltrie_create( (void(*)(void*))&_free_value );
+    _t = ylslu_create();
     return YLOk;
 }
 
 void
 ylgsym_deinit() {
-    yltrie_destroy(_trie);
+    ylslu_destroy(_t);
     pthread_mutex_destroy(&_m);
 }
 
 int
 ylgsym_insert(const char* sym, int sty, yle_t* e) {
-    int           ret;
-    _value_t*     v;
-    unsigned int  slen;
-    _value_t*     ov;
-    v = _alloc_value(sty, e);
-    slen = strlen(sym);
+    int    ret;
     _mlock(&_m);
-    ov = yltrie_get(_trie, (unsigned char*)sym, slen);
-    if(ov) {
-        /*
-         * in case of overwritten, description should be preserved.
-         * If this twice-search is bottle-neck of performance,
-         *  we can reduce overhead by setting value directly to the existing 'ov'.
-         * By doing this, we can recduce cost
-         * by saving 1-trie-seach and 1-freeing-trie-node.
-         * (But in my opinion, it's not big deal!
-         *  We whould better not to write hard-to-read-code.)
-         */
-        v->desc = ov->desc;
-        /* to prevent from freeing inside trie! - HACK */
-        ov->desc = &_dummy_empty_desc;
-    }
-    ret = yltrie_insert(_trie, (unsigned char*)sym, slen, (void*)v);
+    ret = ylslu_insert(_t, sym, sty, e);
     _munlock(&_m);
-    
     return ret;
 }
 
 int
 ylgsym_delete(const char* sym) {
-    int ret;
+    int    ret;
     _mlock(&_m);
-    ret = yltrie_delete(_trie, (unsigned char*)sym, strlen(sym));
+    ret = ylslu_delete(_t, sym);
     _munlock(&_m);
     return ret;
 }
 
 int
 ylgsym_set_description(const char* sym, const char* description) {
-    _value_t* v;
+    int    ret;
     _mlock(&_m);
-    v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
-    if(v) {
-        unsigned int sz;
-        char*        desc;
-        if(description) {
-            sz = strlen(description);
-            desc = ylmalloc(sz+1);
-            if(!desc) { ylassert(0); }
-            memcpy(desc, description, sz);
-            desc[sz] = 0; /* trailing 0 */
-        } else {
-            /* NULL description */
-            desc = &_dummy_empty_desc;
-        }
-
-        _free_description(v->desc);
-        v->desc = desc;
-        _munlock(&_m);
-        return 0;
-    } else {
-        _munlock(&_m);
-        return -1;
-    }
+    ret = ylslu_set_description(_t, sym, description);
+    _munlock(&_m);
+    return ret;
 }
 
 const char*
 ylgsym_get_description(const char* sym) {
-    _value_t* v;
+    const char* ret;
     _mlock(&_m);
-    v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
+    ret = ylslu_get_description(_t, sym);
     _munlock(&_m);
-    return v? v->desc: NULL;
+    return ret;
 }
 
 yle_t*
 ylgsym_get(int* outty, const char* sym) {
-    _value_t* v;
+    yle_t*    ret;
     _mlock(&_m);
-    v = yltrie_get(_trie, (unsigned char*)sym, strlen(sym));
+    ret = ylslu_get(_t, outty, sym);
     _munlock(&_m);
-    if(v) {
-        if(outty) { *outty = v->ty; }
-        return v->e;
-    } else {
-        return NULL;
-    }
-}
-
-_DEF_VISIT_FUNC(static, _gcmark, ,!yleis_gcmark(e), yleset_gcmark(e))
-
-static int
-_cb_gcmark(void* user,
-           const unsigned char* key, unsigned int sz,
-           _value_t* v) {
-    if(v->e) { _gcmark(NULL, v->e); }
-    return 1;
+    return ret;
 }
 
 void
 ylgsym_gcmark() {
     /* This is called by only 'GC in Mempool' */
-    if(_trie) {
+    if(_t) {
         _mlock(&_m);
-        yltrie_walk(_trie, NULL, (unsigned char*)"", 0,
-                    (int(*)(void*, const unsigned char*,
-                            unsigned int, void*))&_cb_gcmark);
+        ylslu_gcmark(_t);
         _munlock(&_m);
     }
 }
@@ -206,84 +106,30 @@ ylgsym_auto_complete(const char* start_with,
                      char* buf, unsigned int bufsz) {
     int ret;
     _mlock(&_m);
-    ret =yltrie_auto_complete(_trie, (unsigned char*)start_with,
-                              (unsigned int)strlen(start_with),
-                              (unsigned char*)buf, bufsz);
+    ret =ylslu_auto_complete(_t, start_with,  buf, bufsz);
     _munlock(&_m);
     return ret;
-}
-
-typedef struct {
-    unsigned int    cnt;
-    unsigned int    maxlen;
-} _candidates_sz_t;
-
-static int
-_cb_nr_candidates(void* user, const unsigned char* key,
-                  unsigned int sz,_value_t* v) {
-    _candidates_sz_t* st = (_candidates_sz_t*)user;
-    st->cnt++;
-    if(st->maxlen < sz) { st->maxlen = sz; }
-    return 1;
 }
 
 int
 ylgsym_nr_candidates(const char* start_with,
                      unsigned int* max_symlen) {
-    _candidates_sz_t   st;
-    st.cnt = st.maxlen = 0;
-
+    int    ret;
     _mlock(&_m);
-    if(0 > yltrie_walk(_trie, &st, (unsigned char*)start_with,
-                       (unsigned int)strlen(start_with),
-                       (int(*)(void*, const unsigned char*,
-                               unsigned int, void*))&_cb_nr_candidates)) {
-        _munlock(&_m);
-        return 0;
-    }
+    ret = ylslu_nr_candidates(_t, start_with, max_symlen);
     _munlock(&_m);
-
-    if(max_symlen) { *max_symlen = st.maxlen; }
-    return st.cnt;
-}
-
-typedef struct {
-    char**         ppbuf;
-    unsigned int   ppbsz;
-    unsigned int   i;
-} _candidates_t;
-
-
-static int
-_cb_candidates(void* user, const unsigned char* key,
-               unsigned int sz, _value_t* v) {
-    _candidates_t* st = (_candidates_t*)user;
-    if(st->i >= st->ppbsz) { return 0; } /* we should stop here! */
-    memcpy(st->ppbuf[st->i], key, sz);
-    st->ppbuf[st->i][sz] = 0; /* add trailing 0 */
-    st->i++;
-    return 1; /* keep going */
+    return ret;
 }
 
 int
 ylgsym_candidates(const char* start_with, char** ppbuf,
                   unsigned int ppbsz,
                   unsigned int pbsz) {
-    _candidates_t  st;
-    st.ppbuf = ppbuf;
-    st.ppbsz = ppbsz;
-    st.i = 0;
-
+    int    ret;
     _mlock(&_m);
-    if(0 > yltrie_walk(_trie, &st, (unsigned char*)start_with,
-                       (unsigned int)strlen(start_with),
-                       (int(*)(void*, const unsigned char*,
-                               unsigned int, void*))&_cb_candidates)) {
-        _munlock(&_m);
-        return -1;
-    }
+    ret = ylslu_candidates(_t, start_with, ppbuf, ppbsz, pbsz);
     _munlock(&_m);
-    return st.i;
+    return ret;
 }
 
 

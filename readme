@@ -23,7 +23,8 @@ Introduction
         * Lisp evaluation mechanism
           (fundamental S-Functions are built-in (ex. lambda, mlambda, set,
            mset) in the library)
-        * Mechanism for GC(Garbage Collection) and Force-Stop.
+        * Mechanism for GC(Garbage Collection)
+        * Multithreading support.
         * Mechanism to manage/lookup global symbols and to get candidates for
            auto-completion.
         * Interface to load/unload CNF plugins(libraries).
@@ -59,9 +60,6 @@ Design Policy
                'symbol'.
               ((lambda (f) (f '(1 2))) (eval x)) ; => 1
     Easy to add new CNF plugins.
-        - In most cases, consumer don't need to consider about protecting
-           memory block from GC.
-          See 'GC' part for details.
         - There is predefined interface that atom should support.
           So, consumer can easily add their own atom type at his/her plugin.
 
@@ -94,8 +92,7 @@ How Do I Run Demo?
 
 Is It Useful To Me?
 -------------------
-    I don't know.
-    I uses yljfe as a simple script language tool for making tool.
+    I uses yljfe as a simple script language for making tool.
     The reason why I starts this project is,
         "I don't want to learn any other script language! Learning
          one-language(C/C++) is enough!"
@@ -295,24 +292,41 @@ GC(Garbage collection)
                by calling 'ylmp_popN()'.
               Except for this case (use 'yleval' in CNF), developer don't need
                to worry about keeping memory blocks from GC.
-        - When there is no interpreting request for pre-defined duration, GC is
-           triggered.
-          (Do expensive job when idle!)
 
 
-Force stop
-----------
-    YLISP supports 'force stop(henceforth FS)' even if it based on thread-based
-     interpreting.
-    To use 'FS' interpreting(ylinterpret(..)) and FS(ylforce_stop(...)) should
-     be run on different thread.
-    Moment of triggering FS is "Between evaluation".
-    So, one long-evaluation be interrupted by FS.
-    That's why "one evaluation would be better to be short and simple"
-    And, For CNF that spawns child process and waits it, the CNF should set
-     child process id by calling 'ylchild_proc_set()' to make FC be able to
-     kill sub-process.
-    After FS, FSGC is executed to collect garbage.
+Multithreading
+--------------
+    YLISP supports Mutithreading(henceforth MT). That is, YLISP library can
+     handle several interpret request simultaneously. And it also supports
+     creating evaluation thread. This evalation thread runs concurrently with
+     parent thread. It's just like 'pthread_create' in C.
+    Biggest issue is GC.Once memory is running out, thread try to do GC. If
+     all threads are in safe state, GC is triggered. If not, threads waits in
+     safe state. All running threads do exactly same thing with above.
+    So, the last thread will trigger GC - due to all other threads are waiting
+     in safe state. And then, signals to others to say 'it's time to continue'.
+    The design of GC mechanism is not focused on performance but stability.
+    GC is triggered only at all evaluation thread are in safe state. And
+     threads can enter safe state at the end of evaluation normally.
+    So, we can say that one evaluation routine is atomic operation of YLISP.
+    Too long atomic operation is bottleneck of YLISP due to GC. So, each CNF
+     should consider about it - usually, we don't need to do, because in most
+     cases, CNF is short enough.
+    But, sometimes one CNF can be long, and in this case thread should manually
+     notify "I am in safe state" before enter long-time-consuming-operation not
+     to be GC-bottleneck. (ex. executing other child process.) 'sh' function
+     is good example.
+
+    Reading/Writing from/to global symbols table is automatically synchronized.
+    But changing expression list or atom contents directly is not automatically
+     synchronized. So, this should be considered enough in MT programming.
+
+    * Per-thread symbol table
+        Each thread has it's own symbol table. But memory block is globally
+         shared. Even if in most cases, we don't need to worry about
+         synchronization of per-thread symbol, we should keep this in mind.
+        Especially, argument of creating thread, should be taken carefully
+         because memory blocks of this arguement may be used by parent thread.
 
 
 Error handling

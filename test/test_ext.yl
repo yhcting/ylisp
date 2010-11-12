@@ -375,3 +375,41 @@
 (assert (trietype? (make-trie '())))
 
 (assert (equal 4 (length2 (to-bin 'aaa))))
+
+
+;=============================
+; Test Per-thread symbol
+;=============================
+(print '"\n>>> Test Per-Thread Symbols!\n")
+(tset 'mytsym0 'haha)
+(assert (not (set? 'mytsym0)))
+(assert (tset? 'mytsym0))
+(create-thread '"
+    (let ( (t 'a) )
+        (assert (not (set? 'mytsym0)))
+        (assert (not (tset? 'mytsym0)))
+        ; set global symbol
+        (set 'exttsym0 1)
+        ; override with per-thread symbol
+        (tset 'exttsym0 2)
+        ; local symbol should be chaged
+        (tset 't 10)
+        (assert (not (tset? 't)))
+        ; temporal per-thread symbol
+        (tset 'perthd 100)
+        (assert (equal 10 t))
+        (assert (equal 2 exttsym0)))
+        ; wait
+        (sleep 2) ")
+(sleep 1)
+(assert (not (set? 'perthd)))
+(assert (not (tset? 'perthd)))
+(assert (set? 'exttsym0))
+(assert (not (tset? 'exttsym0)))
+(unset 'exttsym0)
+
+(assert (tset? 'mytsym0))
+(tunset 'mytsym0)
+(assert (not (tset? 'mytsym0)))
+(sleep 2)
+(print '"\n>>> Per-Thread Symbol Test PASSED!!\n")

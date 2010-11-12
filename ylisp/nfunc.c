@@ -74,6 +74,20 @@ YLDEFNF(f_mset, 2, 3) {
     }
 } YLENDNF(f_mset)
 
+YLDEFNF(f_tmset, 2, 3) {
+    if(pcsz > 2) {
+        if(ylais_type(ylcaddr(e), ylaif_sym()))  {
+            return yltmset(cxt, ylcar(e), ylcadr(e), a, ylasym(ylcaddr(e)).sym);
+        } else {
+            ylnflogE0("MSET : 3rd parameter should be description string\n");
+            ylinterpret_undefined(YLErr_func_invalid_param);
+            return NULL; /* to make compiler happy */
+        }
+    } else {
+        return yltmset(cxt, ylcar(e), ylcadr(e), a, NULL);
+    }
+} YLENDNF(f_mset)
+
 /* eq [car [e]; EQ] -> [eval [cadr [e]; a] = eval [caddr [e]; a]] */
 YLDEFNF(eq, 2, 2) {
     /* compare memory address */
@@ -98,17 +112,51 @@ YLDEFNF(set, 2, 3) {
     }
 } YLENDNF(set)
 
+YLDEFNF(tset, 2, 3) {
+    if(pcsz > 2) {
+        if(ylais_type(ylcaddr(e), ylaif_sym()))  {
+            return yltset(cxt, ylcar(e), ylcadr(e), a,ylasym(ylcaddr(e)).sym);
+        } else {
+            ylnflogE0("SET : 3rd parameter should be description string\n");
+            ylinterpret_undefined(YLErr_func_invalid_param);
+            return NULL; /* to make compiler happy */
+        }
+    } else {
+        return yltset(cxt, ylcar(e), ylcadr(e), a, NULL);
+    }
+} YLENDNF(tset)
+
 YLDEFNF(unset, 1, 1) {
     ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
     if(0 <= ylgsym_delete(ylasym(ylcar(e)).sym)) { return ylt(); }
     else { return ylnil(); }
 } YLENDNF(unset)
 
+YLDEFNF(tunset, 1, 1) {
+    ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
+    if(0 <= ylslu_delete(cxt->slut, ylasym(ylcar(e)).sym)) { return ylt(); }
+    else { return ylnil(); }
+} YLENDNF(unset)
+
 YLDEFNF(is_set, 1, 1) {
     ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
-    if(ylis_set(ylasym(ylcar(e)).sym)) { return ylt(); }
-    else { return ylnil(); }
+    if( !yleis_nil(ylamong(ylcar(e), a)) ) {
+        /* found it in association list! */
+        return ylt();
+    } else if(ylis_set(ylasym(ylcar(e)).sym)) {
+        return ylt();
+    } else { return ylnil(); }
 } YLENDNF(is_set)
+
+YLDEFNF(is_tset, 1, 1) {
+    ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
+    if( !yleis_nil(ylamong(ylcar(e), a)) ) {
+        /* found it in association list! */
+        return ylt();
+    } else if(ylis_tset(cxt, ylasym(ylcar(e)).sym)) {
+        return ylt();
+    } else { return ylnil(); }
+} YLENDNF(is_tset)
 
 YLDEFNF(eval, 1, 1) {
     return yleval(cxt, ylcar(e), a);

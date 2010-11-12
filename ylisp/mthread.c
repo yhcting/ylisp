@@ -259,6 +259,14 @@ ylmt_walk(yletcxt_t* cxt, void* user,
     not_used(cxt);
 }
 
+void
+ylmt_walk_locked(yletcxt_t* cxt, void* user,
+                 /* return 1 to keep going, 0 to stop */
+                 int(*cb)(void*, yletcxt_t* cxt)) {
+    _walk_ethreads( if(!(*cb)(user, w)) { break; } );
+    not_used(cxt);
+}
+
 ylerr_t
 ylmt_init() {
     yllist_init_link(&_cxtl);

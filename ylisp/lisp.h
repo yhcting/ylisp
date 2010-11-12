@@ -64,6 +64,7 @@
 #include "mempool.h"
 #include "mthread.h"
 #include "yltrie.h"
+#include "symlookup.h"
 #include "gsym.h"
 
 
@@ -90,6 +91,7 @@ struct _sEtcxt {
     ylstk_t*               thdstk;   /**< evaluation thread stack [pthraed_t] */
     pid_t                  cpid;     /**< child process id that this threads waiting for */
     ylstk_t*               evalstk;  /**< evaluation stack [yle_t*] - for debugging */
+    slut_t*                slut;     /**< per-thread Symbol LookUp Table */
     yldynb_t               dynb;
 
     const unsigned char*   stream;   /**< target stream interpreted */

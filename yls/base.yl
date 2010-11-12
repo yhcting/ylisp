@@ -24,6 +24,10 @@
         ;(equal zzz 'ab) => t
 ")
 
+(f-tmset 'tmset
+    '(mlambda() (apply f-tmset))
+'"Per thread version of mset.\n")
+
 (mset defun
     (mlambda (nAME aRG dESC bODY)
         (mset nAME

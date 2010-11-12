@@ -92,7 +92,6 @@
  *===================================*/
 
 struct sYle;
-struct _sEtcxt;
 typedef struct _sEtcxt yletcxt_t;
 /* -------------------------
  * Structures for atom data type
@@ -269,13 +268,13 @@ typedef struct sYle {
 /* -- common -- */
 #define yleis_nil(e)            (ylnil() == (e))
 
-#define yleset_mark(e)     ((e)->t |= YLEMark)
-#define yleclear_mark(e)   ((e)->t &= ~YLEMark)
-#define yleis_mark(e)      ((e)->t & YLEMark)
+#define yleset_mark(e)          ((e)->t |= YLEMark)
+#define yleclear_mark(e)        ((e)->t &= ~YLEMark)
+#define yleis_mark(e)           (!!((e)->t & YLEMark))
 
-#define yleset_gcmark(e)     ((e)->t |= YLEGCMark)
-#define yleclear_gcmark(e)   ((e)->t &= ~YLEGCMark)
-#define yleis_gcmark(e)      ((e)->t & YLEGCMark)
+#define yleset_gcmark(e)        ((e)->t |= YLEGCMark)
+#define yleclear_gcmark(e)      ((e)->t &= ~YLEGCMark)
+#define yleis_gcmark(e)         (!!((e)->t & YLEGCMark))
 
 /* -- symbol -- */
 #define ylasymis_macro(ty)      ((ty) & YLASymbol_macro)
@@ -335,6 +334,9 @@ extern const ylatomif_t* const ylg_predefined_aif_nil;
 #define ylaif_bin()     ylg_predefined_aif_bin
 #define ylaif_nil()     ylg_predefined_aif_nil
 
+
+#define ylb2e(i)          ((i)? ylt(): ylnil()) /* boolean => yle_t* */
+#define yle2b(e)         !(ylnil() == (e))      /* yle_t* => boolean */
 #define yleis_true(e)     (ylnil() != (e))
 #define yleis_false(e)    (ylnil() == (e))
 

@@ -28,7 +28,7 @@
 
 (ede-cpp-root-project (concat yhc.target "-root")
                 :name (concat yhc.target "-root")
-                :file (concat "~/Develop/cedetws/ylisp/" yhc.target "/Makefile")
+                :file (concat "~/dev/cedetws/ylisp/" yhc.target "/Makefile")
                 :include-path '("../include"
                                )
                 :system-include-path '("/usr/include")

@@ -18,18 +18,22 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-
-#ifndef ___GSYm_h___
-#define ___GSYm_h___
+#ifndef ___SYMLOOKUp_h___
+#define ___SYMLOOKUp_h___
 
 #include "lisp.h"
 
+/*
+ * This is dummy type for encapsulation of 'ylslu' module.
+ */
+typedef struct _sSlut slut_t;
 
-extern ylerr_t
-ylgsym_init();
+
+extern slut_t*
+ylslu_create();
 
 extern void
-ylgsym_deinit();
+ylslu_destroy(slut_t*);
 
 /**
  * @sty : symbol type (see comment of 'YLASymbol attributes' at yldev.h)
@@ -39,7 +43,7 @@ ylgsym_deinit();
  *    1: overwritten
  */
 extern int
-ylgsym_insert(const char* sym, int sty, yle_t* e);
+ylslu_insert(slut_t* t, const char* sym, int sty, yle_t* e);
 
 /**
  * @return:
@@ -47,33 +51,34 @@ ylgsym_insert(const char* sym, int sty, yle_t* e);
  *    0 : deleted.
  */
 extern int
-ylgsym_delete(const char* sym);
+ylslu_delete(slut_t* t, const char* sym);
 
 /**
  * @description: can be NULL for empty descritpion.
  */
 extern int
-ylgsym_set_description(const char* sym, const char* description);
+ylslu_set_description(slut_t* t, const char* sym, const char* description);
 
 /**
  * @return: NULL if @sym is not in global symbol space.
  */
 extern const char*
-ylgsym_get_description(const char* sym);
+ylslu_get_description(slut_t* t, const char* sym);
 
 /**
  * @outty [out]: type of symbol. this can be NULL if not to want to get.
  * @return     : NULL if @sym is not in trie.
  */
 extern yle_t*
-ylgsym_get(int* outty, const char* sym);
+ylslu_get(slut_t* t, int* outty, const char* sym);
 
 /**
  * Mark memory blocks those can be reachable from Trie for GC.
  * @return: number of memblock that is marked as 'Reachable'
  */
 extern void
-ylgsym_gcmark();
+ylslu_gcmark(slut_t* t);
+
 
 /**
  * get auto-completed-symbol
@@ -84,23 +89,24 @@ ylgsym_gcmark();
  *    <0 : error (ex. not enough buffer size)
  */
 extern int
-ylgsym_auto_complete(const char* start_with,
-                     char* buf, unsigned int bufsz);
+ylslu_auto_complete(slut_t* t, const char* start_with,
+                    char* buf, unsigned int bufsz);
 
 /**
  * @max_symlen: [out] max symbol length of candidates(based on 'sizeof(char)' - excluding prefix.
  * @return: <0 : internal error(not enough internal buffer size)
  */
 extern int
-ylgsym_nr_candidates(const char* start_with,
-                     unsigned int* max_symlen);
+ylslu_nr_candidates(slut_t* t, const char* start_with,
+                    unsigned int* max_symlen);
 
 /**
  * @return: <0: error. Otherwise number of candidates found.
  */
 extern int
-ylgsym_candidates(const char* start_with, char** ppbuf,
-                  unsigned int ppbsz,
-                  unsigned int pbsz);
+ylslu_candidates(slut_t* t, const char* start_with, char** ppbuf,
+                 unsigned int ppbsz,
+                 unsigned int pbsz);
 
-#endif /* ___GSYm_h___ */
+
+#endif /* ___SYMLOOKUp_h___ */

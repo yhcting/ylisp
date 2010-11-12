@@ -25,6 +25,19 @@
 #include <string.h>
 #include "lisp.h"
 
+
+/*
+ * SA : Symbol Attribute
+ * Default : Per-thread symbol
+ */
+enum {
+    _SA_MAC    = 0x01, /* macro symbol */
+    _SA_GLOB   = 0x02, /* global symbol - if not, perthread symbol */
+};
+
+#define _is_symmac(a)     (!!(_SA_MAC  & (a)))
+#define _is_symglob(a)    (!!(_SA_GLOB & (a)))
+
 #ifdef CONFIG_DBG_EVAL
 /*
  * this is for debugging perforce
@@ -124,11 +137,11 @@ _list_find(yle_t* x, yle_t* y) {
  * @val:   any S-expression - value
  * @a:     map list
  * @desc:  description of symbol
- * @bmc:   Is this for macro
+ * @attr:  symbol attribute.
  * @return: new value
  */
 static yle_t*
-_set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
+_set(yletcxt_t* cxt, yle_t* s, yle_t* val, yle_t* a, const char* desc, int attr) {
     yle_t* r;
     if( !ylais_type(s, ylaif_sym())
         || ylnil() == s) {
@@ -151,22 +164,42 @@ _set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
             ylinterpret_undefined(YLErr_eval_undefined);
         } else  {
             ylassert(ylais_type(ylcar(r), ylaif_sym()));
-            if(bmac) { ylasymset_macro(ylasym(ylcar(r)).ty); }
+            if(_is_symmac(attr)) { ylasymset_macro(ylasym(ylcar(r)).ty); }
             else { ylasymclear_macro(ylasym(ylcar(r)).ty); }
             /* change value of local map yllist */
             ylpsetcdr(r, ylcons(val, ylnil()));
         }
+        /* argument desc is ignored */
     } else {
-        /* not found - set to global space */
-        if(bmac) { ylgsym_insert(ylasym(s).sym, ylasymset_macro(ylasym(s).ty), val); }
-        else { ylgsym_insert(ylasym(s).sym, ylasymclear_macro(ylasym(s).ty), val); }
-        if(desc) {
-            if(desc[0]) {
-                /* strlen(desc) > 0 */
-                ylgsym_set_description(ylasym(s).sym, desc);
-            } else {
-                /* strlen(desc) == 0 */
-                ylgsym_set_description(ylasym(s).sym, NULL);
+        /* not a local symbol - so global or per-thread*/
+        if(_is_symglob(attr)) {
+            /*
+             * global symbol!
+             */
+            if(_is_symmac(attr)) { ylgsym_insert(ylasym(s).sym, ylasymset_macro(ylasym(s).ty), val); }
+            else { ylgsym_insert(ylasym(s).sym, ylasymclear_macro(ylasym(s).ty), val); }
+            if(desc) {
+                if(desc[0]) {
+                    /* strlen(desc) > 0 */
+                    ylgsym_set_description(ylasym(s).sym, desc);
+                } else {
+                    /* strlen(desc) == 0 */
+                    ylgsym_set_description(ylasym(s).sym, NULL);
+                }
+            }
+        } else {
+            /*
+             * per thread symbol!
+             */
+            ylassert(cxt);
+            if(_is_symmac(attr)) { ylslu_insert(cxt->slut, ylasym(s).sym, ylasymset_macro(ylasym(s).ty), val); }
+            else { ylslu_insert(cxt->slut, ylasym(s).sym, ylasymclear_macro(ylasym(s).ty), val); }
+            if(desc) {
+                if(desc[0]) {
+                    ylslu_set_description(cxt->slut, ylasym(s).sym, desc);
+                } else {
+                    ylslu_set_description(cxt->slut, ylasym(s).sym, NULL);
+                }
             }
         }
     }
@@ -175,18 +208,32 @@ _set(yle_t* s, yle_t* val, yle_t* a, const char* desc, int bmac) {
 
 yle_t*
 ylset(yle_t* s, yle_t* val, yle_t* a, const char* desc) {
-    return _set(s, val, a, desc, FALSE);
+    return _set(NULL, s, val, a, desc, _SA_GLOB);
+}
+
+yle_t*
+yltset(yletcxt_t* cxt, yle_t* s, yle_t* val, yle_t* a, const char* desc) {
+    return _set(cxt, s, val, a, desc, 0); /* Per-thread */
 }
 
 yle_t*
 ylmset(yle_t* s, yle_t* val, yle_t* a, const char* desc) {
-    return _set(s, val, a, desc, TRUE);
+    return _set(NULL, s, val, a, desc, _SA_GLOB | _SA_MAC);
+}
+
+yle_t*
+yltmset(yletcxt_t* cxt, yle_t* s, yle_t* val, yle_t* a, const char* desc) {
+    return _set(cxt, s, val, a, desc, _SA_MAC);
 }
 
 int
 ylis_set(const char* sym) {
-    if(ylgsym_get(NULL, sym)) { return 1; }
-    else { return 0; }
+    return !!ylgsym_get(NULL, sym);
+}
+
+int
+ylis_tset(yletcxt_t* cxt, const char* sym) {
+    return !!ylslu_get(cxt->slut, NULL, sym);
 }
 
 /*
@@ -242,7 +289,7 @@ _mreplace(yle_t* e, yle_t* a) {
  * < additional constraints : x is atomic >
  */
 const yle_t*
-_assoc(int* ovty, yle_t* x, yle_t* y) {
+_assoc(yletcxt_t* cxt, int* ovty, yle_t* x, yle_t* y) {
     yle_t* r;
     if( !ylais_type(x, ylaif_sym()) ) {
         yllogE0("Only symbol can be associated!\n");
@@ -278,29 +325,40 @@ _assoc(int* ovty, yle_t* x, yle_t* y) {
         ylassert(ylais_type(ylcar(r), ylaif_sym()));
         *ovty = ylasym(ylcar(r)).ty;
         return ylasymis_macro(*ovty)? _list_clone(ylcadr(r)): ylcadr(r);
-    } else {
-        r = (yle_t*)ylgsym_get(ovty, ylasym(x).sym);
-        if(r) {
-            return ylasymis_macro(*ovty)? _list_clone(r): r;
-        } else {
-            /*
-             * check whether this represents number or not
-             * (string that representing number associated to 'double' type value )
-             */
-            char*   endp;
-            double  d;
-            d = strtod(ylasym(x).sym, &endp);
-            if( 0 == *endp && ERANGE != errno ) {
-                /* default is 0 */
-                *ovty = 0;
-                /* right coversion - let's assign double type atom*/
-                return ylacreate_dbl(d);
-            }
-
-            yllogE1("symbol [%s] was not set!\n", ylasym(x).sym);
-            ylinterpret_undefined(YLErr_eval_undefined);
-        }
     }
+
+    /* Find in per-thread symbol table! */
+    r = (yle_t*)ylslu_get(cxt->slut, ovty, ylasym(x).sym);
+    if(r) {
+        return ylasymis_macro(*ovty)? _list_clone(r): r;
+    }
+
+    /* At last find in global symbol table */
+    r = (yle_t*)ylgsym_get(ovty, ylasym(x).sym);
+    if(r) {
+        return ylasymis_macro(*ovty)? _list_clone(r): r;
+    }
+
+    /* check that this is numeric symbol */
+    { /* Just Scope */
+        /*
+         * check whether this represents number or not
+         * (string that representing number associated to 'double' type value )
+         */
+        char*   endp;
+        double  d;
+        d = strtod(ylasym(x).sym, &endp);
+        if( 0 == *endp && ERANGE != errno ) {
+            /* default is 0 */
+            *ovty = 0;
+            /* right coversion - let's assign double type atom*/
+            return ylacreate_dbl(d);
+        }
+
+        yllogE1("symbol [%s] was not set!\n", ylasym(x).sym);
+        ylinterpret_undefined(YLErr_eval_undefined);
+    }
+
     return NULL; /* to make compiler happy */
 }
 
@@ -340,7 +398,7 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
 
     if( yleis_atom(e) ) {
         if(ylaif_sym() == ylaif(e)) {
-            r = (yle_t*)_assoc(&vty, e, a);
+            r = (yle_t*)_assoc(cxt, &vty, e, a);
             if(ylasymis_macro(vty)) {
                 /* this is macro!. evaluate it again */
                 r = yleval(cxt, r, a);
@@ -353,7 +411,7 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
         yle_t*   car_e =ylcar(e);
 
         if(ylaif_sym() == ylaif(car_e) ) {
-            r = (yle_t*)_assoc(&vty, car_e, a);
+            r = (yle_t*)_assoc(cxt, &vty, car_e, a);
             if(ylasymis_macro(vty)) {
                 /*
                  * This is macro symbol! replace target expression with symbol.

@@ -184,6 +184,16 @@ _clean_block(yle_t* e) {
 
 _DEF_VISIT_FUNC(static, _gcmark, ,!yleis_gcmark(e), yleset_gcmark(e))
 
+static int
+_gc_perthread_mark(void* user, yletcxt_t* cxt) {
+    ylslu_gcmark(cxt->slut);
+    return 1; /* keep going to the end */
+}
+
+/*
+ * Pre-condition
+ *    - mthread module is locked!
+ */
 static void
 _gc() {
     unsigned int  cnt, ratio_sv;
@@ -201,6 +211,9 @@ _gc() {
         _gcmark(NULL, e);
     }
     _munlock(&_mbbs);
+
+    /* memory blocks reachable from each thread symbol table should be preserved */
+    ylmt_walk_locked(NULL, NULL, &_gc_perthread_mark);
 
     /* memory blocks reachable from global symbol should be preserved */
     ylgsym_gcmark();

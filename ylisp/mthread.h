@@ -113,10 +113,20 @@ ylmt_kill(yletcxt_t* cxt, pthread_t tid);
  * @cb is called in 'lock'
  * So, 'ylmt_xxx' SHOULD NOT be used inside callback due to risk of deadlock!
  * See comments of 'ylmtlsn_t' for more details.
+ *
+ * @cxt : calling thread context. This can be NULL.
  */
 extern void
 ylmt_walk(yletcxt_t* cxt, void* user,
            /* return 1 to keep going, 0 to stop */
           int(*cb)(void*, yletcxt_t* cxt));
+
+/*
+ * locked version.
+ */
+extern void
+ylmt_walk_locked(yletcxt_t* cxt, void* user,
+                 /* return 1 to keep going, 0 to stop */
+                 int(*cb)(void*, yletcxt_t* cxt));
 
 #endif /* ___ETHREAd_h___ */

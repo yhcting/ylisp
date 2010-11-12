@@ -46,6 +46,7 @@ yleq(const yle_t* e1, const yle_t* e2);
  * @a is a list of the form ((u1 v1) ... (uN vN))
  * < additional constraints : @x is atomic >
  * if @x is one of @u's, it changes the value of @u. If not, it changes global lookup map.
+ *
  * @x: atomic symbol
  * @y: any S-expression
  * @a: map yllist
@@ -55,6 +56,9 @@ yleq(const yle_t* e1, const yle_t* e2);
 extern yle_t*
 ylset(yle_t* x, yle_t* y, yle_t* a, const char* desc);
 
+extern yle_t*
+yltset(yletcxt_t* cxt, yle_t* x, yle_t* y, yle_t* a, const char* desc);
+
 /**
  * Check whether given symbol is in the global symbol space or not.
  * @return 1 is set, 0 if not set
@@ -62,12 +66,18 @@ ylset(yle_t* x, yle_t* y, yle_t* a, const char* desc);
 extern int
 ylis_set(const char* sym);
 
+extern int
+ylis_tset(yletcxt_t* cxt, const char* sym);
+
 /**
  * only setting on global hash is available at macro-set.
  * @desc: see ylset.
  */
 extern yle_t*
 ylmset(yle_t* x, yle_t* y, yle_t* a, const char* desc);
+
+extern yle_t*
+yltmset(yletcxt_t* cxt, yle_t* x, yle_t* y, yle_t* a, const char* desc);
 
 
 /**
@@ -153,8 +163,6 @@ ylcons(yle_t* car, yle_t* cdr) {
     return ylpcreate(car, cdr);
 }
 
-
-
 static inline const yle_t*
 ylatom(const yle_t* e) {
     /*NIL is ylatom too. */
@@ -164,17 +172,17 @@ ylatom(const yle_t* e) {
 
 static inline yle_t*
 yland(const yle_t* e1, const yle_t* e2) {
-    return (ylnil() != e1 && ylnil() != e2)? ylt(): ylnil();
+    return (!yleis_nil(e1) && !yleis_nil(e2))? ylt(): ylnil();
 }
 
 static inline yle_t*
 ylor(const yle_t* e1, const yle_t* e2) {
-    return (ylnil() == e1 && ylnil() == e2)? ylnil(): ylt();
+    return (yleis_nil(e1) && yleis_nil(e2))? ylnil(): ylt();
 }
 
 static inline yle_t*
 ylnot(const yle_t* e1) {
-    return (ylnil() == e1)? ylt(): ylnil();
+    return yleis_nil(e1)? ylt(): ylnil();
 }
 
 
@@ -232,9 +240,13 @@ ylsubst(yle_t* x, yle_t* y, yle_t* z) {
  */
 static inline yle_t*
 ylequal(yle_t* x, yle_t* y) {
-    return ylor( yland( yland( ylatom(x), ylatom(y)), yleq(x,y)),
-               yland( yland ( yland( ylnot( ylatom(x)), ylnot( ylatom(y))), ylequal( ylcar(x), ylcar(y))),
-                    ylequal( ylcdr(x), ylcdr(y))));
+    return
+    ylb2e( ( yle2b(ylatom(x)) && yle2b(ylatom(y)) && yle2b(yleq(x,y)) )
+           || ( !yle2b(ylatom(x))
+                && !yle2b(ylatom(y))
+                && yle2b(ylequal(ylcar(x), ylcar(y)))
+                && yle2b(ylequal(ylcdr(x), ylcdr(y))) ) );
+
 }
 #endif
 
@@ -251,7 +263,7 @@ ylappend(yle_t* x, yle_t* y) {
  */
 static inline yle_t*
 ylamong(yle_t* x, yle_t* y) {
-    return yland( ylnot( ylnull(y)), ylor( yleq(x, ylcar(y)), ylamong(x, ylcdr(y))));
+    return ylb2e( !yle2b(ylnull(y)) && ( yle2b(yleq(x, ylcar(y))) || yle2b(ylamong(x, ylcdr(y))) ) );
 }
 
 /**
