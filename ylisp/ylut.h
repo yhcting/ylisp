@@ -54,6 +54,12 @@
 extern void*
 ylutfile_read(unsigned int* outsz, const char* fpath, int btext);
 
-
+/*
+ * See 'ylutfile_read' for comments.
+ * This function reads file from FILE* (file handle) not from file path.
+ * @f: should be FILE* (void is used not to include stdio.)
+ */
+extern void*
+ylutfile_fread(unsigned int* outsz, void* f, int btext);
 
 #endif /* ___YLUt_h___ */

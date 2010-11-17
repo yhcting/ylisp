@@ -331,6 +331,27 @@ NFUNC(readdir,             "readdir",           ylaif_nfunc(),
     "    *ex\n"
     "        (readdir '/usr) => <file names in the directory>\n")
 
+NFUNC(fdopen,              "fdopen",            ylaif_nfunc(),
+    "fdopen <file path> <flag>: [Double]\n"
+    "    -Raw level file descriptior open.\n"
+    "     Just wrapper of C-function\n"
+    "    @flag [Symbol] : \"r\" (read), \"w\" (write) \"rw\" (both). others are ignored.\n")
+
+NFUNC(fdclose,             "fdclose",           ylaif_nfunc(),
+    "fdclose [Double] : [t/nil]\n"
+    "    -Raw level file descriptior close.\n")
+
+NFUNC(fdwrite,             "fdwrite",           ylaif_nfunc(),
+    "fdwrite <fd> <data> : [t/nil]\n"
+    "    -Raw level file descriptior write.\n"
+    "    @fd : [Double] : file descriptor returned from 'fdopen'\n"
+    "    @data [Binary]\n")
+
+NFUNC(fdread,              "fdread",            ylaif_nfunc(),
+    "fdwrite <fd> <sz> : [Binary]\n"
+    "    -Raw level file descriptior read.\n"
+    "    @sz [Double] : bytes to read\n")
+
 /**********************************************
  * Trie
  **********************************************/

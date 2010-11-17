@@ -56,10 +56,13 @@ extern int
 ylgsym_set_description(const char* sym, const char* description);
 
 /**
- * @return: NULL if @sym is not in global symbol space.
+ * At the moment of getting description, the other thread may unset that symbol
+ *  from global. Than memory of descriptiion will be freed and cannot be referred.
+ * To avoid this, gsym will copy desc to buffer.
+ * @return: 0 if @sym is not in global symbol space otherwise 1.
  */
-extern const char*
-ylgsym_get_description(const char* sym);
+extern int
+ylgsym_get_description(char* b, unsigned int bsz, const char* sym);
 
 /**
  * @outty [out]: type of symbol. this can be NULL if not to want to get.

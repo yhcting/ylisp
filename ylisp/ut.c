@@ -23,52 +23,64 @@
 #include <stdarg.h>
 #include <string.h>
 #include <memory.h>
+#include <time.h>
 #include "lisp.h"
 
-
 void*
-ylutfile_read(unsigned int* outsz, const char* fpath, int btext) {
+ylutfile_fread(unsigned int* outsz, void* f, int btext) {
+    unsigned int    osz;
     unsigned char*  buf = NULL;
-    FILE*           fh = NULL;
+    FILE*           fh = (FILE*)f;
     unsigned int    sz;
 
-    ylassert(outsz && fpath);
-
-    fh = fopen(fpath, "r");
-    if(!fh) { *outsz = YLErr_io;  goto bail; }
-
     /* do not check error.. very rare to fail!! */
-    fseek(fh, 0, SEEK_END);
+    if(0 > fseek(fh, 0, SEEK_END)) { osz = YLErr_io; goto bail; }
     sz = ftell(fh);
-    fseek(fh, 0, SEEK_SET);
+    if(0 > sz) { *outsz = YLErr_io; goto bail;  }
+    if(0 > fseek(fh, 0, SEEK_SET)) { osz = YLErr_io; goto bail; }
 
     /* handle special case - empty file */
     if(0 == sz) {
         buf = (btext)? (unsigned char*)ylmalloc(1): NULL;
     } else {
         buf = ylmalloc((unsigned int)sz+((btext)? 1: 0)); /* +1 for trailing 0 */
-        if(!buf) { *outsz = YLErr_out_of_memory; goto bail; }
-        if(1 != fread(buf, sz, 1, fh)) { *outsz = YLErr_io; goto bail; }
+        if(!buf) { osz = YLErr_out_of_memory; goto bail; }
+        if(1 != fread(buf, sz, 1, fh)) { osz = YLErr_io; goto bail; }
     }
 
-    fclose(fh);
-
     if(btext) {
-        *outsz = sz+1;
+        osz = sz+1;
         buf[sz] = 0; /* add trailing 0 */
     } else {
-        *outsz = sz;
+        osz = sz;
     }
 
     /* check case (reading empty file) */
-    if(!buf) { *outsz = YLOk; }
+    if(!buf) { osz = YLOk; }
+    if(outsz) { *outsz = osz; }
 
     return buf;
 
  bail:
-    if(fh) { fclose(fh); }
     if(buf) { ylfree(buf); }
     return NULL;
+
+}
+
+void*
+ylutfile_read(unsigned int* outsz, const char* fpath, int btext) {
+    FILE*     fh;
+    void*     ret;
+    ylassert(outsz && fpath);
+
+    fh = fopen(fpath, "rb");
+    if(!fh) {
+        if(outsz) { *outsz = YLErr_io; }
+        return NULL;
+    }
+    ret = ylutfile_fread(outsz, fh, btext);
+    fclose(fh);
+    return ret;
 }
 
 

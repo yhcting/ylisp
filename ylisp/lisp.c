@@ -22,6 +22,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include "lisp.h"
 
 
@@ -565,8 +566,8 @@ ylinit_thread_context(yletcxt_t* cxt) {
     cxt->sig = 0;
     cxt->state = 0;
     cxt->thdstk = ylstk_create(0, NULL);
-    cxt->cpid = INVALID_PID; /* invalid process id */
     cxt->evalstk = ylstk_create(0, NULL);
+    yllist_init_link(&cxt->pres);
     cxt->slut = ylslu_create();
     yldynb_init(&cxt->dynb, 4096);
     return 0;

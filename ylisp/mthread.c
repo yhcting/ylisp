@@ -9,7 +9,7 @@
  *    License, or (at your option) any later version.
  *
  *    This program is distributed in the hope that it will be useful,
-n *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU Lesser General Public License
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
@@ -32,6 +32,11 @@ typedef struct {
     const ylmtlsn_t*        ops;
 } _lsn_t;
 
+typedef struct {
+    yllist_link_t    lk;
+    void*            pres;
+    void           (*ccb)(void*); /* close callback */
+} _pres_t;
 /*
  * Listener functions should not be between lock!
  * Why?
@@ -128,6 +133,46 @@ ylmt_register_listener(const ylmtlsn_t* lsnr) {
 }
 
 
+unsigned int
+ylmt_nr_pres(yletcxt_t* cxt) {
+    return yllist_size(&cxt->pres);
+}
+
+void
+ylmt_close_all_pres(yletcxt_t* cxt) {
+    _pres_t *p, *n;
+    yllist_foreach_item_removal_safe(p, n, &cxt->pres, _pres_t, lk) {
+        yllist_del(&p->lk);
+        ylprint(("close... resource %p\n", p->pres));
+        (*p->ccb)(p->pres);
+        ylfree(p);
+    }
+}
+
+int
+ylmt_add_pres(yletcxt_t* cxt, void* pres, void(*ccb)(void*)) {
+    _pres_t* pr = ylmalloc(sizeof(_pres_t));
+    ylassert(pres && ccb);
+    ylassert(pr); /* very small size of memory. This should not fail! */
+    pr->pres = pres;
+    pr->ccb = ccb;
+    /*
+     * like stack because recently added value is referenced frequently.
+     */
+    yllist_add_first(&cxt->pres, &pr->lk);
+    return 0;
+}
+
+int
+ylmt_rm_pres(yletcxt_t* cxt, void* pres) {
+    _pres_t* p;
+    ylassert(pres);
+    yllist_foreach_item(p, &cxt->pres, _pres_t, lk) { break; }
+    yllist_del(&p->lk);
+    ylfree(p);
+    return 0;
+}
+
 int
 ylmt_is_safe(yletcxt_t* cxt) {
     int ret;
@@ -201,22 +246,6 @@ ylmt_notify_unsafe(yletcxt_t* cxt) {
     _munlock(&_m);
 }
 
-void
-ylmt_cpid_set(yletcxt_t* cxt, long cpid) {
-    /*
-     * Other may trie to kill child process. (ex. to kill thread).
-     * So, internal-synchronization is required.
-     */
-    _mlock(&cxt->m);
-    cxt->cpid = (pid_t)cpid;
-    _munlock(&cxt->m);
-}
-
-void
-ylmt_cpid_unset(yletcxt_t* cxt) {
-    ylmt_cpid_set(cxt, INVALID_PID);
-}
-
 static inline void
 _kill(yletcxt_t* cxt) {
     /*
@@ -226,15 +255,15 @@ _kill(yletcxt_t* cxt) {
      *    One CNF spwaning only ONE child process!
      */
     _mlock(&cxt->m);
-    if(INVALID_PID != cxt->cpid) {
-        kill(cxt->cpid, SIGKILL);
-    }
+
     if(etst_isset(cxt, ETST_SAFE)) {
         /* target thread is in safe state. We can kill it! */
         pthread_cancel((pthread_t)ylstk_peek(cxt->thdstk));
     } else {
         etsig_set(cxt, ETSIG_KILL);
     }
+    ylmt_close_all_pres(cxt);
+
     _munlock(&cxt->m);
 }
 

@@ -32,28 +32,33 @@
  */
 #ifdef CONFIG_DBG_EVAL
 #   define dbg_eval(x)     do{ x } while(0)
-#else /* _YLDBG_EVAL */
+#else
 #   define dbg_eval(x)
-#endif /* _YLDBG_EVAL */
+#endif
+
+#ifdef CONFIG_DBG_MT
+#   define dbg_mt(x)     do{ x } while(0)
+#else
+#   define dbg_mt(x)
+#endif
 
 #ifdef CONFIG_DBG_MEM
 #   define dbg_mem(x)      do{ x } while(0)
-#else /* CONFIG_DBG_MEM */
+#else
 #   define dbg_mem(x)
-#endif /* CONFIG_DBG_MEM */
+#endif
 
 #ifdef CONFIG_DBG_GEN
 #   define dbg_gen(x)      do{ x } while(0)
-#else /* CONFIG_DBG_MEM */
+#else
 #   define dbg_gen(x)
-#endif /* CONFIG_DBG_MEM */
-
+#endif
 
 #ifdef CONFIG_DBG_MUTEX
 #   define dbg_mutex(x)  do{ x } while(0)
-#else /* CONFIG_DBG_INTEVAL */
+#else
 #   define dbg_mutex(x)
-#endif /* CONFIG_DBG_INTEVAL */
+#endif
 
 #include "ylisp.h"
 #include "ylsfunc.h"
@@ -67,6 +72,11 @@
 #include "symlookup.h"
 #include "gsym.h"
 
+/**********************************************
+ *
+ * Temp directory
+ *
+ **********************************************/
 
 /**********************************************
  *
@@ -82,6 +92,14 @@
  *
  **********************************************/
 
+/*
+ * @pres
+ *    Thread may be killed during safe state.
+ *    But, in this safe state, thread may open process resources.
+ *    If thread is killed during this, opened process resources are leaked!
+ *    To handle this exception case, thread should keep it's process resource list.
+ *    And, if thread fails unexpectedly, this opened resource list source be closed!
+ */
 struct _sEtcxt {
     yllist_link_t          lk;       /**< link for linked list */
     pthread_t              base_id;  /**< base(owner) thread id */
@@ -89,8 +107,8 @@ struct _sEtcxt {
     unsigned int           sig;      /**< signal bits */
     unsigned int           state;    /**< thread state */
     ylstk_t*               thdstk;   /**< evaluation thread stack [pthraed_t] */
-    pid_t                  cpid;     /**< child process id that this threads waiting for */
     ylstk_t*               evalstk;  /**< evaluation stack [yle_t*] - for debugging */
+    yllist_link_t          pres;     /**< process resource list */
     slut_t*                slut;     /**< per-thread Symbol LookUp Table */
     yldynb_t               dynb;
 

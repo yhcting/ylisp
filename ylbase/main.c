@@ -41,25 +41,25 @@ static const char* _exp =
     ;
 
 
-void*
+static inline void*
 _malloc(unsigned int size) {
     _mblk++;
     return malloc(size);
 }
 
-void
+static inline void
 _free(void* p) {
     assert(_mblk > 0);
     _mblk--;
     free(p);
 }
 
-int
-get_mblk_size() {
+static inline int
+_get_mblk_size() {
     return _mblk;
 }
 
-static void
+static inline void
 _log(int lv, const char* format, ...) {
     if(lv >= _LOGLV) {
         va_list ap;
@@ -69,7 +69,7 @@ _log(int lv, const char* format, ...) {
     }
 }
 
-void
+static inline void
 _assert(int a) {
     if(!a){ assert(0); }
 }
@@ -103,7 +103,7 @@ main(int argc, char* argv[]) {
     }
 
     yldeinit();
-    assert(0 == get_mblk_size());
+    assert(0 == _get_mblk_size());
 
     printf("---------------------------\n"
            "Test Success\n");

@@ -37,13 +37,13 @@ _ts_cb(void* user, yletcxt_t* cxt) {
     unsigned int   mx = (_MAX_EXPSZ > cxt->streamsz)? cxt->streamsz: _MAX_EXPSZ-1;
     memcpy(b, cxt->stream, mx);
     b[mx] = 0; /* trailing 0 */
-    ylprint(("%8x %8d %8x %s\n", cxt->base_id, cxt->cpid, cxt->sig, b));
+    ylprint(("%8x %8x %s\n", cxt->base_id, cxt->sig, b));
     return 1; /* keep going */
 }
 
 YLDEFNF(ts, 0, 0) {
     static char buf[_MAX_EXPSZ];
-    ylprint(("id       cpid     sig      exp\n"));
+    ylprint(("id       sig      exp\n"));
     ylmt_walk(cxt, buf, &_ts_cb);
     return ylt();
 } YLENDNF(ts)

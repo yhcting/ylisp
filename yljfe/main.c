@@ -26,6 +26,7 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <malloc.h>
@@ -60,7 +61,7 @@ enum {
 static int _loglv = YLLogW;
 
 
-static int
+static inline int
 _print(const char* format, ...) {
     /* print to standard out directly */
     va_list args;
@@ -73,7 +74,7 @@ _print(const char* format, ...) {
     return ret;
 }
 
-static void
+static inline void
 _log(int lv, const char* format, ...) {
     if(lv >= _loglv) {
         va_list ap;
@@ -84,7 +85,7 @@ _log(int lv, const char* format, ...) {
     }
 }
 
-static void
+static inline void
 _assert(int a) { assert(a); }
 
 
@@ -268,12 +269,21 @@ _register_natives(JNIEnv* jenv) {
 
 static JNIEnv*
 _create_jvm(JavaVM** jvm) {
+#define __OPT_CLASSPATH "-Djava.class.path="
     JNIEnv*             jenv;
     JavaVMInitArgs      jvmargs;
     JavaVMOption        jvmopt;
+    char                cp[4096]; /* class path : 4096 is enough size */
+    const char*         cpenv; /* class path env value */
 
-    /* TODO : env variable should be used for this! */
-    jvmopt.optionString = "-Djava.class.path=./jsrc/bin";
+    memcpy(cp, __OPT_CLASSPATH, sizeof(__OPT_CLASSPATH)-1); /* -1 to remove trailing 0 */
+    cpenv = getenv("CLASSPATH");
+    if(!cpenv) {
+        cpenv = "./yljfe.jar";
+    }
+    strcpy(cp + sizeof(__OPT_CLASSPATH) - 1, cpenv);
+
+    jvmopt.optionString = cp;
     jvmargs.version = JNI_VERSION_1_6;
     jvmargs.nOptions = 1;
     jvmargs.options = &jvmopt;
@@ -284,6 +294,7 @@ _create_jvm(JavaVM** jvm) {
         return NULL;
     }
     return jenv;
+#undef __OPT_CLASSPATH
 }
 
 static int

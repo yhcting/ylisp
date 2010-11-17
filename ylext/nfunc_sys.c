@@ -87,32 +87,27 @@ _readf(unsigned int* outsz, const char* func, const char* fpath, int btext) {
 }
 
 
-/*
- * FIX ME!
- * Using temporally file to redirect is not good solution, in my opinion.
- * I think definitely there is a way of using pipe!
- *
- *     I faced with some issues when I tried to use pipe to re-direct stdout and stderr.
- *     For example, keeping only one-page-data, block when pipe is empty.
- *     I'm not good at linux system programming.
- *     So, until I found solution, using file explicitly to redirect.
- *
- * !!NOTE
- *    This function redirect stdout/stderr.
- *    So, redirecting stdout/stderr at some other place while waiting for ending child process,
- *     may give unexpected result!
- *    Be careful of using this function when use Multi-Threaded evaluation!
- */
+static void
+_ccb_fclose(void* f) {
+    fclose(f);
+}
+
+static void
+_ccb_pkill(void* pid) {
+    kill((pid_t)pid, SIGKILL);
+}
+
 YLDEFNF(sh, 1, 1) {
-#define __max_fname   256
-#define __outf_prefix ".#_______ylisp___shout______#"
+/*
+ * We would better put them in tmp directory, because
+ *  out file is actually temporally used one!
+ */
 #define __cleanup()                                     \
     /* clean resources */                               \
     if(buf) { ylfree(buf); }                            \
-    unlink(outfname);
 
     char*       buf = NULL;
-    char        outfname[__max_fname];
+    FILE*       fout;
 
     /* check input parameter */
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
@@ -120,12 +115,7 @@ YLDEFNF(sh, 1, 1) {
     /* before forking flush/clean stdout and stderr */
     fflush(stdout); fflush(stderr);
 
-    /* make hard-to-duplicatable-filename */
-    if(__max_fname <= snprintf(outfname, __max_fname, "%s%x_%x_%x",
-                               __outf_prefix, (unsigned int)pthread_self(),
-                               (unsigned int)time(NULL), (unsigned int)clock())) {
-        ylassert(0); /* Oops! Is it possible! */
-    }
+    fout = tmpfile();
 
     { /* Just scope */
         pid_t       cpid; /* child process id */
@@ -138,7 +128,11 @@ YLDEFNF(sh, 1, 1) {
         }
 
         if(cpid) { /* parent */
-            ylmt_cpid_set(cxt, cpid);
+            /*
+             * add process resources to thread context.
+             */
+            ylmt_add_pres(cxt, (void*)cpid, &_ccb_pkill);
+            ylmt_add_pres(cxt, fout, &_ccb_fclose);
             /* I'm safe. And may take some time. */
             ylmt_notify_safe(cxt);
             if(-1 == waitpid(cpid, NULL, 0)) {
@@ -159,20 +153,12 @@ YLDEFNF(sh, 1, 1) {
                 }
             }
             ylmt_notify_unsafe(cxt);
-            ylmt_cpid_unset(cxt);
+            ylmt_rm_pres(cxt, fout);
+            ylmt_rm_pres(cxt, (void*)cpid);
         } else { /* child */
-            /*
-             * redirect to file!
-             */
-            FILE*    ofh;
-            if( NULL == (ofh = fopen(outfname, "w")) ) {
-                perror("Fail to open target file for redirection.\n");
-                exit(0);
-            }
-
             /* redirect stderr to the pipe */
-            if(0 > dup2(fileno(ofh), STDOUT_FILENO )
-               || 0 > dup2(fileno(ofh), STDERR_FILENO)) {
+            if(0 > dup2(fileno(fout), STDOUT_FILENO )
+               || 0 > dup2(fileno(fout), STDERR_FILENO)) {
                 perror("Fail to dup stderr or stdout\n");
                 exit(0);
             }
@@ -181,35 +167,18 @@ YLDEFNF(sh, 1, 1) {
         }
     } /* Just scope */
 
-    { /* Just scope */
-        FILE*  fh;
-        fh = fopen(outfname, "r");
-        if(fh) {
-            /* file exists. So, there is valid output */
-            fclose(fh);
-            buf = _readf(NULL, "shell", outfname, TRUE);
-            if(!buf) { ylnflogW0("Cannot read shell output!!\n"); goto bail; }
-        } else {
-            /* There is no output or access denied from command */
-            ylnflogW0("No Output or Fail to access output!\n");
-            buf = ylmalloc(1);
-            buf[0] = 0;
-        }
-    }
+    buf = ylutfile_fread(NULL, fout, TRUE);
+    fclose(fout);
 
     if(!buf) {
         ylnflogE0("Fail to read output result\n");
         goto bail;
     } else {
-        yle_t* r = ylacreate_sym(buf);
-        /* buffer is already assigned to expression. So, this SHOULD NOT be freed */
-        buf = NULL;
-        __cleanup();
-        return r;
+        return ylacreate_sym(buf);
     }
 
  bail:
-    __cleanup();
+    if(buf) { ylfree(buf); }
     ylinterpret_undefined(YLErr_func_fail);
     return NULL; /* to make compiler be happy. */
 
@@ -286,7 +255,7 @@ YLDEFNF(fstat, 1, 1) {
     yle_t         *r, *key, *v;
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
     if(0 > stat(ylasym(ylcar(e)).sym, &st)) {
-        ylnflogE1("Cannot get status of file [%s]\n", ylasym(ylcar(e)).sym);
+        ylnflogW1("Cannot get status of file [%s]\n", ylasym(ylcar(e)).sym);
         return ylnil();
     }
 
@@ -443,3 +412,107 @@ YLDEFNF(readdir, 1, 1) {
     return ylnil();
 
 } YLENDNF(readdir)
+
+YLDEFNF(fdopen, 2, 2) {
+    int fd;
+    int flags = 0;
+    const char* p;
+    /* check input parameter */
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
+    /* flag string */
+    p = ylasym(ylcadr(e)).sym;
+    if(0 == strcmp(p, "r")) {
+        flags = O_RDONLY;
+    } else if(0 == strcmp(p, "w")) {
+        flags = O_WRONLY;
+    } else if(0 == strcmp(p, "rw") || 0 == strcmp(p, "wr")) {
+        flags = O_RDWR;
+    } else {
+        ylnflogW1("Invalid flag string : %s\n", p);
+        return ylnil();
+    }
+
+    ylmt_notify_safe(cxt);
+    fd = open( ylasym(ylcar(e)).sym, flags);
+    ylmt_notify_unsafe(cxt);
+
+    if(0 > fd) {
+        ylnflogW1("Fail to open file : %s\n", strerror(errno));
+        return ylnil();
+    }
+
+    if( (int)((double)fd) != fd ) {
+        ylnflogW1("Cannot represent fd as double!. fd : %d\n", fd);
+        return ylnil();
+    }
+
+    return ylacreate_dbl((double)fd);
+} YLENDNF(fdopen)
+
+YLDEFNF(fdclose, 1, 1) {
+    double    dfd;
+    /* check input parameter */
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
+    dfd = yladbl(ylcar(e));
+    if((double)((int)dfd) != dfd) {
+        ylnflogE1("This is NOT valid file descripter : %f\n", dfd);
+        ylinterpret_undefined(YLErr_func_invalid_param);
+    }
+    return (0 > close((int)dfd))? ylnil(): ylt();
+} YLENDNF(fdclose)
+
+YLDEFNF(fdwrite, 2, 2) {
+    double    dfd;
+    int       bw;
+    yle_t*    d = ylcadr(e);
+    /* check input parameter */
+    ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_dbl())
+                        && ylais_type(ylcadr(e), ylaif_bin()));
+    dfd = yladbl(ylcar(e));
+    if((double)((int)dfd) != dfd) {
+        ylnflogE1("This is NOT valid file descripter : %f\n", dfd);
+        ylinterpret_undefined(YLErr_func_invalid_param);
+    }
+
+    ylmt_notify_safe(cxt);
+    bw = write((int)dfd, ylabin(d).d, ylabin(d).sz);
+    ylmt_notify_unsafe(cxt);
+
+    if(ylabin(d).sz != bw) {
+        ylnflogW1("Fail to write file. : fd : %d\n", (int)dfd);
+        return ylnil();
+    }
+    return ylt();
+} YLENDNF(fdwrite)
+
+YLDEFNF(fdread, 2, 2) {
+    double          dfd;
+    int             sz;
+    int             br;
+    unsigned char*  p;
+    /* check input parameter */
+    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
+
+    dfd = yladbl(ylcar(e));
+    if((double)((int)dfd) != dfd) {
+        ylnflogE1("This is NOT valid file descripter : %f\n", dfd);
+        ylinterpret_undefined(YLErr_func_invalid_param);
+    }
+    sz = (int)(yladbl(ylcadr(e)));
+    p = ylmalloc(sz);
+    if(!p) {
+        ylnflogE1("Out of memory : sz requested : %d\n", sz);
+        ylinterpret_undefined(YLErr_out_of_memory);
+    }
+
+    ylmt_notify_safe(cxt);
+    br = read((int)dfd, p, sz);
+    ylmt_notify_unsafe(cxt);
+
+    if(br < 0) {
+        ylfree(p);
+        return ylnil();
+    } else {
+        return ylacreate_bin(p, (unsigned int)br);
+    }
+} YLENDNF(fdread)

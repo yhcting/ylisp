@@ -662,19 +662,21 @@ extern void
 ylmt_notify_unsafe(yletcxt_t*);
 
 /*
- * Set child process id that ethread is waiting for.
- * actual type of 'cpid' is 'pid_t'
- * But, I don't want to include header only for this.
- * So, long is used instead.
+ * This SHOULD be used to be safe from "kill thread!"
+ * value is added at the first of storage (link stack push.)
+ * @ccb : close callback.
  */
-void
-ylmt_cpid_set(yletcxt_t* cxt, long cpid);
+extern int
+ylmt_add_pres(yletcxt_t* cxt, void* pres, void(*ccb)(void*));
 
 /*
- * Unset
+ * Recently added 'pres' has priority if there are more than one item
+ *  that have same 'pres' value..
+ * This function doesn't close 'pres'. It just unregister 'pres' value!.
+ * Closing 'pres' is caller's responsibility.
  */
-void
-ylmt_cpid_unset(yletcxt_t* cxt);
+extern int
+ylmt_rm_pres(yletcxt_t* cxt, void* pres);
 
 /* -------------------------------
  * Interface to handle ylisp element.

@@ -95,8 +95,17 @@ ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int s
     ylstk_pop(cxt->thdstk);
 
     if(YLOk != ret) {
+        /*
+         * Close all process resources!! Thread is fails!!
+         */
+        ylmt_close_all_pres(cxt);
         ylprint(("Interpret FAILS! : ERROR Line : %d\n", line));
         goto done;
+    } else {
+        /*
+         * All process resources should be closed before end of thread!
+         */
+        ylassert(!ylmt_nr_pres(cxt));
     }
 
  done:

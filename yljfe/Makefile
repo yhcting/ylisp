@@ -32,7 +32,7 @@ C_LINK=$(CC) $(CFLAGS) $(LDFLAGS) -L.
 JSRCDIR=jsrc/
 JOUTDIR=$(JSRCDIR)bin/
 JSOURCES=$(JSRCDIR)YLJEditArea.java $(JSRCDIR)Main.java
-JTARGET=$(JOUTDIR)joutdummy
+JTARGET=yljfe.jar
 JC=javac
 JFLAGS=-Xlint:unchecked -d $(JOUTDIR)
 
@@ -53,7 +53,8 @@ DEPS_MAGIC := $(shell mkdir $(DEPDIR) $(OUTDIR) $(JOUTDIR) > /dev/null 2>&1 || :
 $(JTARGET): $(JSOURCES)
 	@echo '$(JC) $(JFLAGS) $^'; \
 	$(JC) $(JFLAGS) $^
-	touch $@
+	cd $(JOUTDIR); jar cf $@ *.class; mv $@ $(top)
+	cp $@ ../lib
 
 $(OUTDIR)%.o: %.c
 	@echo '$(C_COMPILE) -o $@ -c $<'; \
@@ -69,6 +70,7 @@ tags:
 
 clean:
 	rm -f *.mod *.o *.obj .lo $(TARGET) $(LIB)
+	rm -f $(JTARGET)
 	rm -rf $(JOUTDIR)
 	rm -rf $(DEPDIR)
 	rm -rf $(OUTDIR)

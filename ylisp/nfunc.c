@@ -163,11 +163,12 @@ YLDEFNF(eval, 1, 1) {
 } YLENDNF(eval)
 
 YLDEFNF(help, 1, 9999) {
-    const char*  desc;
+#define __MAX_DESC_SZ   4096
+    char  desc[__MAX_DESC_SZ];
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
     while(!yleis_nil(e)) {
         /* '!!' to make compiler be happy */
-        if(!!(desc = ylgsym_get_description(ylasym(ylcar(e)).sym))) {
+        if(0 < ylgsym_get_description(desc, __MAX_DESC_SZ, ylasym(ylcar(e)).sym)) {
             int        outty;
             yle_t*     v;
             v = ylgsym_get(&outty, ylasym(ylcar(e)).sym);
@@ -186,12 +187,13 @@ YLDEFNF(help, 1, 9999) {
         e = ylcdr(e);
     }
     return ylt();
+#undef __MAX_DESC_SZ
 } YLENDNF(help)
 
 YLDEFNF(load_cnf, 1, 1) {
-    void*   handle = NULL;
-    void  (*register_cnf)();
-    const char*  fname;
+    void*       handle = NULL;
+    void      (*register_cnf)();
+    const char* fname;
 
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 

@@ -63,7 +63,7 @@ yleval_id() { return _eval_id; }
  * (This doesn't clone atom!)
  * It doesn't detect cycle due to performance reason.
  */
-yle_t*
+static inline yle_t*
 _list_clone(yle_t* e) {
     if(yleis_atom(e)) { return e; } /* nothing to clone */
     else {
@@ -288,7 +288,7 @@ _mreplace(yle_t* e, yle_t* a) {
  *
  * < additional constraints : x is atomic >
  */
-const yle_t*
+static const yle_t*
 _assoc(yletcxt_t* cxt, int* ovty, yle_t* x, yle_t* y) {
     yle_t* r;
     if( !ylais_type(x, ylaif_sym()) ) {
@@ -385,8 +385,8 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
     ylstk_push(cxt->evalstk, (void*)e);
 
     dbg_eval(yllogD2("[%d] eval In:\n"
-                     "    %s\n", evid, ylechain_print(ylperthread_buf(cxt), e));
-             yllogD1("    =>%s\n", ylechain_print(ylperthread_buf(cxt), a)););
+                     "    %s\n", evid, ylechain_print(ylethread_buf(cxt), e));
+             yllogD1("    =>%s\n", ylechain_print(ylethread_buf(cxt), a)););
 
     /*
      * 'e' and 'a' should be preserved during evaluation.
@@ -421,8 +421,17 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
             } else {
                 if(yleis_atom(r)) {
                     if(ylaif_nfunc() == ylaif(r)) {
-                        yle_t* param = ylevlis(cxt, ylcdr(e), a);
-                        ylmp_add_bb1(param); /* preserve! */
+                        yle_t* param;
+                        /*
+                         * 'yleval' is called in 'ylevlis'.
+                         * We should keep 'r' from GC!
+                         */
+                        ylmp_add_bb1(r);
+                        param = ylevlis(cxt, ylcdr(e), a);
+                        ylmp_rm_bb1(r);
+
+                        /* preserving 'param' is prerequisite of calling native function! */
+                        ylmp_add_bb1(param);
                         r = (*(ylanfunc(r).f))(cxt, param, a);
                         ylmp_rm_bb1(param);
                     } else if(ylaif_sfunc() == ylaif(r)) {
@@ -498,7 +507,7 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
     if(r) {
 
         dbg_eval(yllogD2("[%d] eval Out:\n"
-                         "    %s\n", evid, ylechain_print(ylperthread_buf(cxt), r)););
+                         "    %s\n", evid, ylechain_print(ylethread_buf(cxt), r)););
         ylmp_rm_bb2(e, a);
 
         /*

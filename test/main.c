@@ -42,17 +42,25 @@ typedef struct {
     int              bok;
 } _interpthd_arg_t;
 
-/*
- * HACK!
- * Init section (loading cnfs to test..etc)
- * of MT skipped is MT TEST.
- *
- * Init section load library again and register native functions again.
- * This has same effect with changing global symbols..
- * (This should be syncronized....)
- * So, temporarily, this HACK is used..
- */
-static int _binit_section = 0;
+static pthread_mutex_t _m = PTHREAD_MUTEX_INITIALIZER;
+static unsigned int    __tcnt = 0;
+
+static inline void
+_inc_tcnt() {
+    pthread_mutex_lock(&_m);
+    __tcnt++;
+    pthread_mutex_unlock(&_m);
+}
+
+static inline void
+_dec_tcnt() {
+    pthread_mutex_lock(&_m);
+    __tcnt--;
+    pthread_mutex_unlock(&_m);
+}
+
+static inline unsigned int
+_tcnt() { return __tcnt; }
 
 /* =================================
  * To parse script
@@ -247,6 +255,8 @@ _interp_thread(void* arg) {
     free(ia->b);
     free(ia->fname);
     free(ia);
+
+    _dec_tcnt();
     return NULL;
  }
 
@@ -267,13 +277,6 @@ _start_test_script(const char* fname, FILE* fh, int bmt) {
     yldynbstr_init(&dyb, _NR_MAX_COLUMN*8);
     while(_read_section(fh, &bOK, &dyb)) {
         seccnt++;
-
-        /* This is temporary HACK! */
-        if(_binit_section) {
-            _binit_section = 0;
-            goto next_section;
-        }
-
         targ = malloc(sizeof(_interpthd_arg_t));
         targ->b = malloc(yldynb_sz(&dyb));
         targ->sz = yldynb_sz(&dyb);
@@ -283,13 +286,12 @@ _start_test_script(const char* fname, FILE* fh, int bmt) {
         targ->fname = malloc(strlen(fname)+1);
         strcpy(targ->fname, fname);
 
+        _inc_tcnt();
         pthread_create(&thd, NULL, &_interp_thread, targ);
 
         if(!bmt) {
             pthread_join(thd, &ret);
         }
-
-    next_section:
         yldynbstr_reset(&dyb);
     }
     yldynb_clean(&dyb);
@@ -334,8 +336,8 @@ _free(void* p) {
     free(p);
 }
 
-int
-get_mblk_size() {
+static int
+_get_mblk_size() {
     return _mblk;
 }
 
@@ -349,14 +351,15 @@ _log(int lv, const char* format, ...) {
     }
 }
 
-void
+static void
 _assert(int a) {
     if(!a){ assert(0); }
 }
 
 int
 main(int argc, char* argv[]) {
-    ylsys_t   sys;
+    ylsys_t        sys;
+    unsigned int   maxwait = 60;
 
     /* ylset system parameter */
     sys.print = printf;
@@ -377,16 +380,24 @@ main(int argc, char* argv[]) {
 
     printf("\n************ Multi Thread Test *************\n");
     /* Test for multi thread */
-    _binit_section = 1; /* HACK */
+    /* _binit_section = 1; *//* HACK */
     _start_test(_TESTRS, 1);
 
     /* Let's sleep enough to wait all threads are finished! */
-    sleep(20);
+    while(_tcnt() && maxwait) {
+        sleep(1);
+        maxwait--;
+    }
+
+    if(!maxwait) {
+        printf("Some of interpreting threads are never finished!! DeadLock???\n");
+        return 0;
+    }
 
     yldeinit();
 
-    if(get_mblk_size()) {
-        printf("\n=== Leak : count(%d) ===\n", get_mblk_size());
+    if(_get_mblk_size()) {
+        printf("\n=== Leak : count(%d) ===\n", _get_mblk_size());
         assert(0);
     }
 

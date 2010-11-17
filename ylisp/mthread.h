@@ -30,7 +30,6 @@
 
 #include "lisp.h"
 
-#define INVALID_PID -1
 #define INVALID_TID -1
 
 /* ETST : Evaluation Thread STate */
@@ -87,6 +86,12 @@ ylmt_add(yletcxt_t* cxt);
 
 extern void
 ylmt_rm(yletcxt_t* cxt);
+
+extern unsigned int
+ylmt_nr_pres(yletcxt_t* cxt);
+
+extern void
+ylmt_close_all_pres(yletcxt_t* cxt);
 
 /*
  * This only can be called at "initialization" stage!
