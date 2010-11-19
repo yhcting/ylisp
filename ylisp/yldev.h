@@ -560,6 +560,8 @@ extern void ylinterpret_undefined(int reason);
  * Non-static Functions/Symbols
  *
  *===================================*/
+struct yldynb;
+
 /* get system value */
 extern const ylsys_t*
 ylsysv();
@@ -568,7 +570,6 @@ ylsysv();
  * Get perthread dynamic buffer.
  * We can use this without worry about memory leak of dynamic buffer!
  */
-struct yldynb;
 struct yldynb*
 ylethread_buf(yletcxt_t* cxt);
 
@@ -694,7 +695,6 @@ ylelist_size(const yle_t* e);
 /*
  * Buffer of dynb should end with trailing 0!
  */
-struct yldynb;
 extern const char*
 ylechain_print(struct yldynb* dynb, const yle_t* e);
 

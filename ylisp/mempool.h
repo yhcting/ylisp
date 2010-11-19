@@ -34,16 +34,16 @@ ylmp_deinit();
 /*****************************************
  * Multi-Thread
  *****************************************/
-void
+extern void
 ylmp_pre_add_thread(yletcxt_t* thd);
 
-void
+extern void
 ylmp_post_add_thread(yletcxt_t* thd);
 
-void
+extern void
 ylmp_pre_rm_thread(yletcxt_t* thd);
 
-void
+extern void
 ylmp_post_rm_thread(yletcxt_t* thd);
 
 

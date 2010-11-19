@@ -170,6 +170,27 @@
 
 
 ;===================================================
+;=                  System                         =
+;===================================================
+(defun fdrselect (fd time)
+"fdrselect <fd> <time>
+    -read select
+"
+(let ( (r '()) )
+    (set 'r (fdselect (cons fd '()) '() '() time))
+    (cond ( (null r) '() )
+        ('t (caar r)))))
+
+(defun fdwselect (fd time)
+"fdwselect <fd> <time>
+    -write select
+"
+(let ( (r '()) )
+    (set 'r (fdselect '() (cons fd '()) '() time))
+    (cond ( (null r) '() )
+        ('t (cadar r)))))
+
+;===================================================
 ;=             Integrated Interface                =
 ;===================================================
 (defun length2 (e)

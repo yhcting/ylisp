@@ -259,7 +259,7 @@ _mt_listener_post_rm(const yletcxt_t* cxt) {
     /* nothing to do */
 }
 
-void
+static void
 _mt_listener_thd_safe(const yletcxt_t* cxt, pthread_mutex_t* mtx) {
     /* try GC */
     int   btry;
@@ -273,7 +273,7 @@ _mt_listener_thd_safe(const yletcxt_t* cxt, pthread_mutex_t* mtx) {
     }
 }
 
-void
+static void
 _mt_listener_all_safe(pthread_mutex_t* mtx) {
     _mlock(&_mm);
     if(_usage_ratio() >= ylgctp()) {

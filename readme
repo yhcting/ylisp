@@ -7,7 +7,11 @@ Introduction
     Goal of YLISP is Rapid Tool Development Tool.
     So, YLISP doesn't want to be complete programming language like Common
      Lisp.
-    And execution speed(performance) is not considered enough, too.
+    And YLISP is fully text-based-interpreting language.
+    There is no preprocessing, optimization and caching.
+    It's just batched REPL(Read-Eval-Print-Loop).
+    So execution speed(performance) is slow.
+    (I'm not sure about supporting pre-compiled format.)
     Instead of it, YLISP focuses on supporting mechanism to add and use
      customized-native-function(CNF)s easily.
     Consumer can easily extend their own CNFs by programming plugins.
@@ -22,9 +26,11 @@ Introduction
         * S-Expression syntax parser.
         * Lisp evaluation mechanism
           (fundamental S-Functions are built-in (ex. lambda, mlambda, set,
-           mset) in the library)
+           mset, quote etc.) in the library)
         * Mechanism for GC(Garbage Collection)
         * Multithreading support.
+            - per-thread symbol table, functions to handle evaluation thread,
+               etc.
         * Mechanism to manage/lookup global symbols and to get candidates for
            auto-completion.
         * Interface to load/unload CNF plugins(libraries).
@@ -129,7 +135,8 @@ Directory/File Structure
     ylisp:
         Core module.
         This includes 'Lisp Syntax Parser', function for evaluating expression,
-         memory management, symbol lookup, core S-Functions etc.
+         memory management, symbol lookup, core S-Functions, evaluation thread
+         management etc.
         Others except for this module, are just extending native functions of
          YLISP.
         So, most parts of this document are to explain details about this
@@ -196,14 +203,13 @@ Adding new-type-atom(henceforth NTA)
 
 
 
-
 =================================
 * Internal details for hackers
 =================================
 
 Programming Policy
 ------------------
-    non-compatible coding style (ex. codes works only on GCC) is tried to be
+    Non-compatible coding style (ex. codes works only on GCC) is tried to be
      avoided.
     So, codes are based on C89 & Posix.
     (That is, features of C99 are not used intentionally except for 'inline')
@@ -229,7 +235,7 @@ Parsing S-Expression
     Symbol delimiter
         ", (, ), [white space]
         ex.
-            xxx"yyy"xxx : 3 symbol. xxx, yyy, xxx
+            xxx"yyy"xxx : 3 symbols. xxx, yyy, xxx
 
 
 Notable internal implementation of S-Expression
@@ -297,29 +303,52 @@ GC(Garbage collection)
 Multithreading
 --------------
     YLISP supports Mutithreading(henceforth MT). That is, YLISP library can
-     handle several interpret request simultaneously. And it also supports
+     handle several interpret requests simultaneously. And it also supports
      creating evaluation thread. This evalation thread runs concurrently with
      parent thread. It's just like 'pthread_create' in C.
-    Biggest issue is GC.Once memory is running out, thread try to do GC. If
-     all threads are in safe state, GC is triggered. If not, threads waits in
-     safe state. All running threads do exactly same thing with above.
-    So, the last thread will trigger GC - due to all other threads are waiting
-     in safe state. And then, signals to others to say 'it's time to continue'.
-    The design of GC mechanism is not focused on performance but stability.
-    GC is triggered only at all evaluation thread are in safe state. And
-     threads can enter safe state at the end of evaluation normally.
-    So, we can say that one evaluation routine is atomic operation of YLISP.
-    Too long atomic operation is bottleneck of YLISP due to GC. So, each CNF
-     should consider about it - usually, we don't need to do, because in most
-     cases, CNF is short enough.
-    But, sometimes one CNF can be long, and in this case thread should manually
-     notify "I am in safe state" before enter long-time-consuming-operation not
-     to be GC-bottleneck. (ex. executing other child process.) 'sh' function
-     is good example.
 
-    Reading/Writing from/to global symbols table is automatically synchronized.
-    But changing expression list or atom contents directly is not automatically
-     synchronized. So, this should be considered enough in MT programming.
+    * GC
+        Biggest issue is GC. Once memory is running out, thread try to do GC.
+        If all threads are in safe state, GC is triggered. If not, threads
+         waits in safe state. All running threads do exactly same thing with
+         above.
+        So, the last thread will trigger GC - due to all other threads are
+         waiting in safe state. And then, signals to others to say 'it's time
+         to continue'.
+        The design of GC mechanism is not focused on performance but stability.
+        GC is triggered only at all evaluation thread are in safe state. And
+         threads can enter safe state at the end of evaluation, normally.
+        So, we can say that one evaluation routine is atomic operation of
+         YLISP.
+        Too long atomic operation is bottleneck of YLISP due to GC. So, each
+         CNF should consider about it - usually, we don't need to do, because
+         in most cases, CNF is short enough.
+        But, sometimes one CNF can be long, and in this case thread should
+         manually notify "I am in safe state" before enter long-time-consuming
+         operation not to be GC-bottleneck.
+         (ex. executing other child process.)
+        'sh' function  is good example.
+
+    * Interrupting
+        Thread may be interrupted in the middle of evaluation.
+        Being killed is allowed only at safe state. And interrupting due to
+         evaluation error, can be done at any place.
+        Both cases, we should worry about process resources. Thread A may open
+         some process resources. But before closing those, thread may be
+         interrupted.
+        Then, those resources are leaked. To handle this, YLISP supports
+         internal API to register opened process resources to MT handler
+         module.
+        If thread is interrupted, MT handler close all opened process resources
+         automaically. So, we can avoid resource leak.
+        See 'sh'. It's good sample.
+
+    * Global Symbol Table.
+        Reading/Writing from/to global symbols table is automatically
+         synchronized.
+        But changing expression list or atom contents directly is not
+         automatically synchronized. So, this should be considered enough in MT
+         programming.
 
     * Per-thread symbol table
         Each thread has it's own symbol table. But memory block is globally

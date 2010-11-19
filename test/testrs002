@@ -371,3 +371,15 @@ FAIL
 FAIL
 (set 'rs002--a (make-array 10))
 (arr+ rs002--a 1 -1)
+
+=================================================
+
+; invalid file descripter
+FAIL
+(fdopen 10000)
+
+=================================================
+
+; invalid file descripter
+FAIL
+(fdrselect 99999 100)

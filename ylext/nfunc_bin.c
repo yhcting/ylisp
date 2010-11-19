@@ -133,7 +133,7 @@ YLDEFNF(concat_bin, 2, 9999) {
     yldynb_init(&b, 4096);
     ylelist_foreach(e) {
         if(ylais_type(ylcar(e), ylaif_sym())) {
-            sz = strlen(ylasym(ylcar(e)).sym) + 1;
+            sz = strlen(ylasym(ylcar(e)).sym);
             if(0 > yldynb_append(&b, (unsigned char*)ylasym(ylcar(e)).sym,
                                   (unsigned int)sz)) {
                 goto bail;
@@ -172,7 +172,7 @@ YLDEFNF(to_bin, 1, 2) {
         return ylcar(e);
 
     } else if(ylais_type(ylcar(e), ylaif_sym())) {
-        int            sz = strlen(ylasym(ylcar(e)).sym) + 1;
+        int            sz = strlen(ylasym(ylcar(e)).sym);
         unsigned char* b = ylmalloc(sz);
         if(!b) {
             ylnflogE0("Out Of Memory\n");

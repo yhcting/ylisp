@@ -33,6 +33,14 @@ typedef struct _sInterp_req {
     void(*          fcb)(struct _sInterp_req*); /* callback to free argment */
 } _interp_req_t;
 
+
+static inline void
+_show_eval_stack(yletcxt_t* cxt) {
+    while(ylstk_size(cxt->evalstk)) {
+        ylprint(("    %s\n", ylechain_print(ylethread_buf(cxt),  (yle_t*)ylstk_pop(cxt->evalstk))));
+    }
+}
+
 ylerr_t
 ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int streamsz) {
     /* Declar space to use */
@@ -99,6 +107,7 @@ ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int s
          * Close all process resources!! Thread is fails!!
          */
         ylmt_close_all_pres(cxt);
+        _show_eval_stack(cxt);
         ylprint(("Interpret FAILS! : ERROR Line : %d\n", line));
         goto done;
     } else {

@@ -102,7 +102,7 @@ yldynb_clean(yldynb_t* b) {
  * due to using memcpy, it cannot be static inline
  * @return: <0 if fails.
  */
-static int
+static inline int
 yldynb_expand(yldynb_t* b) {
     unsigned char* tmp = (unsigned char*)ylmalloc(b->limit*2);
     if(tmp) {

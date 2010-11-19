@@ -335,7 +335,7 @@ NFUNC(fdopen,              "fdopen",            ylaif_nfunc(),
     "fdopen <file path> <flag>: [Double]\n"
     "    -Raw level file descriptior open.\n"
     "     Just wrapper of C-function\n"
-    "    @flag [Symbol] : \"r\" (read), \"w\" (write) \"rw\" (both). others are ignored.\n")
+    "    @flag [Symbol] : r(read), w(write), n(nonblock)\n")
 
 NFUNC(fdclose,             "fdclose",           ylaif_nfunc(),
     "fdclose [Double] : [t/nil]\n"
@@ -348,9 +348,22 @@ NFUNC(fdwrite,             "fdwrite",           ylaif_nfunc(),
     "    @data [Binary]\n")
 
 NFUNC(fdread,              "fdread",            ylaif_nfunc(),
-    "fdwrite <fd> <sz> : [Binary]\n"
+    "fdread <fd> : [Binary/nil]\n"
     "    -Raw level file descriptior read.\n"
-    "    @sz [Double] : bytes to read\n")
+    "    @sz [Double] : bytes to read\n"
+    "    @return : nil if nothing to read for non-blocked file.\n")
+
+NFUNC(fdselect,            "fdselect",          ylaif_nfunc(),
+    "fdselect <read fds> <write fds> <except fds> <time>\n"
+    "    -Select wrapper\n"
+    "    @read fds <list>:\n"
+    "    @write fds <list >: list of fds\n"
+    "    @except fds <list>:\n"
+    "    @time [Double] : milliseconds\n"
+    "    @return\n"
+    "        Ok : available fds : ( (<read fds>) (<write fds>) (<except fds>) )\n"
+    "        timeout : nil\n")
+
 
 /**********************************************
  * Trie
