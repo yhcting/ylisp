@@ -44,7 +44,7 @@ echo --- build yljfe
 check_exit_status
 make clean
 check_exit_status
-make release
+make
 check_exit_status
 
 cd ../test

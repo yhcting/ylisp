@@ -23,10 +23,18 @@
 #ifndef ___LISp_h___
 #define ___LISp_h___
 
+#include <limits.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <errno.h>
 #include "config.h"
+
+/*
+ * Check build environment
+ */
+#if USHRT_MAX != 65535 || UINT_MAX != 4294967295
+#   error Unsupported platform.
+#endif
 /*
  * For debugging
  */

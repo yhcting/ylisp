@@ -10,7 +10,7 @@
     (interactive)
     (let ((cmd ""))
         (set 'cmd (concat "cd " yhc.topdir
-                          "; make DEFS=\"-D__YLDBG__\"  debug"))
+                          "; make DEFS=\"-D__YLDBG__\""))
         ;(message cmd)))
         (compile cmd)))
 
@@ -18,7 +18,7 @@
     "Using make file in top directory"
     (interactive)
     (let ((cmd ""))
-        (set 'cmd (concat "cd " yhc.topdir "; make release"))
+        (set 'cmd (concat "cd " yhc.topdir "; make"))
         ;(message cmd)))
         (compile cmd)))
 
