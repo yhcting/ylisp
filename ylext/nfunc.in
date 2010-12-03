@@ -416,7 +416,7 @@ NFUNC(arr_get,             "arr*",              ylaif_nfunc(),
     "    -access array of given dimension - row major\n"
     "    @dimN [Double] : \n"
     "    *ex\n"
-    "        (arr* 5 6)\n")
+    "        (arr* my-arr 5 6)\n")
 
 NFUNC(arr_set,             "arr+",              ylaif_nfunc(),
     "arr+ <arr> <value> <dim0> <dim1> ...\n"
@@ -424,7 +424,7 @@ NFUNC(arr_set,             "arr+",              ylaif_nfunc(),
     "    @value :\n"
     "    @dimN [Double] : \n"
     "    *ex\n"
-    "        (arr+ 'name 5 6)\n")
+    "        (arr+ my-arr 'name 5 6)\n")
 
 /**********************************************
  *

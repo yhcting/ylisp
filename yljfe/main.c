@@ -322,8 +322,8 @@ main(int argc, char* argv[]) {
         sys.assert    = _assert;
         sys.malloc    = malloc;
         sys.free      = free;
-        sys.mpsz      = 128*1024; /* memory pool size */
-        sys.gctp = 80;
+        sys.mpsz      = 1024*1024; /* memory pool size */
+        sys.gctp      = 80;
 
         if(YLOk != ylinit(&sys)) {
             printf("Error: Fail to initialize ylisp\n");

@@ -157,6 +157,8 @@ Directory/File Structure
         (math, string, system, array, trie, structure, utility funcs. etc)
     yls
         YLISP script files.
+    ylr
+        Very simple executable that runs YLISP script files.
     test
         Executable binary for sanity test and test scripts.
 
