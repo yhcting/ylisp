@@ -22,8 +22,8 @@ OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES)))
 DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 
 TARGET=$(OUTDIR)ylisp
-LIBA=lib$(TARGET).a
-LIBSO=lib$(TARGET).so
+LIBA=$(OUTDIR)libylisp.a
+LIBSO=$(OUTDIR)libylisp.so
 
 CC=gcc
 AR=ar

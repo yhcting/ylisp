@@ -17,7 +17,7 @@ OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES)))
 DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 
 TARGET=$(OUTDIR)ylext
-LIB=lib$(TARGET).so
+LIB=$(OUTDIR)libylext.so
 
 CC=gcc
 CFLAGS+= -fPIC -Wall -g

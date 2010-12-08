@@ -17,7 +17,7 @@ OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES)))
 DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 
 TARGET=$(OUTDIR)ylbase
-LIB=lib$(TARGET).so
+LIB=$(OUTDIR)libylbase.so
 
 CC=gcc
 CFLAGS+= -fPIC -Wall -g -Wno-format
