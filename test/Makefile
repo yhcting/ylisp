@@ -17,6 +17,8 @@ DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 
 TARGET=$(OUTDIR)test
 
+HELPER=__procia_test
+
 CC=gcc
 CFLAGS+= -Wall -g
 LDFLAGS+= -rdynamic -ldl -lrt -lpthread
@@ -25,7 +27,7 @@ C_COMPILE=$(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 C_DEPENDENCIES=-Wp,-MD,$(DEPDIR)$(*F).P
 C_LINK=$(CC) $(CFLAGS) $(LDFLAGS) -L.
 
-all: $(TARGET)
+all: $(TARGET) $(HELPER)
 
 DEPS_MAGIC := $(shell mkdir $(DEPDIR) $(OUTDIR) > /dev/null 2>&1 || :)
 
@@ -36,13 +38,17 @@ $(OUTDIR)%.o: %.c
 	@echo '$(C_COMPILE) -o $@ -c $<'; \
 	$(C_COMPILE) $(C_DEPENDENCIES) -o $@ -c $<
 
+$(HELPER): $(OUTDIR)$(HELPER).o
+	@echo '$(CC) -L. -o $@ $^'; \
+	$(CC) -L. -o $@ $^
+
 $(TARGET): $(OBJ) $(EXTLIB)
 	@echo '$(C_LINK) -o $@ $^'; \
-	$(C_LINK) -o  $@ $^
-
+	$(C_LINK) -o $@ $^
 clean:
 	rm -f *.mod *.o *.obj .lo $(TARGET)
 	rm -rf $(DEPDIR)
 	rm -rf $(OUTDIR)
+	rm -rf $(HELPER)
 
 # End of Makefile

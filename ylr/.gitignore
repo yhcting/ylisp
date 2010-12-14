@@ -3,8 +3,7 @@
 *.o
 *.a
 *.so
-__procia_test
-test
+ylr
 GPATH
 GRTAGS
 GSYMS

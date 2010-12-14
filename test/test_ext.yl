@@ -163,6 +163,50 @@
 (sh (concat '"rm " exttfname))
 (unset 'exttfname)
 
+
+; ===============================
+; !! FIXME !!
+; NOTE!! Why following test code doesn't work as expected!!!
+; Why???
+; ==> NEED DEEP DIVE!
+; ===============================
+; fraw basic test - GC
+;(set 'extfds (readdir '"/proc/self/fd"))
+;(set 'extfraw (fraw-open 'Makefile 'r))
+;(assert (not (null extfraw)))
+;(set 'extfrawfd (to-string (fraw-sysfd extfraw)))
+;(set 'extfds (readdir '"/proc/self/fd"))
+;(assert (among extfrawfd extfds))
+; allocate new memory block to extfraw to trigger GC.
+;(unset 'extfraw)
+;(set 'extfraw (list 'a 'b 'c))
+; At this point, old 'extfraw' should be GCed and file should be closed!
+;(set 'extfds (readdir '"/proc/self/fd"))
+;(assert (not (among extfrawfd extfds)))
+;(unset 'extfraw)
+;(unset 'extfrawfd)
+;(unset 'extfds)
+
+; Test for procia-xxxx
+(set 'extpia (procia-create './__procia_test '1 'a 'ha))
+; strlen of __procia_test is greater than 10!
+(assert (< 10 (strlen (sh '"ps -e | grep __procia_test"))))
+(assert (equal '"./__procia_test/1/a/ha/\n" (to-string (fraw-read (procia-rfd extpia)))))
+(fraw-write (procia-wfd extpia) (to-bin '"procia test\n"))
+(assert (equal '"procia test\n" (to-string (fraw-read (procia-rfd extpia)))))
+(procia-destroy extpia)
+(assert (equal 0 (strlen (sh '"ps -e | grep __procia_test"))))
+
+(set 'extpia (procia-create './__procia_test '1 'a 'ha))
+(assert (< 10  (strlen (sh '"ps -e | grep __procia_test"))))
+(unset 'extpia)
+; trigger GC by newly using memory block
+(set 'extpia (list 'a 'b 'c))
+; Now object created by 'procia-create' should be GCed.
+; So, child process should not exist!!
+(assert (equal 0 (strlen (sh '"ps -e | grep __procia_test"))))
+(unset 'extpia)
+
 ;=============================
 ; Test Pair Operation
 ;=============================
@@ -402,9 +446,6 @@
 (sh (concat '"rm " extff))
 (unset 'extfd)
 (unset 'extff)
-
-;======== TODO =========
-; Test for procia-xxxx is required here!!!
 
 ;=============================
 ; Test Per-thread symbol

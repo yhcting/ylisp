@@ -272,6 +272,10 @@ NFUNC(setenv,              "setenv",            ylaif_nfunc(),
     "    -set environment variable. If there is no matching variable, it returns nil\n"
     "    @variable, value [Symbol]:\n")
 
+NFUNC(getpid,              "getpid",            ylaif_nfunc(),
+    "getpid : [Double]\n"
+    "    @return : current pid\n")
+
 NFUNC(chdir,               "chdir",             ylaif_nfunc(),
     "chdir <path> : [t/nil]\n"
     "    -change current working directory.\n"
@@ -332,7 +336,7 @@ NFUNC(readdir,             "readdir",           ylaif_nfunc(),
     "        (readdir '/usr) => <file names in the directory>\n")
 
 NFUNC(procia_create,       "procia-create",     ylaif_nfunc(),
-    "procia-create <executable file> : <custom data>\n"
+    "procia-create <executable file> <arg0> <arg1> ... : <custom data>\n"
     "    -procia [PROCess InterActive]\n"
     "     run process in interactive mode with in/out pipe.\n"
     "     buffer mode of in, out, error pipe of process is\n"
@@ -348,28 +352,39 @@ NFUNC(procia_destroy,      "procia-destroy",    ylaif_nfunc(),
     "     destroying includes killing child process and removing pipe\n")
 
 NFUNC(procia_wfd,          "procia-wfd",        ylaif_nfunc(),
-    "procia-wfd <custom>: [Double]\n"
+    "procia-wfd <custom>: <fraw-xxx custom>\n"
     "    -Get write file descriptor.\n"
     "     Data can be sent to process as an standard input by using 'fdwrite'\n")
  
 NFUNC(procia_rfd,          "procia-rfd",        ylaif_nfunc(),
-    "procia-rfd <custom>: [Double]\n"
+    "procia-rfd <custom>: <fraw-xxx custom>\n"
     "    -Get read file descriptor.\n"
     "     Data can be read from process's standard output by using 'fdread'\n")
 
 NFUNC(fraw_open,           "fraw-open",         ylaif_nfunc(),
-    "fraw-open <file path> <flag>: <fd>\n"
+    "fraw-open <file path> <flag>: [<fd>/nil]\n"
     "    -Raw level file descriptior open.\n"
     "     Just wrapper of C-function\n"
     "     pair function is fraw-close\n"
     "    @flag [Symbol] : r(read), w(write), n(nonblock)\n"
-    "    @return <custom data> : represents fd\n")
+    "    @return <custom data> :\n"
+    "        success : data represents fd\n"
+    "        fails   : nil\n")
 
 NFUNC(fraw_close,          "fraw-close",        ylaif_nfunc(),
     "fraw-close <fd> : [t/nil]\n"
     "    -Closes raw level file descriptior manually.\n"
     "     If this is not called manually,\n"
     "      file descriptor will be closed when it is GCed.\n")
+
+NFUNC(fraw_sysfd,          "fraw-sysfd",        ylaif_nfunc(),
+    "fraw-sysfd <fd> : [Double]\n"
+    "    @return system file descriptor (integer value)\n")
+
+NFUNC(fraw_is_valid,       "fraw-is-valid",     ylaif_nfunc(),
+    "fraw-is-valid <fd> : [t/nil]\n"
+    "    @return : t if valid fd, nil if invalid\n")
+
 
 NFUNC(fraw_write,          "fraw-write",        ylaif_nfunc(),
     "fraw-write <fd> <data> : [t/nil]\n"

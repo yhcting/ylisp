@@ -46,47 +46,14 @@
 #define _INVALID_FD -1
 
 /* ------------------
- * For procia-xxx
- * ------------------*/
-static int  _aif_procia_eq (const yle_t* e0, const yle_t* e1) { return e0 == e1; }
-static void
-_aif_procia_clean (yle_t* e) {
-    if (ylacd (e)) {
-        kill ((pid_t)yltrie_get ((yltrie_t*)ylacd (e), (unsigned char*)"pid", sizeof ("pid")-1), SIGKILL);
-        close ((int)yltrie_get ((yltrie_t*)ylacd (e), (unsigned char*)"inp",  sizeof ("inp")-1));
-        close ((int)yltrie_get ((yltrie_t*)ylacd (e), (unsigned char*)"outp", sizeof ("outp")-1));
-        yltrie_destroy ((yltrie_t*)ylacd (e));
-        ylacd (e) = NULL;
-    }
-    return;
-}
-static int
-_aif_procia_to_string (const yle_t* e, char* b, unsigned int sz) {
-    int bw = snprintf (b, sz, "<pid:%d>", 
-                       ylacd (e)? (pid_t)yltrie_get ((yltrie_t*)ylacd (e),
-                                                     (unsigned char*)"pid",
-                                                     sizeof ("pid")-1)
-                                  : -1);
-    if (bw >= sz) return -1; /* not enough buffer */
-    return bw;
-}
-
-static ylatomif_t _aif_procia = {
-    &_aif_procia_eq,
-    NULL, /* copy is not allowed! */
-    &_aif_procia_to_string,
-    NULL,
-    &_aif_procia_clean
-};
-
-/* ------------------
  * For fraw-xxx
  * ------------------*/
 static int  _aif_fraw_eq (const yle_t* e0, const yle_t* e1) { return e0 == e1; }
 static void
 _aif_fraw_clean (yle_t* e) {
     int fd = (int)ylacd (e);
-    if (0 <= fd) close(fd);
+    if (_INVALID_FD != fd) close(fd);
+    ylacd (e) = (void*)_INVALID_FD;
     return;
 }
 static int
@@ -105,6 +72,59 @@ static ylatomif_t _aif_fraw = {
 };
 
 
+/* ------------------
+ * For procia-xxx
+ * ------------------*/
+struct procia_cust {
+    pid_t    cpid;
+    yle_t*   wp;  /* write pipe - fraw type */
+    yle_t*   rp;  /* read pipe  - fraw type */
+};
+
+static int  _aif_procia_eq (const yle_t* e0, const yle_t* e1) { return e0 == e1; }
+static void
+_aif_procia_clean (yle_t* e) {
+    struct procia_cust* pc = (struct procia_cust*)ylacd (e);
+    if (pc) {
+        int                 status;
+        _aif_fraw_clean (pc->wp);
+        _aif_fraw_clean (pc->rp);
+        kill (pc->cpid, SIGKILL);
+        /* get exit status not to remain zombie! */
+        waitpid(pc->cpid, &status, 0);
+        ylfree(pc);
+        ylacd (e) = NULL;
+    }
+    return;
+}
+static int
+_aif_procia_to_string (const yle_t* e, char* b, unsigned int sz) {
+    struct procia_cust* pc = (struct procia_cust*)ylacd (e);
+    int bw = snprintf (b, sz, "<cpid:%d>", pc? pc->cpid: -1);
+    if (bw >= sz) return -1; /* not enough buffer */
+    return bw;
+}
+
+static int
+_aif_procia_visit(yle_t* e, void* user, int(*cb)(void*, yle_t*)) {
+    struct procia_cust* pc = (struct procia_cust*)ylacd (e);
+    if (pc) {
+        (*cb)(user, pc->wp);
+        (*cb)(user, pc->rp);
+    }
+    return 1;
+}
+
+static ylatomif_t _aif_procia = {
+    &_aif_procia_eq,
+    NULL, /* copy is not allowed! */
+    &_aif_procia_to_string,
+    &_aif_procia_visit,
+    &_aif_procia_clean
+};
+
+
+
 
 static inline int
 _is_integer (double d) {
@@ -113,9 +133,10 @@ _is_integer (double d) {
 
 static inline int
 _is_fraw_data_list (yle_t* e) {
-    if (yleis_atom(e)) { return 0; }
+    if (yleis_atom(e)) return 0;
     ylelist_foreach(e) {
-        if (! (ylais_type (ylcar (e), &_aif_fraw)))  return 0;
+        if (! (ylais_type (ylcar (e), &_aif_fraw)
+               && (_INVALID_FD != (int)ylacd (ylcar (e)))) )  return 0;
     }
     return 1;
 }
@@ -310,6 +331,10 @@ YLDEFNF(setenv, 2, 2) {
     }
 } YLENDNF(setenv)
 
+YLDEFNF(getpid, 0, 0) {
+    return ylacreate_dbl(getpid());
+} YLENDNF(getpid)
+
 YLDEFNF(chdir, 1, 1) {
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
     if ( 0 > chdir(ylasym(ylcar(e)).sym) ) {
@@ -466,6 +491,7 @@ YLDEFNF(readdir, 1, 1) {
         /* initialize sentinel */
         sentinel = ylcons(ylnil(), ylnil());
         t = sentinel;
+
         /* '!!' to make compiler be happy */
         while (!!(dit = readdir(dip))) {
             /* ignore '.', '..' in the directory */
@@ -557,9 +583,9 @@ _procia_create_prepare_libstdbuf () {
 }
 
 YLDEFNF(procia_create, 1, 9999) {
+    struct procia_cust* pc = NULL;
     int       wp[] = {_INVALID_FD, _INVALID_FD};
     int       rp[] = {_INVALID_FD, _INVALID_FD};
-    yltrie_t* trie = NULL;
 
     /* check input parameter */
     ylnfcheck_parameter (ylais_type_chain(e, ylaif_sym()));
@@ -583,11 +609,14 @@ YLDEFNF(procia_create, 1, 9999) {
         if (cpid) { /* parent */
             close (wp[0]);
             close (rp[1]);
-            trie = yltrie_create (NULL);
-            yltrie_insert (trie, (unsigned char*)"pid", sizeof("pid")-1, (void*)cpid);
-            yltrie_insert (trie, (unsigned char*)"wp",  sizeof("wp")-1,  (void*)wp[1]);
-            yltrie_insert (trie, (unsigned char*)"rp",  sizeof("rp")-1,  (void*)rp[0]);
+            pc = (struct procia_cust*)ylmalloc(sizeof(*pc));
+            pc->cpid = cpid;
+            pc->wp = ylacreate_cust(&_aif_fraw, (void*)wp[1]);
+            pc->rp = ylacreate_cust(&_aif_fraw, (void*)rp[0]);
         } else { /* child */
+
+            if (0 > _procia_create_prepare_libstdbuf ()) exit (1);
+
             /* redirect stderr/stdout to the pipe */
             if (0 > dup2 (rp[1], STDOUT_FILENO )
                || 0 > dup2 (rp[1], STDERR_FILENO)) {
@@ -607,8 +636,6 @@ YLDEFNF(procia_create, 1, 9999) {
             close (wp[0]);
             close (rp[1]);
 
-            if (0 > _procia_create_prepare_libstdbuf ()) exit (1);
-
             { /* Just scope */
                 int    i;
                 char** argv = ylmalloc (sizeof(char*)*(pcsz+1));
@@ -627,14 +654,14 @@ YLDEFNF(procia_create, 1, 9999) {
 
     } /* Just scope */
 
-    return ylacreate_cust (&_aif_procia, trie);
+    return ylacreate_cust (&_aif_procia, pc);
 
  bail:
     if (_INVALID_FD != wp[0]) close (wp[0]);
     if (_INVALID_FD != wp[1]) close (wp[1]);
     if (_INVALID_FD != rp[0]) close (rp[0]);
     if (_INVALID_FD != rp[1]) close (rp[1]);
-    if (trie) yltrie_destroy (trie);
+    if (pc) ylfree(pc);
     ylinterpret_undefined (YLErr_func_fail);
     return NULL; /* to make compiler be happy. */
 
@@ -649,14 +676,12 @@ YLDEFNF(procia_destroy, 1, 1) {
 
 YLDEFNF(procia_wfd, 1, 1) {
     ylnfcheck_parameter (ylais_type_chain (e, &_aif_procia) && ylacd (ylcar (e)) );
-    return ylacreate_dbl ((int)yltrie_get ((yltrie_t*)ylacd (ylcar (e)),
-                                           (unsigned char*)"wp", sizeof ("wp")-1));
+    return ((struct procia_cust*)ylacd (ylcar (e)))->wp;
 } YLENDNF(procia_wfd)
 
 YLDEFNF(procia_rfd, 1, 1) {
     ylnfcheck_parameter (ylais_type_chain (e, &_aif_procia) && ylacd (ylcar (e)) );
-    return ylacreate_dbl((int)yltrie_get((yltrie_t*)ylacd(ylcar(e)),
-                                         (unsigned char*)"rp", sizeof("rp")-1));
+    return ((struct procia_cust*)ylacd (ylcar (e)))->rp;
 } YLENDNF(procia_rfd)
 
 YLDEFNF(fraw_open, 2, 2) {
@@ -688,7 +713,8 @@ YLDEFNF(fraw_open, 2, 2) {
 YLDEFNF(fraw_close, 1, 1) {
     int fd, ret;
     /* check input parameter */
-    ylnfcheck_parameter (ylais_type_chain (e, &_aif_fraw));
+    ylnfcheck_parameter (ylais_type_chain (e, &_aif_fraw)
+                         && (_INVALID_FD != (int)ylacd (ylcar (e))) );
     fd = (int)ylacd (ylcar (e));
     if (!_is_valid_fd (fd)) {
         ylnflogE1 ("This is NOT valid file descripter : %d\n", fd);
@@ -697,16 +723,30 @@ YLDEFNF(fraw_close, 1, 1) {
     ret = close (fd);
     if (0 > ret) return ylnil();
     else {
-        ylacd (ylcar (e)) = (void*)-1;
+        ylacd (ylcar (e)) = (void*)_INVALID_FD;
         return ylt();
     }
 } YLENDNF(fraw_close)
+
+YLDEFNF(fraw_sysfd, 1, 1) {
+    ylnfcheck_parameter (ylais_type_chain (e, &_aif_fraw)
+                         && (_INVALID_FD != (int)ylacd (ylcar (e))) );
+    return ylacreate_dbl ((int)ylacd (ylcar (e)));
+} YLENDNF(fraw_sysfd)
+
+YLDEFNF(fraw_is_valid, 1, 1) {
+    ylnfcheck_parameter (ylais_type_chain (e, &_aif_fraw)
+                         && (_INVALID_FD != (int)ylacd (ylcar (e))) );
+    return _is_valid_fd ((int)ylacd (ylcar (e)))? ylt (): ylnil ();
+} YLENDNF(fraw_sysfd)
+
 
 YLDEFNF(fraw_write, 2, 2) {
     int       fd, bw;
     yle_t*    d = ylcadr(e);
     /* check input parameter */
     ylnfcheck_parameter (ylais_type (ylcar (e), &_aif_fraw)
+                         && (_INVALID_FD != (int)ylacd (ylcar (e)))
                          && ylais_type (ylcadr (e), ylaif_bin ()));
     fd = (int)ylacd (ylcar (e));
     if (!_is_valid_fd (fd)) {
@@ -736,7 +776,8 @@ YLDEFNF(fraw_read, 1, 1) {
     yldynb_t*  dynb;
     int        fd, br;
     /* check input parameter */
-    ylnfcheck_parameter(ylais_type_chain(e, &_aif_fraw));
+    ylnfcheck_parameter(ylais_type_chain(e, &_aif_fraw)
+                        && (_INVALID_FD != (int)ylacd (ylcar (e))) );
 
     fd = (int)ylacd (ylcar (e));
 
