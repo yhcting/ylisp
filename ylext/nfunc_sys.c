@@ -41,33 +41,94 @@
 #include "ylsfunc.h"
 #include "ylut.h"
 #include "yldynb.h"
+#include "yltrie.h"
+
+#define _INVALID_FD -1
+
+/* ------------------
+ * For procia-xxx
+ * ------------------*/
+static int  _aif_procia_eq (const yle_t* e0, const yle_t* e1) { return e0 == e1; }
+static void
+_aif_procia_clean (yle_t* e) {
+    if (ylacd (e)) {
+        kill ((pid_t)yltrie_get ((yltrie_t*)ylacd (e), (unsigned char*)"pid", sizeof ("pid")-1), SIGKILL);
+        close ((int)yltrie_get ((yltrie_t*)ylacd (e), (unsigned char*)"inp",  sizeof ("inp")-1));
+        close ((int)yltrie_get ((yltrie_t*)ylacd (e), (unsigned char*)"outp", sizeof ("outp")-1));
+        yltrie_destroy ((yltrie_t*)ylacd (e));
+        ylacd (e) = NULL;
+    }
+    return;
+}
+static int
+_aif_procia_to_string (const yle_t* e, char* b, unsigned int sz) {
+    int bw = snprintf (b, sz, "<pid:%d>", 
+                       ylacd (e)? (pid_t)yltrie_get ((yltrie_t*)ylacd (e),
+                                                     (unsigned char*)"pid",
+                                                     sizeof ("pid")-1)
+                                  : -1);
+    if (bw >= sz) return -1; /* not enough buffer */
+    return bw;
+}
+
+static ylatomif_t _aif_procia = {
+    &_aif_procia_eq,
+    NULL, /* copy is not allowed! */
+    &_aif_procia_to_string,
+    NULL,
+    &_aif_procia_clean
+};
+
+/* ------------------
+ * For fraw-xxx
+ * ------------------*/
+static int  _aif_fraw_eq (const yle_t* e0, const yle_t* e1) { return e0 == e1; }
+static void
+_aif_fraw_clean (yle_t* e) {
+    int fd = (int)ylacd (e);
+    if (0 <= fd) close(fd);
+    return;
+}
+static int
+_aif_fraw_to_string (const yle_t* e, char* b, unsigned int sz) {
+    int bw = snprintf(b, sz, "<fd:%d>", (int)ylacd (e));
+    if (bw >= sz) return -1; /* not enough buffer */
+    return bw;
+}
+
+static ylatomif_t _aif_fraw = {
+    &_aif_fraw_eq,
+    NULL, /* copy is not allowed! - duplicated fd is not expected! */
+    &_aif_fraw_to_string,
+    NULL,
+    &_aif_fraw_clean
+};
+
+
 
 static inline int
-_is_integer(double d) {
+_is_integer (double d) {
     return (double)((int)d) == d;
 }
 
 static inline int
-_is_integer_list(yle_t* e) {
-    if(yleis_atom(e)) { return 0; }
+_is_fraw_data_list (yle_t* e) {
+    if (yleis_atom(e)) { return 0; }
     ylelist_foreach(e) {
-        if(! (ylais_type(ylcar(e), ylaif_dbl())
-              && _is_integer(yladbl(ylcar(e)))) ) {
-            return 0;
-        }
+        if (! (ylais_type (ylcar (e), &_aif_fraw)))  return 0;
     }
     return 1;
 }
 
 static inline char*
-_alloc_str(const char* str) {
+_alloc_str (const char* str) {
     char*        p;
     p = ylmalloc(strlen(str)+1);
     /*
      * This function is used for small-length string.
      * So, let's skip handling allocation-failure.
      */
-    if(p) { strcpy(p, str); }
+    if (p) { strcpy(p, str); }
     else { ylassert(0); }
     return p;
 }
@@ -77,42 +138,42 @@ _alloc_str(const char* str) {
  *    in case of fail: 0 means OK, otherwise error!
  */
 static void*
-_readf(unsigned int* outsz, const char* func, const char* fpath, int btext) {
+_readf (unsigned int* outsz, const char* func, const char* fpath, int btext) {
     char*        buf = NULL;
     unsigned int sz;
 
-    if(outsz) { *outsz = 1; } /* 1 means, 'not 0' */
-    buf = ylutfile_read(&sz, fpath, btext);
-    if(buf) { if(outsz){*outsz=sz;} }
+    if (outsz) { *outsz = 1; } /* 1 means, 'not 0' */
+    buf = ylutfile_read (&sz, fpath, btext);
+    if (buf) { if (outsz) *outsz=sz; }
     else {
         switch(sz) {
             case YLOk:
-                if(outsz){*outsz = 0;}
+                if (outsz) *outsz = 0;
             break;
 
             case YLErr_io:
-                yllogW2("<!%s!> Error: File IO [%s]\n", func, fpath);
+                yllogW2 ("<!%s!> Error: File IO [%s]\n", func, fpath);
             break;
 
             case YLErr_out_of_memory:
-                yllogW2("<!%s!> Not enough memory to load file [%s]\n", func, fpath);
+                yllogW2 ("<!%s!> Not enough memory to load file [%s]\n", func, fpath);
             break;
 
             default:
-                ylassert(0);
+                ylassert (0);
         }
     }
     return buf;
 }
 
 static void
-_ccb_fclose(void* f) {
-    fclose(f);
+_ccb_fclose (void* f) {
+    fclose (f);
 }
 
 static void
-_ccb_pkill(void* pid) {
-    kill((pid_t)pid, SIGKILL);
+_ccb_pkill (void* pid) {
+    kill ((pid_t)pid, SIGKILL);
 }
 
 YLDEFNF(sh, 1, 1) {
@@ -120,9 +181,9 @@ YLDEFNF(sh, 1, 1) {
  * We would better put them in tmp directory, because
  *  out file is actually temporally used one!
  */
-#define __cleanup()                                     \
-    /* clean resources */                               \
-    if(buf) { ylfree(buf); }                            \
+#define __cleanup()                             \
+    /* clean resources */                       \
+        if (buf) { ylfree (buf); }              \
 
     char*       buf = NULL;
     FILE*       fout;
@@ -140,12 +201,12 @@ YLDEFNF(sh, 1, 1) {
 
         cpid = fork();
 
-        if(-1 == cpid) {
+        if (-1 == cpid) {
             ylnflogE0("Fail to fork!\n");
             goto bail;
         }
 
-        if(cpid) { /* parent */
+        if (cpid) { /* parent */
             /*
              * add process resources to thread context.
              */
@@ -153,8 +214,8 @@ YLDEFNF(sh, 1, 1) {
             ylmt_add_pres(cxt, fout, &_ccb_fclose);
             /* I'm safe. And may take some time. */
             ylmt_notify_safe(cxt);
-            if(-1 == waitpid(cpid, NULL, 0)) {
-                if(ECHILD == errno) {
+            if (-1 == waitpid(cpid, NULL, 0)) {
+                if (ECHILD == errno) {
                     /*
                      * child process already killed!.
                      * (This is possible. This is not error.)
@@ -175,12 +236,12 @@ YLDEFNF(sh, 1, 1) {
             ylmt_rm_pres(cxt, (void*)cpid);
         } else { /* child */
             /* redirect stderr to the pipe */
-            if(0 > dup2(fileno(fout), STDOUT_FILENO )
+            if (0 > dup2(fileno(fout), STDOUT_FILENO )
                || 0 > dup2(fileno(fout), STDERR_FILENO)) {
                 perror("Fail to dup stderr or stdout\n");
                 exit(0);
             }
-
+            fclose(fout); /* dupped */
             execl("/bin/bash", "/bin/bash", "-c", ylasym(ylcar(e)).sym, (char*)0);
         }
     } /* Just scope */
@@ -188,7 +249,7 @@ YLDEFNF(sh, 1, 1) {
     buf = ylutfile_fread(NULL, fout, TRUE);
     fclose(fout);
 
-    if(!buf) {
+    if (!buf) {
         ylnflogE0("Fail to read output result\n");
         goto bail;
     } else {
@@ -196,7 +257,7 @@ YLDEFNF(sh, 1, 1) {
     }
 
  bail:
-    if(buf) { ylfree(buf); }
+    if (buf) ylfree (buf);
     ylinterpret_undefined(YLErr_func_fail);
     return NULL; /* to make compiler be happy. */
 
@@ -228,7 +289,7 @@ YLDEFNF(getenv, 1, 1) {
     /* check input parameter */
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
     env = getenv(ylasym(ylcar(e)).sym);
-    if(env) {
+    if (env) {
         unsigned int    sz = strlen(env);
         char*           v = ylmalloc(sz+1);
         memcpy(v, env, sz);
@@ -242,7 +303,7 @@ YLDEFNF(getenv, 1, 1) {
 YLDEFNF(setenv, 2, 2) {
     /* check input parameter */
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
-    if(0 == setenv(ylasym(ylcar(e)).sym, ylasym(ylcadr(e)).sym, 1)) {
+    if (0 == setenv(ylasym(ylcar(e)).sym, ylasym(ylcadr(e)).sym, 1)) {
         return ylt();
     } else {
         return ylnil();
@@ -251,7 +312,7 @@ YLDEFNF(setenv, 2, 2) {
 
 YLDEFNF(chdir, 1, 1) {
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
-    if( 0 > chdir(ylasym(ylcar(e)).sym) ) {
+    if ( 0 > chdir(ylasym(ylcar(e)).sym) ) {
         ylnflogW1("Fail to change directory to [ %s ]\n", ylasym(ylcar(e)).sym);
         return ylnil();
     } else {
@@ -272,7 +333,7 @@ YLDEFNF(fstat, 1, 1) {
     struct stat    st;
     yle_t         *r, *key, *v;
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
-    if(0 > stat(ylasym(ylcar(e)).sym, &st)) {
+    if (0 > stat(ylasym(ylcar(e)).sym, &st)) {
         ylnflogW1("Cannot get status of file [%s]\n", ylasym(ylcar(e)).sym);
         return ylnil();
     }
@@ -304,21 +365,21 @@ YLDEFNF(fread, 1, 1) {
     char*    buf = NULL;
     yle_t*   r;
 
-    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
+    ylnfcheck_parameter (ylais_type_chain(e, ylaif_sym()));
 
-    buf = _readf(NULL, "fread", ylasym(ylcar(e)).sym, TRUE);
-    if(!buf) { goto bail; }
+    buf = _readf (NULL, "fread", ylasym (ylcar (e)).sym, TRUE);
+    if (!buf) goto bail;
 
-    r = ylacreate_sym(buf);
+    r = ylacreate_sym (buf);
     buf = NULL; /* to prevent from free */
 
-    if(buf) { ylfree(buf); }
+    if (buf) ylfree (buf);
     return r;
 
  bail:
-    if(buf) { ylfree(buf); }
+    if (buf) ylfree (buf);
 
-    return ylnil();
+    return ylnil ();
 } YLENDNF(fread)
 
 YLDEFNF(freadb, 1, 1) {
@@ -329,17 +390,17 @@ YLDEFNF(freadb, 1, 1) {
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
     buf = _readf(&sz, "freadb", ylasym(ylcar(e)).sym, FALSE);
-    if(!buf && 0 != sz) { goto bail; }
+    if (!buf && 0 != sz) { goto bail; }
 
     r = ylacreate_bin(buf, sz);
     buf = NULL; /* to prevent from free */
 
-    if(buf) { ylfree(buf); }
+    if (buf) { ylfree(buf); }
 
     return r;
 
  bail:
-    if(buf) { ylfree(buf); }
+    if (buf) { ylfree(buf); }
 
     return ylnil();
 } YLENDNF(freadb)
@@ -355,12 +416,12 @@ YLDEFNF(fwrite, 2, 2) {
                         && (ylais_type(dat, ylaif_sym()) || ylais_type(dat, ylaif_bin())));
 
     fh = fopen(ylasym(ylcar(e)).sym, "w");
-    if(!fh) {
+    if (!fh) {
         ylnflogW1("Cannot open file [%s]\n", ylasym(ylcar(e)).sym);
         goto bail;
     }
 
-    if( ylaif_sym() == ylaif(dat) ) {
+    if ( ylaif_sym() == ylaif (dat) ) {
         sz = strlen(ylasym(dat).sym);
         rawdata = ylasym(dat).sym;
     } else { /* Binary case */
@@ -368,16 +429,16 @@ YLDEFNF(fwrite, 2, 2) {
         rawdata = ylabin(dat).d;
     }
 
-    if(sz != fwrite(rawdata, 1, sz, fh)) {
+    if (sz != fwrite(rawdata, 1, sz, fh)) {
         ylnflogW1("Fail to write file [%s]\n", ylasym(ylcar(e)).sym);
         goto bail;
     }
 
-    if(fh) { fclose(fh); }
+    if (fh) { fclose(fh); }
     return ylt();
 
  bail:
-    if(fh) { fclose(fh); }
+    if (fh) { fclose(fh); }
     return ylnil();
 } YLENDNF(fwrite)
 
@@ -390,7 +451,7 @@ YLDEFNF(readdir, 1, 1) {
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
     dpath = ylasym(ylcar(e)).sym;
     dip = opendir(dpath);
-    if(!dip) {
+    if (!dip) {
         ylnflogW1("Fail to open directory [%s]\n", dpath);
         goto bail;
     }
@@ -406,9 +467,9 @@ YLDEFNF(readdir, 1, 1) {
         sentinel = ylcons(ylnil(), ylnil());
         t = sentinel;
         /* '!!' to make compiler be happy */
-        while(!!(dit = readdir(dip))) {
+        while (!!(dit = readdir(dip))) {
             /* ignore '.', '..' in the directory */
-            if(0 == strcmp(".", dit->d_name)
+            if (0 == strcmp(".", dit->d_name)
                || 0 == strcmp("..", dit->d_name)) { continue; }
 
             len = strlen(dit->d_name);
@@ -426,141 +487,292 @@ YLDEFNF(readdir, 1, 1) {
     return re;
 
  bail:
-    if(dip) { closedir(dip); }
+    if (dip) { closedir(dip); }
     return ylnil();
 
 } YLENDNF(readdir)
 
 static inline int
-_is_valid_fd(int fd) {
+_is_valid_fd (int fd) {
     return fcntl(fd, F_GETFL) != -1 || errno != EBADF;
 }
 
 static inline int
-_is_in_string(const char* p, char c) {
-    while(*p) {
-        if(*p++ == c) { return 1; }
+_is_in_string (const char* p, char c) {
+    while (*p) {
+        if (*p++ == c) { return 1; }
     }
     return 0;
 }
 
-YLDEFNF(fdopen, 2, 2) {
+static int
+_procia_create_prepare_libstdbuf () {
+    /* FIXME! : don't hardcode */
+#define __MAX_PATH_LEN         1024
+#define __MAX_LD_PRELOAD_LEN   4096
+#define __DIR_PATH             "/usr/lib/coreutils/"
+#define __LIB_NAME             "libstdbuf.so"
+    /* prepare to use libstdbuf */
+    int         ret;
+    char        libstdbuf[__MAX_PATH_LEN];
+    char        ld_preload[__MAX_LD_PRELOAD_LEN];
+    const char* dirpath = __DIR_PATH;
+    const char* libname = __LIB_NAME;
+    const char* oldlibs;
+
+    ret = snprintf (libstdbuf, __MAX_PATH_LEN, "%s%s", dirpath, libname);
+    if (ret < 0 || __MAX_PATH_LEN <= ret) {
+        perror("Too long path...\n");
+        exit(0);
+    }
+
+    oldlibs = getenv ("LD_PRELOAD");
+    if (oldlibs)
+        ret = snprintf(ld_preload, __MAX_LD_PRELOAD_LEN, "LD_PRELOAD=%s:%s", oldlibs, libstdbuf);
+    else
+        ret = snprintf(ld_preload, __MAX_LD_PRELOAD_LEN, "LD_PRELOAD=%s", libstdbuf);
+
+    ret = putenv (ld_preload);
+    if (ret) {
+        perror("Fail to update LD_PRELOAD environment!\n");
+        return -1;
+    }
+
+    /* set redirected standard out to line-buffered mode by convention */
+    ret = putenv ("_STDBUF_O=L");
+    /* set redirected standard error to unbuffered mode by convention */
+    ret = putenv ("_STDBUF_E=0");
+    if (ret) {
+        perror("Fail to update LD_PRELOAD environment!\n");
+        return -1;
+    }
+
+    return 0;
+
+#undef __DIR_PATH
+#undef __LIB_NAME
+#undef __MAX_LD_PRELOAD_LEN
+#undef __MAX_PATH_LEN
+
+}
+
+YLDEFNF(procia_create, 1, 9999) {
+    int       wp[] = {_INVALID_FD, _INVALID_FD};
+    int       rp[] = {_INVALID_FD, _INVALID_FD};
+    yltrie_t* trie = NULL;
+
+    /* check input parameter */
+    ylnfcheck_parameter (ylais_type_chain(e, ylaif_sym()));
+
+    /* before forking flush/clean stdout and stderr */
+    fflush (stdout); fflush (stderr);
+
+    { /* Just scope */
+        pid_t   cpid; /* child process id */
+
+        if (0 > pipe (wp)) goto bail;
+        if (0 > pipe (rp)) goto bail;
+
+        cpid = fork ();
+
+        if (-1 == cpid) {
+            ylnflogE0("Fail to fork!\n");
+            goto bail;
+        }
+
+        if (cpid) { /* parent */
+            close (wp[0]);
+            close (rp[1]);
+            trie = yltrie_create (NULL);
+            yltrie_insert (trie, (unsigned char*)"pid", sizeof("pid")-1, (void*)cpid);
+            yltrie_insert (trie, (unsigned char*)"wp",  sizeof("wp")-1,  (void*)wp[1]);
+            yltrie_insert (trie, (unsigned char*)"rp",  sizeof("rp")-1,  (void*)rp[0]);
+        } else { /* child */
+            /* redirect stderr/stdout to the pipe */
+            if (0 > dup2 (rp[1], STDOUT_FILENO )
+               || 0 > dup2 (rp[1], STDERR_FILENO)) {
+                perror ("Fail to dup stderr or stdout\n");
+                exit (0);
+            }
+
+            /* redirect stdin to the pipe */
+            if (0 > dup2 (wp[0], STDIN_FILENO) ) {
+                perror ("Fail to dup stdin\n");
+                exit (0);
+            }
+
+            close (wp[1]);
+            close (rp[0]);
+            /* close dupped fds */
+            close (wp[0]);
+            close (rp[1]);
+
+            if (0 > _procia_create_prepare_libstdbuf ()) exit (1);
+
+            { /* Just scope */
+                int    i;
+                char** argv = ylmalloc (sizeof(char*)*(pcsz+1));
+                ylassert (argv);
+                for (i=0; i<pcsz; i++) {
+                    argv[i] = ylasym (ylcar (e)).sym;
+                    e = ylcdr (e);
+                }
+                argv[pcsz] = (char*)0;
+                execvp (argv[0], argv);
+
+                perror ("failed to run command\n");
+                exit (1);
+            }
+        }
+
+    } /* Just scope */
+
+    return ylacreate_cust (&_aif_procia, trie);
+
+ bail:
+    if (_INVALID_FD != wp[0]) close (wp[0]);
+    if (_INVALID_FD != wp[1]) close (wp[1]);
+    if (_INVALID_FD != rp[0]) close (rp[0]);
+    if (_INVALID_FD != rp[1]) close (rp[1]);
+    if (trie) yltrie_destroy (trie);
+    ylinterpret_undefined (YLErr_func_fail);
+    return NULL; /* to make compiler be happy. */
+
+} YLENDNF(procia_create)
+
+
+YLDEFNF(procia_destroy, 1, 1) {
+    ylnfcheck_parameter (ylais_type_chain (e, &_aif_procia) && ylacd (ylcar (e)) );
+    _aif_procia_clean(ylcar (e));
+    return ylt ();
+} YLENDNF(procia_destroy)
+
+YLDEFNF(procia_wfd, 1, 1) {
+    ylnfcheck_parameter (ylais_type_chain (e, &_aif_procia) && ylacd (ylcar (e)) );
+    return ylacreate_dbl ((int)yltrie_get ((yltrie_t*)ylacd (ylcar (e)),
+                                           (unsigned char*)"wp", sizeof ("wp")-1));
+} YLENDNF(procia_wfd)
+
+YLDEFNF(procia_rfd, 1, 1) {
+    ylnfcheck_parameter (ylais_type_chain (e, &_aif_procia) && ylacd (ylcar (e)) );
+    return ylacreate_dbl((int)yltrie_get((yltrie_t*)ylacd(ylcar(e)),
+                                         (unsigned char*)"rp", sizeof("rp")-1));
+} YLENDNF(procia_rfd)
+
+YLDEFNF(fraw_open, 2, 2) {
     int fd;
     int flags = 0;
     const char* p;
     /* check input parameter */
-    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
+    ylnfcheck_parameter (ylais_type_chain (e, ylaif_sym ()));
     /* flag string */
-    p = ylasym(ylcadr(e)).sym;
-    if(_is_in_string(p, 'r')) { flags = O_RDONLY; }
-    if(_is_in_string(p, 'w')) {
+    p = ylasym (ylcadr (e)).sym;
+    if (_is_in_string (p, 'r')) flags = O_RDONLY;
+    if (_is_in_string (p, 'w'))
         flags = (flags & O_RDONLY)? O_RDWR: O_WRONLY;
-    }
-    if(_is_in_string(p, 'n')) {
-        flags |= O_NONBLOCK;
-    }
 
-    ylmt_notify_safe(cxt);
-    fd = open( ylasym(ylcar(e)).sym, flags);
-    ylmt_notify_unsafe(cxt);
+    if (_is_in_string (p, 'n')) flags |= O_NONBLOCK;
 
-    if(0 > fd) {
-        ylnflogW1("Fail to open file : %s\n", strerror(errno));
-        return ylnil();
+    ylmt_notify_safe (cxt);
+    fd = open ( ylasym (ylcar(e)).sym, flags);
+    ylmt_notify_unsafe (cxt);
+
+    if (0 > fd) {
+        ylnflogW1 ("Fail to open file : %s\n", strerror (errno));
+        return ylnil ();
     }
 
-    if( (int)((double)fd) != fd ) {
-        ylnflogW1("Cannot represent fd as double!. fd : %d\n", fd);
-        return ylnil();
-    }
+    return ylacreate_cust (&_aif_fraw, (void*)fd);
+} YLENDNF(fraw_open)
 
-    return ylacreate_dbl((double)fd);
-} YLENDNF(fdopen)
-
-YLDEFNF(fdclose, 1, 1) {
-    double    dfd;
+YLDEFNF(fraw_close, 1, 1) {
+    int fd, ret;
     /* check input parameter */
-    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
-    dfd = yladbl(ylcar(e));
-    if(!_is_integer(dfd)
-       || !_is_valid_fd((int)dfd)) {
-        ylnflogE1("This is NOT valid file descripter : %f\n", dfd);
-        ylinterpret_undefined(YLErr_func_invalid_param);
+    ylnfcheck_parameter (ylais_type_chain (e, &_aif_fraw));
+    fd = (int)ylacd (ylcar (e));
+    if (!_is_valid_fd (fd)) {
+        ylnflogE1 ("This is NOT valid file descripter : %d\n", fd);
+        ylinterpret_undefined (YLErr_func_invalid_param);
     }
-    return (0 > close((int)dfd))? ylnil(): ylt();
-} YLENDNF(fdclose)
+    ret = close (fd);
+    if (0 > ret) return ylnil();
+    else {
+        ylacd (ylcar (e)) = (void*)-1;
+        return ylt();
+    }
+} YLENDNF(fraw_close)
 
-YLDEFNF(fdwrite, 2, 2) {
-    double    dfd;
-    int       bw;
+YLDEFNF(fraw_write, 2, 2) {
+    int       fd, bw;
     yle_t*    d = ylcadr(e);
     /* check input parameter */
-    ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_dbl())
-                        && ylais_type(ylcadr(e), ylaif_bin()));
-    dfd = yladbl(ylcar(e));
-    if(!_is_integer(dfd)) {
-        ylnflogE0("Invalid Parameter\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
+    ylnfcheck_parameter (ylais_type (ylcar (e), &_aif_fraw)
+                         && ylais_type (ylcadr (e), ylaif_bin ()));
+    fd = (int)ylacd (ylcar (e));
+    if (!_is_valid_fd (fd)) {
+        ylnflogE1 ("This is NOT valid file descripter : %d\n", fd);
+        ylinterpret_undefined (YLErr_func_invalid_param);
     }
 
     ylmt_notify_safe(cxt);
-    bw = write((int)dfd, ylabin(d).d, ylabin(d).sz);
+    bw = write(fd, ylabin(d).d, ylabin(d).sz);
+    fsync(fd); /* Is it really required? */
     ylmt_notify_unsafe(cxt);
 
-    if(ylabin(d).sz != bw) {
-        ylnflogW1("Fail to write file. : fd : %d\n", (int)dfd);
-        ylinterpret_undefined(YLErr_func_fail);
+    if (ylabin (d).sz != bw) {
+        ylnflogW1 ("Fail to write file. : fd : %d\n", fd);
+        ylinterpret_undefined (YLErr_func_fail);
     }
-    return ylt();
-} YLENDNF(fdwrite)
+    return ylt ();
+  } YLENDNF(fraw_write)
 
 static void
 _ccb_dynb(void* b) {
-    yldynb_clean(b);
-    ylfree(b);
+    yldynb_clean (b);
+    ylfree (b);
 }
 
-YLDEFNF(fdread, 1, 1) {
-    double     dfd;
+YLDEFNF(fraw_read, 1, 1) {
     yldynb_t*  dynb;
-    int        br;
+    int        fd, br;
     /* check input parameter */
-    ylnfcheck_parameter(ylais_type_chain(e, ylaif_dbl()));
+    ylnfcheck_parameter(ylais_type_chain(e, &_aif_fraw));
 
-    dfd = yladbl(ylcar(e));
-    if(!_is_integer(dfd)){
-        ylnflogE0("Invalid Parameter\n");
-        ylinterpret_undefined(YLErr_func_fail);
+    fd = (int)ylacd (ylcar (e));
+
+    if (!_is_valid_fd (fd)) {
+        ylnflogE1 ("This is NOT valid file descripter : %d\n", fd);
+        ylinterpret_undefined (YLErr_func_invalid_param);
     }
 
-    dynb = ylmalloc(sizeof(yldynb_t)); ylassert(dynb);
-    if(0 > yldynb_init(dynb, 4096)) { ylassert(0); }
+    dynb = ylmalloc (sizeof (yldynb_t)); ylassert (dynb);
+    if (0 > yldynb_init (dynb, 4096)) ylassert (0);
 
-    ylmt_add_pres(cxt, dynb, &_ccb_dynb);
-    ylmt_notify_safe(cxt);
-    while(1) {
-        br = read((int)dfd, yldynb_ptr(dynb), yldynb_freesz(dynb));
-        if(br < 0) {
-            if(EAGAIN == errno) { yldynb_reset(dynb); break; }
+    ylmt_add_pres (cxt, dynb, &_ccb_dynb);
+    ylmt_notify_safe (cxt);
+    while (1) {
+        br = read (fd, yldynb_ptr (dynb), yldynb_freesz (dynb));
+        if (br < 0) {
+            if (EAGAIN == errno) { yldynb_reset (dynb); break; }
             else {
-                ylnflogE0("Fail to read\n");
-                ylinterpret_undefined(YLErr_func_fail);
+                ylnflogE0 ("Fail to read\n");
+                ylinterpret_undefined (YLErr_func_fail);
             }
-        } else if(br < yldynb_freesz(dynb)) {
+        } else if (br < yldynb_freesz (dynb)) {
             dynb->sz += br;
             break;
         } else {
             dynb->sz += br;
-            if(0 > yldynb_expand(dynb) ) {
-                ylnflogE1("Out of memory : sz requested : %d\n", yldynb_limit(dynb));
-                ylinterpret_undefined(YLErr_out_of_memory);
+            if (0 > yldynb_expand (dynb) ) {
+                ylnflogE1 ("Out of memory : sz requested : %d\n", yldynb_limit (dynb));
+                ylinterpret_undefined (YLErr_out_of_memory);
             }
         }
     }
-    ylmt_notify_unsafe(cxt);
-    ylmt_rm_pres(cxt, dynb);
+    ylmt_notify_unsafe (cxt);
+    ylmt_rm_pres (cxt, dynb);
 
-    if(yldynb_sz(dynb) > 0) {
+    if (yldynb_sz (dynb) > 0) {
         unsigned char* b = dynb->b;
         unsigned int   sz = dynb->sz;
         /*
@@ -568,38 +780,38 @@ YLDEFNF(fdread, 1, 1) {
          * Memory allocated is referend by newly create binary atom.
          * So, responsibility to handle this memory is not lost.
          */
-        ylfree(dynb);
-        return ylacreate_bin(b, sz);
+        ylfree (dynb);
+        return ylacreate_bin (b, sz);
     } else {
-        yldynb_clean(dynb);
-        ylfree(dynb);
-        return ylnil();
+        yldynb_clean (dynb);
+        ylfree (dynb);
+        return ylnil ();
     }
-} YLENDNF(fdread)
+} YLENDNF(fraw_read)
 
-YLDEFNF(fdselect, 4, 4) {
+YLDEFNF(fraw_select, 4, 4) {
     fd_set         rfds, wfds, efds;
     int            retval, nfds;
     yle_t         *rl, *wl, *el, *to, *r;
     struct timeval tv;
 
-    rl = ylcar(e);
-    wl = ylcadr(e);
-    el = ylcaddr(e);
-    to = ylcadddr(e);
+    rl = ylcar (e);
+    wl = ylcadr (e);
+    el = ylcaddr (e);
+    to = ylcadddr (e);
     nfds = 0;
 
     ylnfcheck_parameter(
-        (yleis_nil(rl) || (!yleis_atom(rl) && _is_integer_list(rl)))
-        && (yleis_nil(wl) || (!yleis_atom(wl) && _is_integer_list(wl)))
-        && (yleis_nil(el) || (!yleis_atom(el) && _is_integer_list(el)))
-        && ylais_type(to, ylaif_dbl()) && _is_integer(yladbl(to))
+        (yleis_nil (rl) || (!yleis_atom (rl) && _is_fraw_data_list (rl)))
+        && (yleis_nil (wl) || (!yleis_atom (wl) && _is_fraw_data_list (wl)))
+        && (yleis_nil (el) || (!yleis_atom (el) && _is_fraw_data_list (el)))
+        && ylais_type (to, ylaif_dbl()) && _is_integer (yladbl (to))
     );
 
-    FD_ZERO(&rfds); FD_ZERO(&wfds); FD_ZERO(&efds);
+    FD_ZERO (&rfds); FD_ZERO (&wfds); FD_ZERO (&efds);
 
     { /* Just scope */
-        int i = (int)yladbl(to);
+        int i = (int)yladbl (to);
         /* set time out */
         tv.tv_sec = i/1000;
         i %= 1000;
@@ -610,55 +822,54 @@ YLDEFNF(fdselect, 4, 4) {
     do {                                                                \
         yle_t* te = e;                                                  \
         int    tfd;                                                     \
-        ylelist_foreach(te) {                                           \
-            tfd = (int)yladbl(ylcar(te));                               \
-            if(nfds < tfd) { nfds = tfd; }                              \
-            if(!_is_valid_fd(tfd)) {                                    \
-                ylnflogE1("Invalid file descriptor : %d\n", tfd);       \
-                ylinterpret_undefined(YLErr_func_fail);                 \
+        ylelist_foreach (te) {                                          \
+            tfd = (int)ylacd (ylcar (te));                              \
+            if (nfds < tfd) nfds = tfd;                                 \
+            if (!_is_valid_fd (tfd)) {                                  \
+                ylnflogE1 ("Invalid file descriptor : %d\n", tfd);      \
+                ylinterpret_undefined (YLErr_func_fail);                \
             }                                                           \
-            FD_SET(tfd, fdset);                                         \
+            FD_SET (tfd, fdset);                                        \
         }                                                               \
-    } while(0)
+    } while (0)
 
-    __FDSET(rl, &rfds);
-    __FDSET(wl, &wfds);
-    __FDSET(el, &efds);
+    __FDSET (rl, &rfds);
+    __FDSET (wl, &wfds);
+    __FDSET (el, &efds);
 
 #undef __FDSET
 
-    ylmt_notify_safe(cxt);
-    retval = select(nfds+1, &rfds, &wfds, &efds, &tv);
-    ylmt_notify_unsafe(cxt);
+    ylmt_notify_safe (cxt);
+    retval = select (nfds+1, &rfds, &wfds, &efds, &tv);
+    ylmt_notify_unsafe (cxt);
 
     if (0 > retval) {
-        ylnflogE0("Fail to select\n");
-        ylinterpret_undefined(YLErr_func_fail);
+        ylnflogE0 ("Fail to select\n");
+        ylinterpret_undefined (YLErr_func_fail);
     }
     /* check timeout */
-    if (0 == retval) { return ylnil(); }
+    if (0 == retval) return ylnil ();
 
-#define __FDCHECK(R, e, fdset)                          \
-    do {                                                \
-        yle_t* te = e;                                  \
-        int    tfd;                                     \
-        yle_t* l = ylnil();   /* list */                \
-        ylelist_foreach(te) {                           \
-            tfd = (int)yladbl(ylcar(te));               \
-            if(FD_ISSET(tfd, fdset)) {                  \
-                l = ylcons(ylacreate_dbl(tfd), l);      \
-            }                                           \
-        }                                               \
-        R = ylcons(l, R);                               \
-    } while(0)
+#define __FDCHECK(R, e, fdset)                                          \
+    do {                                                                \
+        yle_t* te = e;                                                  \
+        int    tfd;                                                     \
+        yle_t* l = ylnil ();   /* list */                               \
+        ylelist_foreach (te) {                                          \
+            tfd = (int)ylacd (ylcar (te));                              \
+            if (FD_ISSET (tfd, fdset))                                  \
+                l = ylcons (ylcar (te), l);                             \
+        }                                                               \
+        R = ylcons (l, R);                                              \
+    } while (0)
 
-    r = ylnil();
+    r = ylnil ();
     /* inverse order of __FDSET */
-    __FDCHECK(r, el, &efds);
-    __FDCHECK(r, wl, &wfds);
-    __FDCHECK(r, rl, &rfds);
+    __FDCHECK (r, el, &efds);
+    __FDCHECK (r, wl, &wfds);
+    __FDCHECK (r, rl, &rfds);
 
 #undef __FDCHECK
 
     return r;
-} YLENDNF(fdselect)
+} YLENDNF(fraw_select)

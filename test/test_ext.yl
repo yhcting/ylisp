@@ -390,18 +390,21 @@
 (set 'extff '__________ff)
 (sh (concat '"mknod " extff '" p"))
 (create-thread '"
-    (tset 'fd (fdopen extff 'w))
+    (tset 'fd (fraw-open extff 'w))
     (usleep 100000)
-    (fdwrite fd (to-bin 'haha))
-    (fdclose fd)")
-(set 'extfd (fdopen extff 'r))
-(assert (not (null (fdrselect extfd 1000))))
-(assert (equal (to-bin '"haha") (fdread extfd)))
-(fdclose extfd)
+    (fraw-write fd (to-bin 'haha))
+    (fraw-close fd)")
+(set 'extfd (fraw-open extff 'r))
+(assert (not (null (fraw-rselect extfd 1000))))
+(assert (equal (to-bin '"haha") (fraw-read extfd)))
+(fraw-close extfd)
 (usleep 50000); to wait for child thread to be finished.
 (sh (concat '"rm " extff))
 (unset 'extfd)
 (unset 'extff)
+
+;======== TODO =========
+; Test for procia-xxxx is required here!!!
 
 ;=============================
 ; Test Per-thread symbol

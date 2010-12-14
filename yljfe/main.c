@@ -298,7 +298,7 @@ _create_jvm(JavaVM** jvm) {
 }
 
 static int
-_start_java(JavaVM* jvm, JNIEnv* jenv) {
+_start_java(JavaVM* jvm, JNIEnv* jenv, int argc, char* argv[]) {
     jclass         jcls_main = NULL;
     jmethodID      jmid_main = NULL;
     jcls_main = (*jenv)->FindClass(jenv, "Main");
@@ -306,7 +306,20 @@ _start_java(JavaVM* jvm, JNIEnv* jenv) {
 
     jmid_main = (*jenv)->GetStaticMethodID(jenv, jcls_main, "main", "([Ljava/lang/String;)V");
     if(!jmid_main) { return -1; }
-    (*jenv)->CallStaticVoidMethod(jenv, jcls_main, jmid_main, NULL);
+
+    /* Make Argument String */
+    { /* Just scope */
+        int            i;
+        jobjectArray   oa;
+        oa = (*jenv)->NewObjectArray(jenv, argc,
+                                     (*jenv)->FindClass(jenv, "java/lang/String"),
+                                     (*jenv)->NewGlobalRef(jenv, NULL));
+        for (i=0; i<argc; i++) {
+            (*jenv)->SetObjectArrayElement(jenv, oa, i,
+                                           (*jenv)->NewStringUTF(jenv, argv[i]));
+        }
+        (*jenv)->CallStaticVoidMethod(jenv, jcls_main, jmid_main, oa);
+    }
     return 0; /* to make compiler be happy */
 }
 
@@ -371,14 +384,11 @@ main(int argc, char* argv[]) {
             return 0;
         }
 
-        if(0 > _start_java(jvm, jenv)) {
+        if(0 > _start_java(jvm, jenv, 0, NULL)) {
             printf("Error : Start java\n");
             return 0;
         }
 
-        while(1) {
-            sleep(60*60*1000);
-        }
         (*jvm)->DestroyJavaVM(jvm);
     }
 }

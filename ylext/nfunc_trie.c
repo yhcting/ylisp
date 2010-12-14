@@ -123,7 +123,7 @@ _aif_trie_visit(yle_t* e, void* user, int(*cb)(void*, yle_t*)) {
     stu.user = user;
     stu.cb = cb;
     yltrie_walk(ylacd(e), &stu, (unsigned char*)"", 0, &_aif_trie_visit_cb);
-    return 0;
+    return 1;
 }
 
 static void

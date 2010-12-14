@@ -331,30 +331,60 @@ NFUNC(readdir,             "readdir",           ylaif_nfunc(),
     "    *ex\n"
     "        (readdir '/usr) => <file names in the directory>\n")
 
-NFUNC(fdopen,              "fdopen",            ylaif_nfunc(),
-    "fdopen <file path> <flag>: [Double]\n"
+NFUNC(procia_create,       "procia-create",     ylaif_nfunc(),
+    "procia-create <executable file> : <custom data>\n"
+    "    -procia [PROCess InterActive]\n"
+    "     run process in interactive mode with in/out pipe.\n"
+    "     buffer mode of in, out, error pipe of process is\n"
+    "      line-buffered, line-buffered, unbuffered respectively\n"
+    "      (by convention)\n"
+    "     pair function is procia-destroy\n"
+    "    @return: custom data\n")
+
+NFUNC(procia_destroy,      "procia-destroy",    ylaif_nfunc(),
+    "procia-destroy <custom data> : [t/nil]\n"
+    "    -destroy created custom data return by 'procia-create', manually.\n"
+    "     Without calling this, <custom data> will be alive until being GCed.\n"
+    "     destroying includes killing child process and removing pipe\n")
+
+NFUNC(procia_wfd,          "procia-wfd",        ylaif_nfunc(),
+    "procia-wfd <custom>: [Double]\n"
+    "    -Get write file descriptor.\n"
+    "     Data can be sent to process as an standard input by using 'fdwrite'\n")
+ 
+NFUNC(procia_rfd,          "procia-rfd",        ylaif_nfunc(),
+    "procia-rfd <custom>: [Double]\n"
+    "    -Get read file descriptor.\n"
+    "     Data can be read from process's standard output by using 'fdread'\n")
+
+NFUNC(fraw_open,           "fraw-open",         ylaif_nfunc(),
+    "fraw-open <file path> <flag>: <fd>\n"
     "    -Raw level file descriptior open.\n"
     "     Just wrapper of C-function\n"
-    "    @flag [Symbol] : r(read), w(write), n(nonblock)\n")
+    "     pair function is fraw-close\n"
+    "    @flag [Symbol] : r(read), w(write), n(nonblock)\n"
+    "    @return <custom data> : represents fd\n")
 
-NFUNC(fdclose,             "fdclose",           ylaif_nfunc(),
-    "fdclose [Double] : [t/nil]\n"
-    "    -Raw level file descriptior close.\n")
+NFUNC(fraw_close,          "fraw-close",        ylaif_nfunc(),
+    "fraw-close <fd> : [t/nil]\n"
+    "    -Closes raw level file descriptior manually.\n"
+    "     If this is not called manually,\n"
+    "      file descriptor will be closed when it is GCed.\n")
 
-NFUNC(fdwrite,             "fdwrite",           ylaif_nfunc(),
-    "fdwrite <fd> <data> : [t/nil]\n"
+NFUNC(fraw_write,          "fraw-write",        ylaif_nfunc(),
+    "fraw-write <fd> <data> : [t/nil]\n"
     "    -Raw level file descriptior write.\n"
-    "    @fd : [Double] : file descriptor returned from 'fdopen'\n"
+    "    @fd : <custom data> : file descriptor returned from 'fraw-open'\n"
     "    @data [Binary]\n")
 
-NFUNC(fdread,              "fdread",            ylaif_nfunc(),
-    "fdread <fd> : [Binary/nil]\n"
+NFUNC(fraw_read,           "fraw-read",         ylaif_nfunc(),
+    "fraw-read <fd> : [Binary/nil]\n"
     "    -Raw level file descriptior read.\n"
     "    @sz [Double] : bytes to read\n"
     "    @return : nil if nothing to read for non-blocked file.\n")
 
-NFUNC(fdselect,            "fdselect",          ylaif_nfunc(),
-    "fdselect <read fds> <write fds> <except fds> <time>\n"
+NFUNC(fraw_select,         "fraw-select",       ylaif_nfunc(),
+    "fraw-select <read fds> <write fds> <except fds> <time>\n"
     "    -Select wrapper\n"
     "    @read fds <list>:\n"
     "    @write fds <list >: list of fds\n"

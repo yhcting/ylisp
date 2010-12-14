@@ -29,7 +29,7 @@
 /*=======================
  * Local varaible
  *=======================*/
-static ylsys_t* _sysv = NULL;
+static ylsys_t _sysv;
 
 /*
  * static variable is initialized as 0!
@@ -352,7 +352,7 @@ ylunregister_nfunc(const char* sym) {
 
 const ylsys_t*
 ylsysv() {
-    return _sysv;
+    return &_sysv;
 }
 
 pthread_mutexattr_t*
@@ -604,7 +604,7 @@ ylinit(ylsys_t* sysv) {
         goto bail;
     }
 
-    _sysv = sysv;
+    memcpy(&_sysv, sysv, sizeof(_sysv));
 
     if(pthread_mutexattr_init(&_mattr)) { ylassert(0); }
     if(pthread_mutexattr_settype(&_mattr, PTHREAD_MUTEX_ERRORCHECK)) { ylassert(0); }

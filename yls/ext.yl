@@ -172,21 +172,21 @@
 ;===================================================
 ;=                  System                         =
 ;===================================================
-(defun fdrselect (fd time)
-"fdrselect <fd> <time>
+(defun fraw-rselect (fd time)
+"fraw-rselect <fd> <time>
     -read select
 "
 (let ( (r '()) )
-    (set 'r (fdselect (cons fd '()) '() '() time))
+    (set 'r (fraw-select (cons fd '()) '() '() time))
     (cond ( (null r) '() )
         ('t (caar r)))))
 
-(defun fdwselect (fd time)
-"fdwselect <fd> <time>
+(defun fraw-wselect (fd time)
+"fraw-wselect <fd> <time>
     -write select
 "
 (let ( (r '()) )
-    (set 'r (fdselect '() (cons fd '()) '() time))
+    (set 'r (fraw-select '() (cons fd '()) '() time))
     (cond ( (null r) '() )
         ('t (cadar r)))))
 

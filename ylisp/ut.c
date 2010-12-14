@@ -34,21 +34,21 @@ ylutfile_fread(unsigned int* outsz, void* f, int btext) {
     unsigned int    sz;
 
     /* do not check error.. very rare to fail!! */
-    if(0 > fseek(fh, 0, SEEK_END)) { osz = YLErr_io; goto bail; }
+    if (0 > fseek(fh, 0, SEEK_END)) { osz = YLErr_io; goto bail; }
     sz = ftell(fh);
-    if(0 > sz) { *outsz = YLErr_io; goto bail;  }
-    if(0 > fseek(fh, 0, SEEK_SET)) { osz = YLErr_io; goto bail; }
+    if (0 > sz) { *outsz = YLErr_io; goto bail;  }
+    if (0 > fseek(fh, 0, SEEK_SET)) { osz = YLErr_io; goto bail; }
 
     /* handle special case - empty file */
-    if(0 == sz) {
+    if (0 == sz) {
         buf = (btext)? (unsigned char*)ylmalloc(1): NULL;
     } else {
         buf = ylmalloc((unsigned int)sz+((btext)? 1: 0)); /* +1 for trailing 0 */
-        if(!buf) { osz = YLErr_out_of_memory; goto bail; }
-        if(1 != fread(buf, sz, 1, fh)) { osz = YLErr_io; goto bail; }
+        if (!buf) { osz = YLErr_out_of_memory; goto bail; }
+        if (1 != fread(buf, sz, 1, fh)) { osz = YLErr_io; goto bail; }
     }
 
-    if(btext) {
+    if (btext) {
         osz = sz+1;
         buf[sz] = 0; /* add trailing 0 */
     } else {
@@ -56,13 +56,13 @@ ylutfile_fread(unsigned int* outsz, void* f, int btext) {
     }
 
     /* check case (reading empty file) */
-    if(!buf) { osz = YLOk; }
-    if(outsz) { *outsz = osz; }
+    if (!buf) { osz = YLOk; }
+    if (outsz) { *outsz = osz; }
 
     return buf;
 
  bail:
-    if(buf) { ylfree(buf); }
+    if (buf) { ylfree(buf); }
     return NULL;
 
 }
@@ -74,8 +74,8 @@ ylutfile_read(unsigned int* outsz, const char* fpath, int btext) {
     ylassert(outsz && fpath);
 
     fh = fopen(fpath, "rb");
-    if(!fh) {
-        if(outsz) { *outsz = YLErr_io; }
+    if (!fh) {
+        if (outsz) { *outsz = YLErr_io; }
         return NULL;
     }
     ret = ylutfile_fread(outsz, fh, btext);
@@ -94,13 +94,13 @@ yldynbstr_append(yldynb_t* b, const char* format, ...) {
         cwsv = cw;
         cw = vsnprintf ((char*)yldynbstr_ptr(b), yldynb_freesz(b), format, args);
         ylassert(cw >= 0);
-        if( cw >= yldynb_freesz(b) ) {
-            if( 0 > yldynb_expand(b) ) {
+        if ( cw >= yldynb_freesz(b) ) {
+            if ( 0 > yldynb_expand(b) ) {
                 cw = cwsv;
                 break;
             }
         } else { break; }
-    } while(1);
+    } while (1);
     /*
      * 'cw' doesn't counts trailing 0.
      * But, 'b->sz' already counts 1 for tailing 0 at 'ylutstr_init'.
