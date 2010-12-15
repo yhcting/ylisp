@@ -2,17 +2,20 @@
 ; CHECK SYNTAX
 ;************************************************
 
+MT OK
 FAIL
 ((help 'car)
 
 =================================================
 
 ; wrong usage of escape character.
+MT OK
 FAIL
 (help '\y)
 
 =================================================
 
 ; function name or (lambda ...) or (mlambda ...)
+MT OK
 FAIL
 ((eval 'help) 'ttt)

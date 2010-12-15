@@ -26,13 +26,13 @@
 
 #define _LOGLV YLLogW
 
-#define _NR_MAX_COLUMN 4096
+#define _NR_MAX_COLUMN 1024
 #define _MAX_SLEEP_MS  20   /* max sleep in miliseconds */
 
 typedef struct {
     yllist_link_t    lk;
-    char*            f;
-} _rsn_t; /* script file node */
+    char*            s;
+} _strn_t; /* string node */
 
 typedef struct {
     unsigned char*   b;
@@ -44,6 +44,13 @@ typedef struct {
 
 static pthread_mutex_t _m = PTHREAD_MUTEX_INITIALIZER;
 static unsigned int    __tcnt = 0;
+
+static inline void
+_free_thdarg (_interpthd_arg_t* arg) {
+    free (arg->b);
+    free (arg->fname);
+    free (arg);
+}
 
 static inline void
 _inc_tcnt() {
@@ -70,8 +77,8 @@ _tcnt() { return __tcnt; }
 
 static inline void
 _append_rsn(yllist_link_t* hd, char* fname) {
-    _rsn_t* n = malloc(sizeof(_rsn_t));
-    n->f = fname;
+    _strn_t* n = malloc(sizeof(_strn_t));
+    n->s = fname;
     yllist_add_last(hd, &n->lk);
 }
 
@@ -120,19 +127,30 @@ _is_separator(const char* s) {
 #define _NR_MIN_SEP  20
     const char*  p = s;
     unsigned int nr = 0;
-    while(*p && '=' == *p) { p++; nr++; }
-    if(nr >= _NR_MIN_SEP && !*p) { return 1; }
+    while (*p && '=' == *p) { p++; nr++; }
+    if (nr >= _NR_MIN_SEP && !*p) { return 1; }
     else { return 0; }
 #undef _NR_MIN_SEP
 }
 
 static inline int
-_is_return_ok(const char* s) {
-    if(0 == strcmp(s, "OK")) { return 1; }
-    else if(0 == strcmp(s, "FAIL")) { return 0; }
+_is_mt_ok(const char* s) {
+    if (0 == strcmp (s, "MT OK")) return 1;
+    else if (0 == strcmp (s, "MT NO")) return 0;
     else {
-        printf("Script syntax error. OK or FAIL is expected.\n");
-        exit(0);
+        printf ("Script syntax error. MT OK or MT NO is expected.\n");
+        exit (0);
+        return 0; /* to make compiler be happy */
+    }
+}
+
+static inline int
+_is_return_ok(const char* s) {
+    if (0 == strcmp (s, "OK")) return 1;
+    else if (0 == strcmp (s, "FAIL")) return 0;
+    else {
+        printf ("Script syntax error. OK or FAIL is expected.\n");
+        exit (0);
         return 0; /* to make compiler be happy */
     }
 }
@@ -147,39 +165,51 @@ _fcmp(const void* e0, const void* e1) {
  * 1 : Not EOF
  */
 static int
-_read_section(FILE* f, int* bOK, yldynb_t* b) {
-#define _ST_RET  0 /* state : get return */
+_read_section (FILE* f, int* bmtok, int* bok, yldynb_t* b) {
+#define _ST_MT   0 /* state : get MT OK or NO */
+#define _ST_RET  1 /* state : get return */
 #define _ST_EXP  2 /* state : get exp */
 
     char    ln[_NR_MAX_COLUMN];
     char*   tln; /* 'trim'ed line */
-    int     state = _ST_RET;
-    while(1) {
-        if(!fgets(ln, _NR_MAX_COLUMN, f)) {
-            if(yldynbstr_len(b) > 0) { return 1; }
-            else { return 0; }
+    int     state = _ST_MT;
+    while (1) {
+        if (!fgets (ln, _NR_MAX_COLUMN, f)) {
+            if (yldynbstr_len (b) > 0)return 1;
+            else return 0;
         }
-        tln = _trim(ln);
+        tln = _trim (ln);
          /*
           * Following two type line is ignored.
           *    - white space line
           *    - line starts with ';' (leading WS is ignored)
           */
-        if(!*tln || ';' == *tln) { free(tln); continue; }
-        if(_ST_RET == state) {
-            *bOK = _is_return_ok(tln);
-            state = _ST_EXP;
-            /* printf("+++ bOK : %d\n", *bOK); */
-        } else {
-            if(_is_separator(tln)) { free(tln); break; }
-            yldynbstr_append(b, "%s", ln);
+        if (!*tln || ';' == *tln) { free (tln); continue; }
+        switch (state) {
+            case _ST_MT:
+                *bmtok = _is_mt_ok(tln);
+                state = _ST_RET;
+            break;
+
+            case _ST_RET:
+                *bok = _is_return_ok(tln);
+                state = _ST_EXP;
+            break;
+
+            case _ST_EXP:
+                if (_is_separator (tln)) { free (tln); goto done; }
+                yldynbstr_append (b, "%s", ln);
+            break;
+
+            default: assert(0);
         }
         free(tln);
     }
-
+ done:
     return 1;
 #undef _ST_EXP
 #undef _ST_RET
+#undef _ST_MT
 }
 
 
@@ -187,7 +217,7 @@ _read_section(FILE* f, int* bOK, yldynb_t* b) {
 static char**
 _testrs_files(unsigned int* nr/*out*/, const char* rsname) {
     yllist_link_t     hd;
-    _rsn_t           *pos, *n;
+    _strn_t          *pos, *n;
     DIR*              dip = NULL;
     struct dirent*    dit;
     char*             p;
@@ -216,9 +246,9 @@ _testrs_files(unsigned int* nr/*out*/, const char* rsname) {
     *nr = yllist_size(&hd);
     r = malloc(sizeof(char*) * *nr);
     i = 0;
-    yllist_foreach_item_removal_safe(pos, n, &hd, _rsn_t, lk) {
-        r[i++] = pos->f;
-        free(pos);
+    yllist_foreach_item_removal_safe (pos, n, &hd, _strn_t, lk) {
+        r[i++] = pos->s;
+        free (pos);
     }
 
     /* we need to sort filename - dictionary order */
@@ -252,17 +282,14 @@ _interp_thread(void* arg) {
                "%s\n", ia->fname, ia->section, ia->b);
         exit(0);
     }
-    free(ia->b);
-    free(ia->fname);
-    free(ia);
-
-    _dec_tcnt();
+    _free_thdarg (ia);
+    _dec_tcnt ();
     return NULL;
  }
 
 static void
 _start_test_script(const char* fname, FILE* fh, int bmt) {
-    int        bOK;
+    int        bok, bmtok;
     yldynb_t   dyb;
     pthread_t  thd;
     int        seccnt = 0; /* section count */
@@ -274,23 +301,29 @@ _start_test_script(const char* fname, FILE* fh, int bmt) {
            "    Runing Test Script : %s\n"
            "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
            "\n\n\n", fname);
-    yldynbstr_init(&dyb, _NR_MAX_COLUMN*8);
-    while(_read_section(fh, &bOK, &dyb)) {
+    yldynbstr_init (&dyb, _NR_MAX_COLUMN*8);
+    while (_read_section (fh, &bmtok, &bok, &dyb)) {
         seccnt++;
         targ = malloc(sizeof(_interpthd_arg_t));
         targ->b = malloc(yldynb_sz(&dyb));
         targ->sz = yldynb_sz(&dyb);
         memcpy(targ->b, yldynb_buf(&dyb), yldynb_sz(&dyb));
         targ->section = seccnt;
-        targ->bok = bOK;
+        targ->bok = bok;
         targ->fname = malloc(strlen(fname)+1);
         strcpy(targ->fname, fname);
 
         _inc_tcnt();
-        pthread_create(&thd, NULL, &_interp_thread, targ);
-
-        if(!bmt) {
-            pthread_join(thd, &ret);
+        if (!bmt) {
+            /* ST case */
+            pthread_create(&thd, NULL, &_interp_thread, targ);
+            pthread_join (thd, &ret);
+        } else {
+            /* MT case */
+            if (bmtok)
+                pthread_create(&thd, NULL, &_interp_thread, targ);
+            else
+                _free_thdarg (targ);
         }
         yldynbstr_reset(&dyb);
     }

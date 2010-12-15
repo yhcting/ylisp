@@ -4,15 +4,20 @@
 
 ; Load initial scripts firstly!
 
+MT OK
 OK
 (interpret-file '../yls/init.yl)
 
 =================================================
 
+MT OK
 OK
 (interpret-file 'test_base.yl)
 
 =================================================
 
+MT OK
 OK
 (interpret-file 'test_ext.yl)
+
+

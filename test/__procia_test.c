@@ -15,6 +15,7 @@ main(int argc, char* argv[]) {
             printf("Exit!!!!\n");
             return 1;
         }
+        usleep(500000); /* 500ms */
         printf("%s", buf);
     }
     return 0;

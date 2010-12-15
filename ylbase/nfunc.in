@@ -119,11 +119,15 @@ NFUNC(assert,         "assert",          ylaif_nfunc(),
     "    *ex\n"
     "        (assert (eq 'a 'b))\n")
 
-NFUNC(exit,           "exit",            ylaif_nfunc(),
+NFUNC(exit,                "exit",              ylaif_nfunc(),
+    "exit <status> : [t]\n"
+    "    -exit this program with exit code - status\n")
+
+NFUNC(stop,           "stop",            ylaif_nfunc(),
     "assert <exp>\n"
-    "    -exit from interpreting input stream\n"
+    "    -stop and quit interpreting input stream\n"
     "    *ex\n"
-    "        (exit)\n")
+    "        (stop)\n")
 
 NFUNC(print,          "print",           ylaif_nfunc(),
     "print <exp1> <exp2> ...\n"

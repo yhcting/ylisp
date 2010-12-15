@@ -163,40 +163,73 @@
 (sh (concat '"rm " exttfname))
 (unset 'exttfname)
 
-
-; ===============================
-; !! FIXME !!
-; NOTE!! Why following test code doesn't work as expected!!!
-; Why???
-; ==> NEED DEEP DIVE!
-; ===============================
-; fraw basic test - GC
-;(set 'extfds (readdir '"/proc/self/fd"))
+; ==================================
+; In case of multi-threading mode, file state is unpredictable...
+; (In single-threading mode, following test work well!)
+; So, following auto test is not suitable for this script.
+; But, codes are kept to reference in future.
+; ==================================
+;; fraw basic test - GC
 ;(set 'extfraw (fraw-open 'Makefile 'r))
 ;(assert (not (null extfraw)))
 ;(set 'extfrawfd (to-string (fraw-sysfd extfraw)))
 ;(set 'extfds (readdir '"/proc/self/fd"))
+;; 'extfds' includes fd for directory '/proc/self/fd' itself.
+;; So, last fd should be removed.(last fd is the one for directry!)
+;(set 'extfds (reverse extfds))
+;(set 'extfds (rest extfds))
+;; check
 ;(assert (among extfrawfd extfds))
-; allocate new memory block to extfraw to trigger GC.
+;; allocate new memory block to extfraw to trigger GC.
 ;(unset 'extfraw)
 ;(set 'extfraw (list 'a 'b 'c))
-; At this point, old 'extfraw' should be GCed and file should be closed!
+;; At this point, old 'extfraw' should be GCed and file should be closed!
 ;(set 'extfds (readdir '"/proc/self/fd"))
+;; remove fd for directory itself!
+;(set 'extfds (reverse extfds))
+;(set 'extfds (rest extfds))
 ;(assert (not (among extfrawfd extfds)))
 ;(unset 'extfraw)
 ;(unset 'extfrawfd)
 ;(unset 'extfds)
 
-; Test for procia-xxxx
+; ** Test for procia-xxxx
 (set 'extpia (procia-create './__procia_test '1 'a 'ha))
 ; strlen of __procia_test is greater than 10!
 (assert (< 10 (strlen (sh '"ps -e | grep __procia_test"))))
-(assert (equal '"./__procia_test/1/a/ha/\n" (to-string (fraw-read (procia-rfd extpia)))))
+(assert (equal '"1/a/ha/\n" (to-string (fraw-read (procia-rfd extpia)))))
 (fraw-write (procia-wfd extpia) (to-bin '"procia test\n"))
 (assert (equal '"procia test\n" (to-string (fraw-read (procia-rfd extpia)))))
 (procia-destroy extpia)
 (assert (equal 0 (strlen (sh '"ps -e | grep __procia_test"))))
 
+(set 'extpia (procia-create './__procia_test '1 'a 'ha))
+; strlen of __procia_test is greater than 10!
+(assert (< 10 (strlen (sh '"ps -e | grep __procia_test"))))
+(assert (equal '"1/a/ha/\n" (procia-read extpia 0)))
+(procia-write extpia '"procia test\n")
+(assert (equal '"procia test\n" (procia-read extpia 0)))
+(procia-destroy extpia)
+(assert (equal 0 (strlen (sh '"ps -e | grep __procia_test"))))
+
+; read timeout test.
+(let ( (pia '()) (sr '()) )
+    (set 'pia (procia-create './__procia_test '1 'a 'ha))
+; remove first starting message of __procia_test
+    (procia-read pia 0)
+
+    (procia-write pia '"procia test\n")
+    (set 'sr (procia-read pia 1000))
+    (assert (equal '"procia test\n" sr))
+
+    (procia-write pia '"procia test\n")
+    (set 'sr (procia-read pia 1))
+    (assert (null sr))
+
+    (procia-destroy pia))
+
+
+; ** Test GC of procia-xxxx
 (set 'extpia (procia-create './__procia_test '1 'a 'ha))
 (assert (< 10  (strlen (sh '"ps -e | grep __procia_test"))))
 (unset 'extpia)

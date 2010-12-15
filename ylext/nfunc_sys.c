@@ -45,6 +45,37 @@
 
 #define _INVALID_FD -1
 
+
+/* ------------------
+ * Common & Basic inline functions
+ * ------------------*/
+static inline int
+_is_integer (double d) {
+    return (double)((int)d) == d;
+}
+
+static inline int
+_killproc (pid_t pid) {
+    int status;
+    kill ((pid_t)pid, SIGKILL);
+    /* get exit status not to remain zombie! */
+    waitpid (pid, &status, 0);
+    return status;
+}
+
+static inline char*
+_strclone (const char* str) {
+    char*        p;
+    p = ylmalloc (strlen (str) +1);
+    /*
+     * This function is used for small-length string.
+     * So, let's skip handling allocation-failure.
+     */
+    if (p) strcpy (p, str);
+    else ylassert (0);
+    return p;
+}
+
 /* ------------------
  * For fraw-xxx
  * ------------------*/
@@ -52,13 +83,13 @@ static int  _aif_fraw_eq (const yle_t* e0, const yle_t* e1) { return e0 == e1; }
 static void
 _aif_fraw_clean (yle_t* e) {
     int fd = (int)ylacd (e);
-    if (_INVALID_FD != fd) close(fd);
+    if (_INVALID_FD != fd) close (fd);
     ylacd (e) = (void*)_INVALID_FD;
     return;
 }
 static int
 _aif_fraw_to_string (const yle_t* e, char* b, unsigned int sz) {
-    int bw = snprintf(b, sz, "<fd:%d>", (int)ylacd (e));
+    int bw = snprintf (b, sz, "<fd:%d>", (int)ylacd (e));
     if (bw >= sz) return -1; /* not enough buffer */
     return bw;
 }
@@ -86,12 +117,9 @@ static void
 _aif_procia_clean (yle_t* e) {
     struct procia_cust* pc = (struct procia_cust*)ylacd (e);
     if (pc) {
-        int                 status;
         _aif_fraw_clean (pc->wp);
         _aif_fraw_clean (pc->rp);
-        kill (pc->cpid, SIGKILL);
-        /* get exit status not to remain zombie! */
-        waitpid(pc->cpid, &status, 0);
+        _killproc(pc->cpid);
         ylfree(pc);
         ylacd (e) = NULL;
     }
@@ -109,8 +137,8 @@ static int
 _aif_procia_visit(yle_t* e, void* user, int(*cb)(void*, yle_t*)) {
     struct procia_cust* pc = (struct procia_cust*)ylacd (e);
     if (pc) {
-        (*cb)(user, pc->wp);
-        (*cb)(user, pc->rp);
+        (*cb) (user, pc->wp);
+        (*cb) (user, pc->rp);
     }
     return 1;
 }
@@ -127,31 +155,13 @@ static ylatomif_t _aif_procia = {
 
 
 static inline int
-_is_integer (double d) {
-    return (double)((int)d) == d;
-}
-
-static inline int
 _is_fraw_data_list (yle_t* e) {
-    if (yleis_atom(e)) return 0;
-    ylelist_foreach(e) {
+    if (yleis_atom (e)) return 0;
+    ylelist_foreach (e) {
         if (! (ylais_type (ylcar (e), &_aif_fraw)
                && (_INVALID_FD != (int)ylacd (ylcar (e)))) )  return 0;
     }
     return 1;
-}
-
-static inline char*
-_alloc_str (const char* str) {
-    char*        p;
-    p = ylmalloc(strlen(str)+1);
-    /*
-     * This function is used for small-length string.
-     * So, let's skip handling allocation-failure.
-     */
-    if (p) { strcpy(p, str); }
-    else { ylassert(0); }
-    return p;
 }
 
 /*
@@ -194,7 +204,7 @@ _ccb_fclose (void* f) {
 
 static void
 _ccb_pkill (void* pid) {
-    kill ((pid_t)pid, SIGKILL);
+    _killproc((pid_t)pid);
 }
 
 YLDEFNF(sh, 1, 1) {
@@ -247,8 +257,7 @@ YLDEFNF(sh, 1, 1) {
                     ylassert(0);
                     ylmt_notify_unsafe(cxt);
                     ylnflogE0("Fail to wait child process!\n");
-                    kill(cpid, SIGKILL);
-                    /*ylprocinfo_del(cpid);*/
+                    _killproc(cpid);
                     goto bail;
                 }
             }
@@ -364,22 +373,22 @@ YLDEFNF(fstat, 1, 1) {
     }
 
     /* make 'type' pair */
-    key = ylacreate_sym(_alloc_str("type"));
+    key = ylacreate_sym(_strclone("type"));
     switch(st.st_mode & S_IFMT) {
-        case S_IFSOCK: v = ylacreate_sym(_alloc_str("s"));  break;
-        case S_IFLNK:  v = ylacreate_sym(_alloc_str("l"));  break;
-        case S_IFREG:  v = ylacreate_sym(_alloc_str("f"));  break;
-        case S_IFBLK:  v = ylacreate_sym(_alloc_str("b"));  break;
-        case S_IFDIR:  v = ylacreate_sym(_alloc_str("d"));  break;
-        case S_IFCHR:  v = ylacreate_sym(_alloc_str("c"));  break;
-        case S_IFIFO:  v = ylacreate_sym(_alloc_str("p"));  break;
-        default: v = ylacreate_sym(_alloc_str("u")); /* unknown */
+        case S_IFSOCK: v = ylacreate_sym(_strclone("s"));  break;
+        case S_IFLNK:  v = ylacreate_sym(_strclone("l"));  break;
+        case S_IFREG:  v = ylacreate_sym(_strclone("f"));  break;
+        case S_IFBLK:  v = ylacreate_sym(_strclone("b"));  break;
+        case S_IFDIR:  v = ylacreate_sym(_strclone("d"));  break;
+        case S_IFCHR:  v = ylacreate_sym(_strclone("c"));  break;
+        case S_IFIFO:  v = ylacreate_sym(_strclone("p"));  break;
+        default: v = ylacreate_sym(_strclone("u")); /* unknown */
     }
     /* make r as '((key v)) */
     r = ylcons(yllist(key, v), ylnil());
 
     /* make 'size' pair */
-    key = ylacreate_sym(_alloc_str("size"));
+    key = ylacreate_sym(_strclone("size"));
     v = ylacreate_dbl((double)st.st_size);
     return ylappend(r, ylcons(yllist(key, v), ylnil()));
 
@@ -645,7 +654,7 @@ YLDEFNF(procia_create, 1, 9999) {
                     e = ylcdr (e);
                 }
                 argv[pcsz] = (char*)0;
-                execvp (argv[0], argv);
+                execvp (argv[0], &argv[1]);
 
                 perror ("failed to run command\n");
                 exit (1);

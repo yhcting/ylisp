@@ -296,10 +296,16 @@ YLDEFNF(assert, 1, 1) {
     }
 } YLENDNF(assert)
 
-YLDEFNF(exit, 0, 0) {
-    ylinterpret_undefined(YLOk);
-    return NULL; /* to make compiler be happy. */
+YLDEFNF(exit, 1, 1) {
+    ylnfcheck_parameter (ylais_type_chain(e, ylaif_dbl()));
+    exit ((int)ylacd (ylcar (e)));
+    return ylnil (); /* to make compiler be happy */
 } YLENDNF(exit)
+
+YLDEFNF(stop, 0, 0) {
+    ylinterpret_undefined (YLOk);
+    return NULL; /* to make compiler be happy. */
+} YLENDNF(stop)
 
 YLDEFNF(print, 1, 9999) {
     ylnfcheck_parameter(!yleis_atom(e));
