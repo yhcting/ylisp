@@ -452,6 +452,13 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
         }
     } else {
         yle_t* ce = ylcaar(e);
+        if (!ylais_type (ce, ylaif_sym ())) {
+            yllogE0("Invalid expression to evaluate!\n"
+                    "    (symbol ...) or ((<symbol> ...)) are allowed!!\n"
+                    "    (((xxx))) is not allowed!\n");
+            ylinterpret_undefined(YLErr_eval_undefined);
+        }
+
         if(_cmp(label, ce)) {
             /* eq [caar [e]; LABEL] -> eval [cons [caddar [e]; cdr [e]]; cons [list [cadar [e]; car [e]]; a]] */
             r = yleval(cxt, ylcons(ylcaddar(e), ylcdr(e)), ylcons(yllist(ylcadar(e), ylcar(e)), a));

@@ -198,12 +198,21 @@
 "
 (let ( (r '()) )
     (cond
-    ((< 0 to) (progn
-        (set 'r (fraw-rselect (procia-rfd pia) to))
-        (cond ((null r) '())
-            ('t (to-string (fraw-read (procia-rfd pia)))))))
-    ('t (progn
-        (to-string (fraw-read (procia-rfd pia))))))))
+        ((< 0 to) (progn
+            (set 'r (fraw-rselect (procia-rfd pia) to))
+            (cond
+                ((null r) '())
+                ('t (progn
+                    (set 'r (fraw-read (procia-rfd pia)))
+                    (cond
+                        ((null r) '())
+                        ('t (to-string r))))))))
+        ('t (progn
+            (set 'r (fraw-read (procia-rfd pia)))
+            (cond
+                ((null r) '())
+                ('t (to-string r))))))))
+
 
 (defun procia-write (pia in)
 "procia-read <procia data> <data>

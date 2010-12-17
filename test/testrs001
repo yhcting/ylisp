@@ -15,6 +15,13 @@ FAIL
 
 =================================================
 
+; wrong usage of escape character.
+MT OK
+FAIL
+(('a))
+
+=================================================
+
 ; function name or (lambda ...) or (mlambda ...)
 MT OK
 FAIL
