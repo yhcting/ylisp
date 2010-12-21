@@ -21,8 +21,8 @@
 
 
 /****************************************************
- * 'lambda' and 'mlambda' here are dummy to use 'Auto Completion' and 'help'.
- * Function pointer 'NULL' for 'lambda' and 'mlamdba' are never used.
+ * 'lambda', 'mlambda' and 'flambda' here are dummy to use 'Auto Completion' and 'help'.
+ * Function '__dummy' for 'lambda', 'mlamdba' and 'flambda' are never used.
  * (For details, see 'sfunc.c')
  ****************************************************/
 NFUNC(__dummy,                "lambda",                  ylaif_sfunc(),
@@ -57,27 +57,6 @@ NFUNC(apply,                  "apply",                   ylaif_sfunc(),
     "    *ex\n"
     "        (apply list a b) ; => (list 'a 'b) => (a b)\n")
 
-NFUNC(f_mset,                 "f-mset",                  ylaif_nfunc(),
-    "f-mset <symbol> <exp> (<desc>)\n"
-    "    -Set macro. Syntax is same with 'set'. But this is for setting macro\n"
-    "     Evaluating <symbol> is same with evaluating <exp>.\n"
-    "     'mset' circular expression may crash interpreter when it used!"
-    "    @symbol[Symbol]: symbol name.\n"
-    "    @exp:            lisp expression.\n"
-    "    @desc[Symbol]:\n"
-    "        description of this symbol.\n"
-    "        but, in case of local symbol(let), this is ignored.\n"
-    "    *ex\n"
-    "        (f-mset 'a '+) ;(a 7 8) => (+ 7 8)\n"
-    "        (f-mset 'zzz 'rrr)\n"
-    "        (f-mset 'rrr 'ttt)\n"
-    "        (f-mset 'ttt '(car (list yy x y)))\n"
-    "        (f-mset 'yy '(car '(ab cd)))\n"
-    "        ;(equal zzz 'ab) => t\n")
-
-NFUNC(f_tmset,                "f-tmset",                 ylaif_nfunc(),
-    "Per-thread symbol version of f-mset. See f-mset for details.\n")
-
 NFUNC(eq,                     "eq",                      ylaif_nfunc(),
     "eq <exp1> <exp2>: [t/nil]\n"
     "    -Compare memory address of two expression.\n"
@@ -102,6 +81,30 @@ NFUNC(set,                    "set",                     ylaif_nfunc(),
 
 NFUNC(tset,                   "tset",                    ylaif_nfunc(),
     "Per-thread symbol version of set. See set for details.\n")
+
+NFUNC(f_mset,                 "f-mset",                  ylaif_nfunc(),
+    "f-mset <symbol> <exp> (<desc>)\n"
+    "    -Set macro. Syntax is same with 'set'. But this is for setting macro\n"
+    "     Evaluating <symbol> is same with evaluating <exp>.\n"
+    "     'mset' circular expression may crash interpreter when it used!\n"
+    "    *NOTE :\n"
+    "        If there is local symbol with same name, local symbol always has priority!\n"
+    "        That is, local symbol will be changed and global symbol is preserved.\n"
+    "    @symbol[Symbol]: symbol name.\n"
+    "    @exp:            lisp expression.\n"
+    "    @desc[Symbol]:\n"
+    "        description of this symbol.\n"
+    "        but, in case of local symbol(let), this is ignored.\n"
+    "    *ex\n"
+    "        (f-mset 'a '+) ;(a 7 8) => (+ 7 8)\n"
+    "        (f-mset 'zzz 'rrr)\n"
+    "        (f-mset 'rrr 'ttt)\n"
+    "        (f-mset 'ttt '(car (list yy x y)))\n"
+    "        (f-mset 'yy '(car '(ab cd)))\n"
+    "        ;(equal zzz 'ab) => t\n")
+
+NFUNC(f_tmset,                "f-tmset",                 ylaif_nfunc(),
+    "Per-thread symbol version of f-mset. See f-mset for details.\n")
 
 NFUNC(unset,                  "unset",                   ylaif_nfunc(),
     "unset <symbol>\n"

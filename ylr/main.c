@@ -34,7 +34,7 @@ main(int argc, char* argv[]) {
     void*          d = NULL;
     unsigned int   dsz;
 
-    /* ylset system parameter */
+    /* set system parameter */
     sys.print  = printf;
     sys.log    = _log;
     sys.assert = _assert;

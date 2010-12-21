@@ -24,14 +24,16 @@
         ;(equal zzz 'ab) => t
 ")
 
-(f-tmset 'tmset
+(f-mset 'tmset
     '(mlambda() (apply f-tmset))
 '"Per thread version of mset.\n")
 
+; defun SHOULD use 'flabel'
+; Why? See comments at 'flabel' part in sfunc.c of ylisp core.
 (mset defun
     (mlambda (nAME aRG dESC bODY)
         (mset nAME
-            (lambda aRG bODY)
+            (flabel nAME aRG bODY)
             dESC))
 "defun <name> <args> <desc> <body>:
     -macro to define function.
@@ -101,12 +103,6 @@
 (mset case
     (mlambda () (apply f-case))
 "See f-case")
-
-(mset progn
-    (mlambda () (let ()))
-"progn <exp1> <exp2> ...
-    -evaluate expression sequencially.
-")
 
 (mset while
     (mlambda () (apply f-while))
@@ -353,7 +349,7 @@
     -find fist-occurred-function-symbol.
      ff[((A.B).C)] = A
 "
-    (cond ((atom e) e) ('t (ff '(car e)))))
+    (cond ((atom e) e) ('t (ff (car e)))))
 
 ; replace @aRG with @pARAM in @e
 ; subst [x; y; z] = [atom [z] -> [eq [z; y] -> x; T -> z];

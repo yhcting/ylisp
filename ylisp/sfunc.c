@@ -25,19 +25,6 @@
 #include <string.h>
 #include "lisp.h"
 
-
-/*
- * SA : Symbol Attribute
- * Default : Per-thread symbol
- */
-enum {
-    _SA_MAC    = 0x01, /* macro symbol */
-    _SA_GLOB   = 0x02, /* global symbol - if not, perthread symbol */
-};
-
-#define _is_symmac(a)     (!!(_SA_MAC  & (a)))
-#define _is_symglob(a)    (!!(_SA_GLOB & (a)))
-
 #ifdef CONFIG_DBG_EVAL
 /*
  * this is for debugging perforce
@@ -129,6 +116,22 @@ _list_find(yle_t* x, yle_t* y) {
     }
 }
 
+
+/*
+ * helper function to simplify '_set' function.
+ */
+static inline int
+_set_insert (yletcxt_t* cxt, const char* sym, int ty, yle_t* e) {
+    if (styis (ty, STyper_thread)) return ylslu_insert (cxt->slut, sym, ty, e);
+    else return ylgsym_insert (sym, ty, e);
+}
+
+static inline int
+_set_description (yletcxt_t* cxt, const char* sym, int ty, const char* desc) {
+    if (styis (ty, STyper_thread)) return ylslu_set_description (cxt->slut, sym, desc);
+    else return  ylgsym_set_description (sym, desc);
+}
+
 /**
  * a is a yllist of the form ((u1 v1) ... (uN vN))
  * < additional constraints : x is atomic >
@@ -141,99 +144,57 @@ _list_find(yle_t* x, yle_t* y) {
  * @return: new value
  */
 static yle_t*
-_set(yletcxt_t* cxt, yle_t* s, yle_t* val, yle_t* a, const char* desc, int attr) {
+_set(yletcxt_t* cxt, yle_t* s, yle_t* val, yle_t* a, const char* desc, int ty) {
     yle_t* r;
-    if( !ylais_type(s, ylaif_sym())
-        || ylnil() == s) {
-        yllogE0("Only symbol can be set!\n");
-        ylinterpret_undefined(YLErr_eval_undefined);
+    if ( !ylais_type (s, ylaif_sym ())
+        || ylnil () == s) {
+        yllogE0 ("Only symbol can be set!\n");
+        ylinterpret_undefined (YLErr_eval_undefined);
     }
 
-    if(0 == *ylasym(s).sym) {
-        yllogE0("empty symbol cannot be set!\n");
-        ylinterpret_undefined(YLErr_eval_undefined);
+    if (0 == *ylasym (s).sym) {
+        yllogE0 ("empty symbol cannot be set!\n");
+        ylinterpret_undefined (YLErr_eval_undefined);
     }
 
-    ylassert(ylasym(s).sym);
-    r = _list_find(s, a);
-    if(r) {
+    ylassert (ylasym (s).sym);
+    r = _list_find (s, a);
+    if (r) {
         /* found it */
-        ylassert(!yleis_atom(r));
-        if(yleis_atom(ylcdr(r))) {
-            yllogE0("unexpected set operation!\n");
-            ylinterpret_undefined(YLErr_eval_undefined);
+        ylassert (!yleis_atom (r));
+        if (yleis_atom (ylcdr (r))) {
+            yllogE0 ("unexpected set operation!\n");
+            ylinterpret_undefined (YLErr_eval_undefined);
         } else  {
-            ylassert(ylais_type(ylcar(r), ylaif_sym()));
-            if(_is_symmac(attr)) { ylasymset_macro(ylasym(ylcar(r)).ty); }
-            else { ylasymclear_macro(ylasym(ylcar(r)).ty); }
+            ylassert (ylais_type (ylcar (r), ylaif_sym ()));
+            ylasym (ylcar (r)).ty = ty;
             /* change value of local map yllist */
             ylpsetcdr(r, ylcons(val, ylnil()));
         }
         /* argument desc is ignored */
     } else {
-        /* not a local symbol - so global or per-thread*/
-        if(_is_symglob(attr)) {
-            /*
-             * global symbol!
-             */
-            if(_is_symmac(attr)) { ylgsym_insert(ylasym(s).sym, ylasymset_macro(ylasym(s).ty), val); }
-            else { ylgsym_insert(ylasym(s).sym, ylasymclear_macro(ylasym(s).ty), val); }
-            if(desc) {
-                if(desc[0]) {
-                    /* strlen(desc) > 0 */
-                    ylgsym_set_description(ylasym(s).sym, desc);
-                } else {
-                    /* strlen(desc) == 0 */
-                    ylgsym_set_description(ylasym(s).sym, NULL);
-                }
-            }
-        } else {
-            /*
-             * per thread symbol!
-             */
-            ylassert(cxt);
-            if(_is_symmac(attr)) { ylslu_insert(cxt->slut, ylasym(s).sym, ylasymset_macro(ylasym(s).ty), val); }
-            else { ylslu_insert(cxt->slut, ylasym(s).sym, ylasymclear_macro(ylasym(s).ty), val); }
-            if(desc) {
-                if(desc[0]) {
-                    ylslu_set_description(cxt->slut, ylasym(s).sym, desc);
-                } else {
-                    ylslu_set_description(cxt->slut, ylasym(s).sym, NULL);
-                }
-            }
-        }
+        _set_insert (cxt, ylasym (s).sym, ty, val);
+        /* NULL or strlen (desc) == 0 : only trailing 0 */
+        if (!desc || !desc[0]) desc = NULL;
+        _set_description (cxt, ylasym (s).sym, ty, desc);
     }
     return val;
 }
 
 yle_t*
-ylset(yle_t* s, yle_t* val, yle_t* a, const char* desc) {
-    return _set(NULL, s, val, a, desc, _SA_GLOB);
-}
-
-yle_t*
-yltset(yletcxt_t* cxt, yle_t* s, yle_t* val, yle_t* a, const char* desc) {
-    return _set(cxt, s, val, a, desc, 0); /* Per-thread */
-}
-
-yle_t*
-ylmset(yle_t* s, yle_t* val, yle_t* a, const char* desc) {
-    return _set(NULL, s, val, a, desc, _SA_GLOB | _SA_MAC);
-}
-
-yle_t*
-yltmset(yletcxt_t* cxt, yle_t* s, yle_t* val, yle_t* a, const char* desc) {
-    return _set(cxt, s, val, a, desc, _SA_MAC);
+ylset(yletcxt_t* cxt, yle_t* s, yle_t* val, yle_t* a, const char* desc, int ty) {
+    return _set(cxt, s, val, a, desc, ty);
 }
 
 int
-ylis_set(const char* sym) {
-    return !!ylgsym_get(NULL, sym);
-}
-
-int
-ylis_tset(yletcxt_t* cxt, const char* sym) {
-    return !!ylslu_get(cxt->slut, NULL, sym);
+ylis_set (yletcxt_t* cxt, yle_t* a, const char* sym) {
+    yle_t  etmp;
+    int    temp;
+    /* etmp is never cleaned. So, sym can be used directly here */
+    ylaassign_sym(&etmp, (char*)sym);
+    return NULL != _list_find (&etmp, a) ||
+        NULL != ylslu_get (cxt->slut, &temp, sym) ||
+        NULL != ylgsym_get (&temp, sym);
 }
 
 /*
@@ -297,13 +258,6 @@ _assoc(yletcxt_t* cxt, int* ovty, yle_t* x, yle_t* y) {
     }
 
     /*
-     * Policy:
-     *    Find in symbol hash first. If fails, try to evaluate as number!.
-     *    (For fast symbol binding!)
-     */
-    r = _list_find(x, y);
-
-    /*
      * !! IMPORTANT NOTE !!
      *    This SHOULD NOT BE THE ONE IN GLOBAL SPACE!!
      *    Expression should be preserved!
@@ -320,24 +274,30 @@ _assoc(yletcxt_t* cxt, int* ovty, yle_t* x, yle_t* y) {
      *    (This is NOT BUG. It's implementation CONCEPT!)
      *
      */
-    if(r) {
-        /* Found! in local association list */
-        ylassert(ylais_type(ylcar(r), ylaif_sym()));
-        *ovty = ylasym(ylcar(r)).ty;
-        return ylasymis_macro(*ovty)? _list_clone(ylcadr(r)): ylcadr(r);
-    }
+    do {
+        /*
+         * Policy:
+         *    Find in symbol hash first. If fails, try to evaluate as number!.
+         *    (For fast symbol binding!)
+         */
+        r = _list_find(x, y);
+        if (r) {
+            /* Found! in local association list */
+            ylassert (ylais_type (ylcar (r), ylaif_sym ()));
+            *ovty = ylasym (ylcar (r)).ty;
+            r = ylcadr (r);
+            break;
+        }
 
-    /* Find in per-thread symbol table! */
-    r = (yle_t*)ylslu_get(cxt->slut, ovty, ylasym(x).sym);
-    if(r) {
-        return ylasymis_macro(*ovty)? _list_clone(r): r;
-    }
+        /* Find in per-thread symbol table! */
+        r = (yle_t*)ylslu_get(cxt->slut, ovty, ylasym(x).sym);
+        if (r) break;
 
-    /* At last find in global symbol table */
-    r = (yle_t*)ylgsym_get(ovty, ylasym(x).sym);
-    if(r) {
-        return ylasymis_macro(*ovty)? _list_clone(r): r;
-    }
+        /* At last find in global symbol table */
+        r = (yle_t*)ylgsym_get(ovty, ylasym(x).sym);
+    } while (0);
+
+    if (r) return styis(*ovty, STymac)? _list_clone(r): r;
 
     /* check that this is numeric symbol */
     { /* Just Scope */
@@ -399,10 +359,7 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
     if( yleis_atom(e) ) {
         if(ylaif_sym() == ylaif(e)) {
             r = (yle_t*)_assoc(cxt, &vty, e, a);
-            if(ylasymis_macro(vty)) {
-                /* this is macro!. evaluate it again */
-                r = yleval(cxt, r, a);
-            }
+            if (styis (vty, STymac)) r = yleval (cxt, r, a);
         } else {
             yllogE0("ERROR to evaluate atom(only symbol can be evaluated!.\n");
             ylinterpret_undefined(YLErr_eval_undefined);
@@ -412,38 +369,45 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
 
         if(ylaif_sym() == ylaif(car_e) ) {
             r = (yle_t*)_assoc(cxt, &vty, car_e, a);
-            if(ylasymis_macro(vty)) {
+            if (styis (vty, STymac)) {
                 /*
                  * This is macro symbol! replace target expression with symbol.
                  * And evaluate it with replaced value!
                  */
-                r = yleval(cxt, ylcons(r, ylcdr(e)), a );
+                r = yleval (cxt, ylcons (r, ylcdr (e)), a);
             } else {
-                if(yleis_atom(r)) {
-                    if(ylaif_nfunc() == ylaif(r)) {
+                if (yleis_atom (r)) {
+                    if (ylaif_sfunc () == ylaif (r)) {
+                        /*
+                         * This is 'sfunc' type symbol.
+                         * parameters are not evaluated before being passed!
+                         */
+                        r = (*(ylanfunc (r).f)) (cxt, ylcdr (e), a);
+                    } else if (ylaif_nfunc () == ylaif (r)) {
                         yle_t* param;
                         /*
                          * 'yleval' is called in 'ylevlis'.
                          * We should keep 'r' from GC!
                          */
-                        ylmp_add_bb1(r);
-                        param = ylevlis(cxt, ylcdr(e), a);
-                        ylmp_rm_bb1(r);
+                        ylmp_add_bb1 (r);
+                        param = ylevlis (cxt, ylcdr (e), a);
+                        ylmp_rm_bb1 (r);
 
                         /* preserving 'param' is prerequisite of calling native function! */
-                        ylmp_add_bb1(param);
-                        r = (*(ylanfunc(r).f))(cxt, param, a);
-                        ylmp_rm_bb1(param);
-                    } else if(ylaif_sfunc() == ylaif(r)) {
-                        /* parameters are not evaluated before being passed! */
-                        r = (*(ylanfunc(r).f))(cxt, ylcdr(e), a);
+                        ylmp_add_bb1 (param);
+                        r = (*(ylanfunc (r).f)) (cxt, param, a);
+                        ylmp_rm_bb1 (param);
                     } else {
-                        yllogE0("ERROR to evaluate. First element should be a function!\n");
-                        ylinterpret_undefined(YLErr_eval_undefined);
+                        yllogE0 ("ERROR to evaluate. First element should be a function.\n");
+                        ylinterpret_undefined (YLErr_eval_undefined);
                     }
                 } else {
-                    yllogE0("ERROR to evaluate. First element should be an atom that represets function!\n");
-                    ylinterpret_undefined(YLErr_eval_undefined);
+                    /* try to evaluate it again with evaluated expression! */
+                    yle_t* param;
+                    ylmp_add_bb1 (r);
+                    param = ylevlis (cxt, ylcdr (e), a);
+                    ylmp_rm_bb1 (r);
+                    r = yleval (cxt, ylcons (r, param), a);
                 }
             }
         } else {
@@ -459,12 +423,60 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
             ylinterpret_undefined(YLErr_eval_undefined);
         }
 
-        if(_cmp(label, ce)) {
-            /* eq [caar [e]; LABEL] -> eval [cons [caddar [e]; cdr [e]]; cons [list [cadar [e]; car [e]]; a]] */
-            r = yleval(cxt, ylcons(ylcaddar(e), ylcdr(e)), ylcons(yllist(ylcadar(e), ylcar(e)), a));
-        } else if(_cmp(lambda, ce)) {
-            /* eq [caar [e] -> LAMBDA] -> eval [caddar [e]; append [pair [cadar [e]; evlis [cdr [e]; a]]; a]] */
-            /* ylpair and ylappend don't call yleval in it. So, we don't need to preserve base blocks explicitly */
+        /*
+         * Abbrev :
+         *    - LAL : local association list
+         *
+         * Why 'flabel' is required
+         * The main reason is 'performance to access global symbol'.
+         * Script usually keeps some amount of function call stack during runtime.
+         * So, Using inherited LAL in function means "size of LAL grows in proportion to depth of call-stack".
+         * And this leads performance-inefficency to access global symbol (usually, function symbol, reserved words etc).
+         * Functions from typical LISP - ex. label, lambda - uses inherited LAL.
+         * So, special new symbol 'flabel' is adopted.
+         * This is usually used to implement 'defun' function.
+         * (Actually, 'defun' is not the one that is described in LISP's mathemetical model.
+         *  But it is very popular and important.)
+         */
+        if (_cmp (flabel, ce)) {
+            /*
+             * exactly same with label except for new label is added to LAL as macro symbol (NOT normal one)
+             */
+            /*
+             * (flabel name arg exp) p1 p2 ...
+             * car     : flabel expression list
+             * cdr     : parameter list
+             *
+             * In flabel expression list
+             * cadr   : label name
+             * caddr  : argument list
+             * cadddr : expression
+             */
+            yle_t*    fl  = ylcar (e);    /* flabel */
+            yle_t*    fln = ylcadr (fl);  /* flabel name */
+            yle_t*    fla = ylcaddr (fl); /* flabel arguement list */
+            yle_t*    fle = ylcadddr (fl);/* flabel expression */
+            yle_t*    flp = ylcdr (e);    /* parameter of flabel */
+            yle_t*    param_assoc;
+            if (!ylais_type (fln, ylaif_sym ())) {
+                yllogE0("flabel name should be symbol!\n");
+                ylinterpret_undefined(YLErr_eval_undefined);
+            }
+            /* set symbol type as macro */
+            styset (ylasym (fln).ty, STymac);
+            param_assoc = ylpair (fla, ylevlis (cxt, flp, a));
+            r = yleval (cxt, fle,
+                        ylcons (yllist (fln, fl), param_assoc));
+        } else if (_cmp (lambda, ce)) {
+            /*
+             * eq [caar [e] -> LAMBDA] -> eval [caddar [e]; append [pair [cadar [e]; evlis [cdr [e]; a]]; a]]
+             * ylpair and ylappend don't call yleval in it. So, we don't need to preserve base blocks explicitly
+             *
+             * car     : lambda expression list
+             * cdr     : parameter list
+             * cadar   : arguement list
+             * caddar  : lambda body
+             */
             r = yleval(cxt, ylcaddar(e), ylappend(ylpair(ylcadar(e), ylevlis(cxt, ylcdr(e), a)), a));
         } else if(_cmp(mlambda, ce)) {
             if( yleis_nil(ylcadar(e)) && !yleis_nil(ylcaddar(e)) ) {
@@ -502,6 +514,19 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
                     r = yleval(cxt, exp, a);
                 }
             }
+        } else if (_cmp(label, ce)) {
+            /*
+             * car     : label expression list
+             * cdr     : parameter list
+             * cadar   : label name
+             * caddar  : lambda expression list
+             */
+            if (!ylais_type (ylcadar (e), ylaif_sym ())) {
+                yllogE0("label name shoud be symbol!\n");
+                ylinterpret_undefined(YLErr_eval_undefined);
+            }
+            /* eq [caar [e]; LABEL] -> eval [cons [caddar [e]; cdr [e]]; cons [list [cadar [e]; car [e]]; a]] */
+            r = yleval(cxt, ylcons(ylcaddar(e), ylcdr(e)), ylcons(yllist(ylcadar(e), ylcar(e)), a));
         } else {
             /* my extention */
             r = yleval(cxt, ylcons(yleval(cxt, ylcar(e), a), ylcdr(e)), a);

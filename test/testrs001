@@ -20,9 +20,15 @@ MT OK
 FAIL
 (('a))
 
-=================================================
+;************************************************
+; CHECK function
+;************************************************
 
-; function name or (lambda ...) or (mlambda ...)
+; visibility of local variable!
 MT OK
 FAIL
-((eval 'help) 'ttt)
+(defun testadd (a b) "" (+ (+ a b) c))
+(defun testmix (a b) ""
+(let ((c 7))
+    (testadd a b)))
+(testmix 3 4)

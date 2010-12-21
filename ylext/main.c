@@ -84,7 +84,7 @@ int
 main(int argc, char* argv[]) {
     ylsys_t   sys;
 
-    /* ylset system parameter */
+    /* set system parameter */
     sys.print = printf;
     sys.log   = _log;
     sys.assert = _assert;
@@ -154,7 +154,7 @@ ylcnf_onload(yletcxt_t* cxt) {
         strcpy(sym, PCRELIB_PATH_SYM);
         libpath = ylacreate_sym(sym);
 
-        if(ylis_set(sym)) {
+        if(ylis_set (cxt, ylnil (), sym)) {
             libpath = yleval(cxt, libpath, ylnil());
             if(!yleis_nil(libpath) && ylais_type(libpath, ylaif_sym()) ) {
                 /* if there is pcre, let's use it! */

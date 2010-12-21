@@ -82,9 +82,22 @@
 
 /**********************************************
  *
- * Temp directory
+ * Symbol type
  *
  **********************************************/
+/*
+ * 0 is default symbol attribute
+ * ST : Symbol Type
+ */
+enum {
+    STymac        = 0x01, /* macro symbol */
+    STyper_thread = 0x02, /* perthread symbol - 0 for global */
+};
+
+/* -- symbol -- */
+#define styis(ty, v)          (!!((ty) & (v)))
+#define styset(ty, v)         ((ty) |= (v))
+#define styclear(ty, v)       ((ty) &= ~(v))
 
 /**********************************************
  *
@@ -263,5 +276,27 @@ __munlock(pthread_mutex_t* m) {
 #undef  YLNFN
 #define YLNFN(n)    __Yl__LNF__##n##__
 
+
+
+
+
+/**********************************************
+ *
+ * Internal s/n-functions
+ *
+ **********************************************/
+/**
+ * @a is a list of the form ((u1 v1) ... (uN vN))
+ * < additional constraints : @x is atomic >
+ * if @x is one of @u's, it changes the value of @u. If not, it changes global lookup map.
+ *
+ * @x: atomic symbol
+ * @y: any S-expression
+ * @a: map yllist
+ * @desc: descrption for this symbol. Can be NULL(means "Do not change description").
+ * @return: new value
+ */
+extern yle_t*
+ylset (yletcxt_t* cxt, yle_t* s, yle_t* val, yle_t* a, const char* desc, int ty);
 
 #endif /* ___LISp_h___ */

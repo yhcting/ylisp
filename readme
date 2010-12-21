@@ -247,8 +247,8 @@ Notable internal implementation of S-Expression
     And NIL is also ATOM.
 
 
-Symbol look-up
---------------
+Global symbol look-up
+---------------------
     Hash (obsolete)
         YLISP uses 2^16 hash as an look up function.
         YLISP calculates 32 bit crc for symbols and lower 16 bits are used as
@@ -277,6 +277,55 @@ Symbol look-up
                (Usually, lots of unused spaces exist in Hash, if number of
                 symbol is small.)
 
+
+Local symbol look-up
+--------------------
+    Just list is used as an data structure of local symbol look-up.
+    For example, ((lambda (x y) (+ x y)) 7 8) uses ((x 7)(y 8)) to look-up
+     local symbol.
+
+    ylisp adopt special function 'flabel'. And 'defun' is implemented by
+     using 'flabel' in 'base.yl'
+    Why doesn't ylisp use existing 'label' or 'lambda'?
+    What was the issue using existing 'label' or 'lambda'?
+    Let's consider following cases.
+        Function A (a b), Function B (c, d), Functino C (e f)
+        A calls B, B calls C.
+        A, B and C is replaced with lambda expression.
+        (because, function is just macro symbol in current ylisp)
+        So, in C, local symbol look-up becomes
+         ((e *)(f *)(c *)(d *)(a *)(b *)).
+    Whenever argumented-function call is happended, size of local-symbol list
+     grows. And large local symbol list means longer to access global symbol.
+     (complexity to search in linked list is O(n))
+    Usually, depth of function call isn't big - at most 20~30?.
+    Therefore it's not big issue in normal case.
+    But, recursion is another.
+    So, recursive call to the arguemented-function that access global symbol,
+     takes longer than normally expected due to above reason.
+        n : depth of recursion
+        m : size of argument of function
+        Accessing global symbol requires: O(m*n)
+        Totaly cost to access global symbol in recursive call
+            : m + 2*m + 3*m ... n*m => O(m*n^2)
+
+    What is pros and cons!
+    pros : Function can access it's ancester's local symbol.
+           (Because local symbol is added to passed arguement list.)
+           So, global symbol overriding is possible.
+           (Parent creates local symbol whose name is same with global one,
+            and override it's value. Then, decendant functions uses this
+            overriden value when access global symbol.)
+    cons : already described above.
+
+    But, global symbol overriding is very dangerous and may spawn lots of
+     unexpected bugs. And accessing global symbol is one of most frequently
+     used operation.
+    Therefore 'cons' is bigger than 'pros'.
+    That's why 'flabel' is adopted.
+    'flabel' reset local association list and evaluate expression.
+    So, 'defun' implemented by using 'flabel' doesn't hand its assocation
+     list over callee function. That is, list doens't grows.
 
 GC(Garbage collection)
 ----------------------
@@ -425,7 +474,8 @@ Things to think of
 =================================
 TODO
 ----
-
+    Local symbol look-up issue should be resolved.
+    (Details - See 'Local Symbol Look-up' section above.)
 
 Known Bugs
 ----------

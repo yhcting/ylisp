@@ -89,6 +89,11 @@ ylslu_insert(slut_t* t, const char* sym, int sty, yle_t* e) {
     slen = strlen(sym);
     ov = yltrie_get((yltrie_t*)t, (unsigned char*)sym, slen);
     if(ov) {
+        if (ylais_type (v->e, ylaif_nfunc ())
+            || ylais_type (v->e, ylaif_sfunc ())) {
+            yllogW1("Warn : native function symbol is overwrittened\n"
+                    "    -> %s\n", sym);
+        }
         /*
          * in case of overwritten, description should be preserved.
          * If this twice-search is bottle-neck of performance,

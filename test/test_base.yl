@@ -79,16 +79,26 @@
 
 (set 'x '(1 2 3))
 (assert (equal '(1 2 3) x))
-(let ((x '(a b)) (y (list x '(l m))))
+
+(let ()
+    (assert (equal 3 (+ 1 2)))
+    (assert (equal 2 (+ 1 1))))
+
+(let ((x 'a) (y 'b))
+    (set 'y (list x y))
+    (assert (equal '(a b) y)))
+
+(let ()
+    (set 'gsum 1)
+    (set 'gsum 2))
+(assert (equal gsum 2))
+
+(let ((x '(a b)) (y (list '(a b) '(l m))))
     (assert (equal '(a b) x))
     (assert (equal '((a b) (l m)) y))
     (set 'x (list x y))
     (assert (equal '((a b) ((a b) (l m))) x)))
 (assert (equal '(1 2 3) x))
-
-(let ((x 'a) (y 'b))
-    (set 'y (list x y))
-    (assert (equal '(a b) y)))
 
 ; test for nested let!
 (let ((x 'a) (y 'b))
@@ -96,7 +106,6 @@
     (set 't 'y)
     (let ((x 'c)(t 'z))
         (assert (equal x 'c))
-        (assert (equal y 'b))
         (set 'x 'd)
         (assert (equal x 'd)))
     (assert (equal t 'y))

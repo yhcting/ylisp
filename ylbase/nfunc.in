@@ -18,6 +18,9 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+NFUNC(progn,          "progn",           ylaif_sfunc(),
+    "progn  <exp1> <exp2> ...\n"
+    "    -make expression group!\n")
 
 NFUNC(f_cond,         "f-cond",          ylaif_nfunc(),
     "f-cond  <arg1> <arg2> ...\n"

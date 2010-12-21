@@ -82,7 +82,7 @@ int
 main(int argc, char* argv[]) {
     ylsys_t   sys;
 
-    /* ylset system parameter */
+    /* set system parameter */
     sys.print = printf;
     sys.log = _log;
     sys.assert = _assert;
@@ -120,10 +120,12 @@ main(int argc, char* argv[]) {
 #   include "nfunc.in"
 #undef NFUNC
 
+extern int ylbase_nfunc_init ();
 
 void
 ylcnf_onload(yletcxt_t* cxt) {
 
+    ylbase_nfunc_init(cxt);
     /* return if fail to register */
 #define NFUNC(n, s, type, desc) \
     if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylbase <<\n" desc)) { return; }

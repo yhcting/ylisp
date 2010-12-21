@@ -79,12 +79,6 @@
 #define YLEGCMark          0x40000000  /**< Mark used only for GC */
 #define YLEMark            0x20000000  /**< Bit for Mark. This is used for several purpose! */
 
-/* --------------------------
- * YLASymbol attributes
- * --------------------------*/
-/* 0 is default symbol attribute */
-#define YLASymbol_macro    0x80000000  /**< symbol represets macro */
-
 /*===================================
  *
  * Types
@@ -178,7 +172,7 @@ typedef struct sYle {
              */
             union {
                 struct {
-                    int            ty; /**< symbol type - 0 is default value */
+                    int            ty; /**< symbol type - interenally used */
                     char*          sym;
                 } sym; /**< for YLASymbol */
 
@@ -275,12 +269,6 @@ typedef struct sYle {
 #define yleset_gcmark(e)        ((e)->t |= YLEGCMark)
 #define yleclear_gcmark(e)      ((e)->t &= ~YLEGCMark)
 #define yleis_gcmark(e)         (!!((e)->t & YLEGCMark))
-
-/* -- symbol -- */
-#define ylasymis_macro(ty)      ((ty) & YLASymbol_macro)
-#define ylasymset_macro(ty)     ((ty) |= YLASymbol_macro)
-#define ylasymclear_macro(ty)   ((ty) &= ~YLASymbol_macro)
-
 
 /*
  * Variable number of argument in macro, is not used for the compatibility reason.

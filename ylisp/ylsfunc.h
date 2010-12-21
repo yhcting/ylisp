@@ -37,48 +37,12 @@
 
 #include "yldev.h"
 
+extern int
+ylis_set (yletcxt_t* cxt, yle_t* a, const char* sym);
 
 /* Non-static S-Functions */
 extern const yle_t*
 yleq(const yle_t* e1, const yle_t* e2);
-
-/**
- * @a is a list of the form ((u1 v1) ... (uN vN))
- * < additional constraints : @x is atomic >
- * if @x is one of @u's, it changes the value of @u. If not, it changes global lookup map.
- *
- * @x: atomic symbol
- * @y: any S-expression
- * @a: map yllist
- * @desc: descrption for this symbol. Can be NULL(means "Do not change description").
- * @return: new value
- */
-extern yle_t*
-ylset(yle_t* x, yle_t* y, yle_t* a, const char* desc);
-
-extern yle_t*
-yltset(yletcxt_t* cxt, yle_t* x, yle_t* y, yle_t* a, const char* desc);
-
-/**
- * Check whether given symbol is in the global symbol space or not.
- * @return 1 is set, 0 if not set
- */
-extern int
-ylis_set(const char* sym);
-
-extern int
-ylis_tset(yletcxt_t* cxt, const char* sym);
-
-/**
- * only setting on global hash is available at macro-set.
- * @desc: see ylset.
- */
-extern yle_t*
-ylmset(yle_t* x, yle_t* y, yle_t* a, const char* desc);
-
-extern yle_t*
-yltmset(yletcxt_t* cxt, yle_t* x, yle_t* y, yle_t* a, const char* desc);
-
 
 /**
  * In this function, GC may be triggered!

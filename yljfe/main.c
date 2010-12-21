@@ -391,4 +391,5 @@ main(int argc, char* argv[]) {
 
         (*jvm)->DestroyJavaVM(jvm);
     }
+    return 0;
 }

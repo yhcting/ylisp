@@ -60,34 +60,6 @@ YLDEFNF(apply, 1, 9999) {
     return ylapply(cxt, ylcar(e), ylcdr(e), a);
 } YLENDNF(apply)
 
-YLDEFNF(f_mset, 2, 3) {
-    if(pcsz > 2) {
-        if(ylais_type(ylcaddr(e), ylaif_sym()))  {
-            return ylmset(ylcar(e), ylcadr(e), a, ylasym(ylcaddr(e)).sym);
-        } else {
-            ylnflogE0("MSET : 3rd parameter should be description string\n");
-            ylinterpret_undefined(YLErr_func_invalid_param);
-            return NULL; /* to make compiler happy */
-        }
-    } else {
-        return ylmset(ylcar(e), ylcadr(e), a, NULL);
-    }
-} YLENDNF(f_mset)
-
-YLDEFNF(f_tmset, 2, 3) {
-    if(pcsz > 2) {
-        if(ylais_type(ylcaddr(e), ylaif_sym()))  {
-            return yltmset(cxt, ylcar(e), ylcadr(e), a, ylasym(ylcaddr(e)).sym);
-        } else {
-            ylnflogE0("MSET : 3rd parameter should be description string\n");
-            ylinterpret_undefined(YLErr_func_invalid_param);
-            return NULL; /* to make compiler happy */
-        }
-    } else {
-        return yltmset(cxt, ylcar(e), ylcadr(e), a, NULL);
-    }
-} YLENDNF(f_mset)
-
 /* eq [car [e]; EQ] -> [eval [cadr [e]; a] = eval [caddr [e]; a]] */
 YLDEFNF(eq, 2, 2) {
     /* compare memory address */
@@ -99,32 +71,60 @@ YLDEFNF(equal, 2, 2) {
 } YLENDNF(equal)
 
 YLDEFNF(set, 2, 3) {
-    if(pcsz > 2) {
-        if(ylais_type(ylcaddr(e), ylaif_sym()))  {
-            return ylset(ylcar(e), ylcadr(e), a,ylasym(ylcaddr(e)).sym);
+    if (pcsz > 2) {
+        if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
+            return ylset (cxt, ylcar (e), ylcadr (e), a,ylasym (ylcaddr (e)).sym, 0);
         } else {
-            ylnflogE0("SET : 3rd parameter should be description string\n");
-            ylinterpret_undefined(YLErr_func_invalid_param);
+            ylnflogE0 ("SET : 3rd parameter should be description string\n");
+            ylinterpret_undefined (YLErr_func_invalid_param);
             return NULL; /* to make compiler happy */
         }
     } else {
-        return ylset(ylcar(e), ylcadr(e), a, NULL);
+        return ylset (cxt, ylcar (e), ylcadr (e), a, NULL, 0);
     }
 } YLENDNF(set)
 
 YLDEFNF(tset, 2, 3) {
-    if(pcsz > 2) {
-        if(ylais_type(ylcaddr(e), ylaif_sym()))  {
-            return yltset(cxt, ylcar(e), ylcadr(e), a,ylasym(ylcaddr(e)).sym);
+    if (pcsz > 2) {
+        if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
+            return ylset (cxt, ylcar (e), ylcadr (e), a,ylasym (ylcaddr (e)).sym, STyper_thread);
         } else {
-            ylnflogE0("SET : 3rd parameter should be description string\n");
-            ylinterpret_undefined(YLErr_func_invalid_param);
+            ylnflogE0 ("SET : 3rd parameter should be description string\n");
+            ylinterpret_undefined (YLErr_func_invalid_param);
             return NULL; /* to make compiler happy */
         }
     } else {
-        return yltset(cxt, ylcar(e), ylcadr(e), a, NULL);
+        return ylset (cxt, ylcar (e), ylcadr (e), a, NULL, STyper_thread);
     }
 } YLENDNF(tset)
+
+YLDEFNF(f_mset, 2, 3) {
+    if (pcsz > 2) {
+        if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
+            return ylset (cxt, ylcar (e), ylcadr (e), a, ylasym (ylcaddr (e)).sym, STymac);
+        } else {
+            ylnflogE0 ("MSET : 3rd parameter should be description string\n");
+            ylinterpret_undefined (YLErr_func_invalid_param);
+            return NULL; /* to make compiler happy */
+        }
+    } else {
+        return ylset (cxt, ylcar (e), ylcadr (e), a, NULL, STymac);
+    }
+} YLENDNF(f_mset)
+
+YLDEFNF(f_tmset, 2, 3) {
+    if (pcsz > 2) {
+        if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
+            return ylset (cxt, ylcar (e), ylcadr (e), a, ylasym (ylcaddr (e)).sym, STymac | STyper_thread);
+        } else {
+            ylnflogE0 ("MSET : 3rd parameter should be description string\n");
+            ylinterpret_undefined (YLErr_func_invalid_param);
+            return NULL; /* to make compiler happy */
+        }
+    } else {
+        return ylset (cxt, ylcar (e), ylcadr (e), a, NULL, STymac | STyper_thread);
+    }
+} YLENDNF(f_tmset)
 
 YLDEFNF(unset, 1, 1) {
     ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
@@ -139,23 +139,16 @@ YLDEFNF(tunset, 1, 1) {
 } YLENDNF(unset)
 
 YLDEFNF(is_set, 1, 1) {
-    ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
-    if( !yleis_nil(ylamong(ylcar(e), a)) ) {
-        /* found it in association list! */
-        return ylt();
-    } else if(ylis_set(ylasym(ylcar(e)).sym)) {
-        return ylt();
-    } else { return ylnil(); }
+    int temp;
+    ylnfcheck_parameter (ylais_type (ylcar (e), ylaif_sym ()));
+    /* check global symbol */
+    return (ylgsym_get (&temp, ylasym (ylcar (e)).sym))? ylt (): ylnil ();
 } YLENDNF(is_set)
 
 YLDEFNF(is_tset, 1, 1) {
-    ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
-    if( !yleis_nil(ylamong(ylcar(e), a)) ) {
-        /* found it in association list! */
-        return ylt();
-    } else if(ylis_tset(cxt, ylasym(ylcar(e)).sym)) {
-        return ylt();
-    } else { return ylnil(); }
+    int temp;
+    ylnfcheck_parameter (ylais_type (ylcar (e), ylaif_sym ()));
+    return (ylslu_get (cxt->slut, &temp, ylasym (ylcar (e)).sym))? ylt (): ylnil ();
 } YLENDNF(is_tset)
 
 YLDEFNF(eval, 1, 1) {
@@ -178,7 +171,7 @@ YLDEFNF(help, 1, 9999) {
                      "%s : %s\n"
                      , ylasym(ylcar(e)).sym
                      , desc
-                     , (ylasymis_macro(outty))? "M": ""
+                     , styis (outty, STymac)? "M": ""
                      , ylechain_print(ylethread_buf(cxt), v)));
         } else {
             ylprint(("======== %s =========\n"

@@ -394,7 +394,7 @@ main(int argc, char* argv[]) {
     ylsys_t        sys;
     unsigned int   maxwait = 60;
 
-    /* ylset system parameter */
+    /* set system parameter */
     sys.print = printf;
     sys.log = _log;
     sys.assert = _assert;

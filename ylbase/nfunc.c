@@ -31,6 +31,30 @@
 #include "ylsfunc.h"
 #include "yldynb.h"
 
+static yle_t _elambda, _eprogn;
+
+int
+ylbase_nfunc_init () {
+    /*
+     * Making lambda element
+     * This element is not from memory full.
+     * So, never GCed and cleaned.
+     * That's why hard-coded string "lambda" is allowd
+     */
+    ylaassign_sym(&_elambda, "lambda");
+    ylaassign_sym(&_eprogn,   "progn");
+    return 0;
+}
+
+
+YLDEFNF(progn, 1, 9999) {
+    yle_t*  ret = ylnil ();
+    ylelist_foreach (e) {
+        ret = yleval (cxt, ylcar (e), a);
+    }
+    return ret;
+} YLENDNF(progn)
+
 /*
  * GC Protection required to caller
  * ASSUMPTION
@@ -79,80 +103,60 @@ YLDEFNF(f_or, 1, 9999) {
     return ylnil();
 } YLENDNF(f_or)
 
+static yle_t*
+_pair_to_1st_element_list (yle_t* p, yle_t* l) {
+    if (yleis_nil (p)) return l;
+    l = ylcons (ylcaar (p), l);
+    return _pair_to_1st_element_list (ylcdr (p), l);
+}
 
-/*
- * Attach new (x y) form in front of assoc. list.
- * And update it.
- */
-static inline void
-_update_assoc(yle_t** x, yle_t* y) {
-    if(yleis_nil(y)) { return; }
-
-    if(yleis_nil(*x)) {
-        *x = ylcons(y, ylnil());
-    } else {
-        if(yleis_atom(*x)) {
-            yllogE0("<!let!> incorrect argument syntax\n");
-            ylinterpret_undefined(YLErr_func_invalid_param);
-        } else {
-            *x = ylcons(y, *x);
-        }
-    }
+static yle_t*
+_pair_to_2nd_element_list (yle_t* p, yle_t* l) {
+    if (yleis_nil (p)) return l;
+    l = ylcons (ylcadar (p), l);
+    return _pair_to_2nd_element_list (ylcdr (p), l);
 }
 
 /*
- * GC Protection required to caller
- * ASSUMPTION
- *    'e' and '*a' is already GC-protected.
+ * _eprogn, _elambda, should be static (NOT stack local)!
+ * In GC, element chain is tried to be traced.
+ * But, stack variable is already gone. So, fault is triggerred at this moment
+ *  if stack local variable is used as an 'progn' and 'lambda' symbol element.
+ *
+ * Why 'f-let' is implemented by using lambda form (not having it's own implementation)?
+ * This is to unify code/function that handles/updates local assocation list (into 'ylisp' core library.)
+ * Local assocation list is only updated in ylisp core.
+ * (Actually, at 'lambda'. ('flabel' is special case.).
  */
-static void
-_evarg(yletcxt_t* cxt, yle_t* e, yle_t** a) {
-    if(yleis_nil(e)) { return; }
-    if(yleis_atom(e)
-       || yleis_atom(ylcar(e))
-       || !yleis_atom(ylcaar(e))) {
-        /* ylinterpret_undefined.. syntax error */
-        yllogE0("<!let!> incorrect argument syntax\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
-
-    /*
-     * Expression itself SHOULD NOT be changed.
-     * So, yllist(...) is used instead of ylpcar/ylpcdr!
-     *
-     * !IMPORTANT :
-     *    '*a' should be protected from GC.
-     *    '*a' is updated. So, old value should be preserved.
-     */
-    { /* Just Scope */
-        void*  asv = *a;
-        ylmp_add_bb1(asv);
-        _update_assoc(a, yllist(ylcaar(e), yleval(cxt, ylcadar(e), *a)));
-        ylmp_rm_bb1(asv);
-        _evarg(cxt, ylcdr(e), a);
-    }
-}
-
-
 YLDEFNF(f_let, 2, 9999) {
-    yle_t*  p;
+    yle_t      *ret, *argl, *body, *param, *exp;    /* argument list */
     if(yleis_atom(ylcar(e)) && !yleis_nil(ylcar(e))) {
         ylnflogE0("incorrect argument syntax\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
-    _evarg(cxt, ylcar(e), &a);
 
-    /*
-     * updated 'a' should be protected from GC
-     * ('e' is already protected!)
-     */
-    ylmp_add_bb1(a);
-    e = ylcdr(e);
-    ylelist_foreach(e) {
-        p = yleval(cxt, ylcar(e), a);
+    argl = _pair_to_1st_element_list (ylcar (e), ylnil ());
+    param = _pair_to_2nd_element_list (ylcar (e), ylnil ());
+    body = ylcons (&_eprogn, ylcdr (e));
+
+    if (yleis_nil (argl)) {
+        ret = yleval (cxt, body, a);
+    } else {
+        if (yleis_nil (param)) {
+            ylnflogW0("Invalid f-let syntax!\n");
+            ylinterpret_undefined(YLErr_func_invalid_param);
+        }
+
+        /* lambda converted expression */
+        exp = ylcons (ylcons (&_elambda,
+                      ylcons (argl,      /* arguement list */
+                      ylcons (body,  ylnil ()))),    /* lambda part */
+              param);
+        /* keep exp from GC. */
+        ret = yleval (cxt, exp, a);
     }
-    ylmp_rm_bb1(a);
-    return p;
+
+    return ret;
 } YLENDNF(f_let)
 
 
@@ -198,22 +202,15 @@ YLDEFNF(f_case, 2, 9999) {
 
 
 YLDEFNF(f_while, 2, 9999) {
-    static const int __MAX_LOOP_COUNT = 1000000;
     yle_t *cond, *exp;
-    int   cnt = 0;
-    cond = ylcar(e);
-    while( yleis_true(yleval(cxt, cond, a)) ) {
-        if(cnt < __MAX_LOOP_COUNT) {
-            exp = ylcdr(e);
-            ylelist_foreach(exp) {
-                yleval(cxt, ylcar(exp), a);
-            }
-        } else {
-            ylnflogE1("Loop count exceeded limits(%d)\n", __MAX_LOOP_COUNT);
-            ylinterpret_undefined(YLErr_func_fail);
+    cond = ylcar (e);
+    while( yleis_true (yleval (cxt, cond, a)) ) {
+        exp = ylcdr (e);
+        ylelist_foreach (exp) {
+            yleval (cxt, ylcar (exp), a);
         }
     }
-    return ylt();
+    return ylt ();
 } YLENDNF(f_while)
 
 /* eq [car [e]; ATOM] -> atom [eval [cadr [e]; a]] */
