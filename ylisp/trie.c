@@ -253,7 +253,8 @@ static _node_t*
 _node_clone(const _node_t* n, void* user, void*(*clonev)(void*, const void*)) {
     register int i;
     _node_t* r = _alloc_node();
-    if(n->v) { r->v = clonev(user, n->v); }
+    /* Do shallow copy if copy callback is NULL. */
+    if (n->v) r->v = clonev? clonev(user, n->v): n->v;
     for(i=0; i<16; i++) {
         if(n->n[i]) {
             r->n[i] = _node_clone(n->n[i], user, clonev);

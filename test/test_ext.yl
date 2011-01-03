@@ -398,6 +398,45 @@
 (unset 'extar1)
 
 ;=============================
+; Test Trie & Array - Multi-thread
+;=============================
+
+;(print '"test script is not described yet!!!!!\n")
+;(assert '())
+
+; this is global array
+(print '"Trie & Array in multi-thread!!!\n")
+(set 'extar0 (make-array 100))
+(let ((i 0))
+    (while (< i 100)
+        (arr+ extar0 i i)
+        (++ i)))
+
+(create-thread '"
+    (let ((i 0))
+        (while (< i 100)
+            (arr+ extar0 (+ i 1) i)
+            (++ i)))")
+
+(create-thread '"
+    (let ((i 0))
+        (while (< i 100)
+            (arr+ extar0 (+ i 2) i)
+            (++ i)))")
+
+(create-thread '"
+    (let ((i 0))
+        (while (< i 100)
+            (arr+ extar0 (+ i 3) i)
+            (++ i)))")
+
+(let ((i 0))
+    (while (< i 100)
+        (print i '" : " (arr* extar0 i) '"\n")
+        (++ i)))
+
+
+;=============================
 ; Test Struct (Trie Based)
 ;=============================
 (defstruct person (name sex))
@@ -516,4 +555,3 @@
 (assert (not (tset? 'mytsym0)))
 (sleep 2)
 (print '"\n>>> Per-Thread Symbol Test PASSED!!\n")
-

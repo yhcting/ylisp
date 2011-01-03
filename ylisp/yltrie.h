@@ -106,7 +106,7 @@ yltrie_equal(const yltrie_t* t0, const yltrie_t* t1,
 
 /**
  * clone trie.
- * @clonev   : return cloned value.
+ * @clonev   : see 'yltrie_copy'
  */
 extern yltrie_t*
 yltrie_clone(const yltrie_t* t, void* user,
@@ -116,7 +116,8 @@ yltrie_clone(const yltrie_t* t, void* user,
 /**
  * copy trie.
  * @dst    : old data will be freed before copying.
- * @clonev : return cloned value.
+ * @clonev : return cloned value - copy callback for trie value.
+ *           This can be NULL for shallow copy.
  */
 extern int
 yltrie_copy(yltrie_t* dst, const yltrie_t* src, void* user,

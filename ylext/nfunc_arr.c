@@ -25,6 +25,12 @@
 #include <string.h>
 #include <stdio.h>
 
+/*
+ * To support multi-threading in trie!
+ */
+#include <unistd.h>
+#include <pthread.h>
+
 /* enable logging & debugging */
 #define CONFIG_ASSERT
 #define CONFIG_LOG
@@ -35,17 +41,19 @@
 #define _arr(e) ((_err_t*)ylacd(e))
 
 typedef struct {
-    yle_t**        arr;
-    unsigned int   sz;
+    yle_t**            arr;
+    unsigned int       sz;
+    pthread_rwlock_t   m;
 } _earr_t;
 
 static inline void
 _destroy_arr_data(_earr_t* at) {
-    if(at) {
-        /* unlinking is enough! */
-        if(at->arr) { ylfree(at->arr); }
-        ylfree(at);
-    }
+    ylassert (at);
+    /* unlinking is enough! */
+    if (at->arr) ylfree (at->arr);
+    /* see comments at '_atrie_destroy' in 'nfunc_trie.c' */
+    pthread_rwlock_destroy (&at->m);
+    ylfree (at);
 }
 
 static int
@@ -56,12 +64,20 @@ _aif_arr_eq(const yle_t* e0, const yle_t* e1) {
     if(!at0 && !at1) {
         return 1;
     } else if(at0 && at1) {
-        int i;
-        if(at0->sz != at1->sz) { return 0; }
-        for(i=0; i<at0->sz; i++) {
-            if( yleis_nil(yleq(at0->arr[i], at1->arr[i])) ) { return 0; }
+        int i, ret = 1;
+
+        pthread_rwlock_rdlock (&at0->m);
+        pthread_rwlock_rdlock (&at1->m);
+        if (at0->sz != at1->sz) ret = 0;
+        else {
+            for (i=0; i<at0->sz; i++) {
+                if ( yleis_nil(yleq(at0->arr[i], at1->arr[i])) ) ret = 0;
+            }
         }
-        return 1;
+        pthread_rwlock_unlock (&at1->m);
+        pthread_rwlock_unlock (&at0->m);
+
+        return ret;
     } else {
         return 0;
     }
@@ -91,7 +107,7 @@ _aif_arr_copy(void* map, yle_t* n, const yle_t* e) {
     return 0;
 
  oom:
-    _destroy_arr_data(at);
+    if (at) _destroy_arr_data(at);
     return -1;
 }
 #endif /* Keep it for future use! */
@@ -105,7 +121,11 @@ _aif_arr_to_string(const yle_t* e, char* b, unsigned int sz) {
      */
     _earr_t* at = ylacd(e);
     int      bw;
+
+    pthread_rwlock_rdlock (&at->m);
     bw = snprintf(b, sz, ">>ARR:%d<<", at->sz);
+    pthread_rwlock_unlock (&at->m);
+
     if(bw >= sz) { return -1; } /* not enough buffer */
     return bw;
 }
@@ -115,17 +135,21 @@ _aif_arr_visit(yle_t* e, void* user, int(*cb)(void*, yle_t*)) {
     _earr_t* at = ylacd(e);
     if(at) {
         int    i;
+        /* see comments at '_aif_trie_visit' in 'nfunc_trie.c' */
+        pthread_rwlock_rdlock (&at->m);
         for(i=0; i<at->sz; i++) {
             if(at->arr[i]) { (*cb)(user, at->arr[i]); }
         }
+        pthread_rwlock_unlock (&at->m);
     }
     return 0;
 }
 
 static void
 _aif_arr_clean(yle_t* e) {
-    _destroy_arr_data(ylacd(e));
-    ylacd(e) = NULL;
+    /* see comments at '_aif_trie_clean' in 'nfunc_trie.c' */
+    _destroy_arr_data (ylacd (e));
+    ylacd(e) = NULL; /* <- I'm not sure that this is essential or not! */
 }
 
 static ylatomif_t _aif_arr = {
@@ -151,10 +175,13 @@ _arr_alloc(yle_t* ar, yle_t* e) {
 
     ylassert(!yleis_nil(e));
 
-    at = ylmalloc(sizeof(_earr_t));
-    if(!at) { goto oom; }
+    at = ylmalloc (sizeof (_earr_t));
+    if (!at) { goto oom; }
+
+    pthread_rwlock_init (&at->m, NULL);
+
     /* only integer is allowed */
-    at->sz = (unsigned int)(yladbl(ylcar(e)));
+    at->sz = (unsigned int)(yladbl (ylcar (e)));
     if(at->sz > 0) {
         at->arr = ylmalloc(sizeof(*at->arr) * at->sz);
         if(!at->arr) { goto oom; }
@@ -179,7 +206,7 @@ _arr_alloc(yle_t* ar, yle_t* e) {
 
  oom:
     /* clean */
-    _destroy_arr_data(at);
+    if (at) _destroy_arr_data(at);
     return -1;
  }
 
@@ -214,34 +241,44 @@ YLDEFNF(make_array, 1, 9999) {
  * return NULL if fails
  */
 static yle_t**
-_arr_get(yle_t* e, yle_t* ie) {
+_arr_get (yle_t* e, yle_t* ie, int (*lock)(pthread_rwlock_t*)) {
     const _earr_t*  at;
-    long long       i = yladbl(ylcar(ie));
-    if(!_is_arr_type(e) || !ylacd(e)) { goto bail; }
+    yle_t**         ret = NULL;
+    long long       i = yladbl (ylcar (ie));
     at = ylacd(e);
-    if(at->sz <= i) { goto bail;  }
 
-    if(yleis_nil(ylcdr(ie))) {
-        /* this is last dim-index */
-        return &at->arr[i];
-    } else {
-        return _arr_get(at->arr[i], ylcdr(ie));
-    }
+    if (0 <= i && at->sz > i) {
+        if (yleis_nil (ylcdr (ie))) {
+            /* this is last dim-index */
+            ret =  &at->arr[i];
+        } else {
+            yle_t*  ne = at->arr[i]; /* next e */
+            if (_is_arr_type (ne) && ylacd (ne)) {
+                lock ( &((_earr_t*)ylacd (ne))->m );
+                ret = _arr_get (at->arr[i], ylcdr (ie), lock);
+                pthread_rwlock_unlock ( &((_earr_t*)ylacd (ne))->m );
+            } else yllogE0("Invalid Array Access\n");
+        }
+    } else yllogE0("Array Access - Out Of Bound\n");
 
- bail:
-    yllogE0("Invalid Array Access\n");
-    return NULL;
+    return ret;
 }
 
 YLDEFNF(arr_get, 2, 9999) {
-    yle_t** pv;
-    ylnfcheck_parameter(_is_arr_type(ylcar(e)));
+    yle_t**     pv;
+    _earr_t*    at;
+    ylnfcheck_parameter(_is_arr_type (ylcar (e)) && ylacd (ylcar (e)));
     { /* Just scope */
         yle_t* w = ylcdr(e);
         _check_dim_param(w);
     }
 
-    pv = _arr_get(ylcar(e), ylcdr(e));
+    at = ylacd ( ylcar (e));
+
+    pthread_rwlock_rdlock ( &at->m );
+    pv = _arr_get(ylcar(e), ylcdr(e), &pthread_rwlock_rdlock);
+    pthread_rwlock_unlock ( &at->m );
+
     if(pv) { return *pv; }
     else {
         ylinterpret_undefined(YLErr_func_fail);
@@ -251,19 +288,26 @@ YLDEFNF(arr_get, 2, 9999) {
 
 
 YLDEFNF(arr_set, 3, 9999) {
-    yle_t** pv;
+    yle_t**     pv;
+    _earr_t*    at;
 
-    ylnfcheck_parameter(_is_arr_type(ylcar(e)));
+    ylnfcheck_parameter(_is_arr_type(ylcar(e)) && ylacd (ylcar (e)));
     { /* Just scope */
         yle_t* w = ylcddr(e); /* dimension starts from 3rd parameter */
         _check_dim_param(w);
     }
 
-    pv = _arr_get(ylcar(e), ylcddr(e));
+    at = ylacd ( ylcar (e));
+
+    pthread_rwlock_wrlock ( &at->m );
+    pv = _arr_get(ylcar(e), ylcddr(e), pthread_rwlock_wrlock);
+
     if(pv && *pv) { /* *pv cannot be NULL */
         *pv = ylcadr(e);
+        pthread_rwlock_unlock ( &at->m );
         return ylcadr(e);
     } else {
+        pthread_rwlock_unlock ( &at->m );
         ylinterpret_undefined(YLErr_func_fail);
         return NULL; /* to make compiler be happy */
     }
