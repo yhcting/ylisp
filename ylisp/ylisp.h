@@ -37,6 +37,8 @@ typedef enum {
 
     YLErr_out_of_memory,
 
+    YLErr_invalid_param,
+
     YLErr_unexpected_cyclic_reference,
 
     YLErr_internal,
@@ -86,7 +88,6 @@ typedef enum {
 
     /* fail to execute native function */
     YLErr_func_fail,
-
 } ylerr_t;
 
 typedef enum {
@@ -128,13 +129,13 @@ typedef struct {
     int           gctp; /* Garbage Collection Trigger Pointer */
 } ylsys_t; /* system parameter  */
 
-/*
+/**
  * this SHOULD BE called firstly before using module.
  */
 extern ylerr_t
 ylinit(ylsys_t* sysv);
 
-/*
+/**
  * clean ylisp structure
  */
 extern void
@@ -143,11 +144,37 @@ yldeinit();
 extern ylerr_t
 ylinterpret(const unsigned char* stream, unsigned int streamsz);
 
-/*
+/**
  * interrupt current interpreting.
  */
 extern void
 ylforce_stop();
+
+/**************************************************
+ * Functions to get value from symbol table
+ *  to support external module to use this value.
+ **************************************************/
+extern ylerr_t
+ylreadv_ptr (const char* sym, void** out);
+
+/**
+ * @return : bytes copied (includes trailing NULL).
+ *           If buffer size is not enough, returned value is same with buffer size
+ *            and trailing 0 is not added.
+ *           <0 for errors. (ex. symbol is not valid one).
+ */
+extern ylerr_t
+ylreadv_str (const char* sym, char* buf, unsigned int bsz);
+
+/**
+ * See 'ylreadv_str'
+ */
+extern ylerr_t
+ylreadv_bin (const char* sym, unsigned char* buf, unsigned int bsz);
+
+extern ylerr_t
+ylreadv_dbl (const char* sym, double* out);
+
 
 /**
  * get more symbols to make longest prefix.

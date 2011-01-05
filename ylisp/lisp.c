@@ -541,6 +541,92 @@ ylechain_print(struct yldynb* dynb, const yle_t* e) {
 
 #undef _fcall
 
+
+#define _YLREADV_PROLOGUE                                               \
+    { /* Just scope */                                                  \
+    int      sv, ty;                                                    \
+    ylerr_t  ret = YLOk;                                                \
+    yle_t*   e;                                                         \
+                                                                        \
+    /*                                                                  \
+     * GC should be disabled temporarily.                               \
+     * If not, returned yle_t* value may be GCed before used.           \
+     * Keep it in mind that 'ylisp' supports MT(Multi-threading!)       \
+     */                                                                 \
+    sv = ylmp_gc_enable (0);                                            \
+    e = ylgsym_get (&ty, sym);                                          \
+    { /* Just scope */
+
+#define _YLREADV_EPILOGUE                       \
+    }                                           \
+    ylmp_gc_enable (sv);                        \
+    return ret;                                 \
+    }
+
+ylerr_t
+ylreadv_ptr (const char* sym, void** out) {
+    /* check input parameter */
+    if (!sym || !out) return YLErr_invalid_param;
+
+    _YLREADV_PROLOGUE;
+
+    if (!e) ret = YLErr_invalid_param;
+    else *out = ylacd (e);
+
+    _YLREADV_EPILOGUE;
+}
+
+ylerr_t
+ylreadv_str (const char* sym, char* buf, unsigned int bsz) {
+    /* check input parameter */
+    if (!sym || !buf || 0 == bsz) return YLErr_invalid_param;
+
+    _YLREADV_PROLOGUE;
+
+    if (!e || ylaif (e) != ylaif_sym ()) ret = YLErr_invalid_param;
+    else {
+        int len = strlen (ylasym (e).sym) + 1;
+        len = (bsz < len)? bsz: len;
+        memcpy (buf, ylasym (e).sym, len);
+    }
+
+    _YLREADV_EPILOGUE;
+}
+
+ylerr_t
+ylreadv_bin (const char* sym, unsigned char* buf, unsigned int bsz) {
+    /* check input parameter */
+    if (!sym || !buf || 0 == bsz) return YLErr_invalid_param;
+
+    _YLREADV_PROLOGUE;
+
+    if (!e || ylaif (e) != ylaif_bin ()) ret = YLErr_invalid_param;
+    else {
+        unsigned int len = ylabin (e).sz;
+        len = (bsz < len)? bsz: len;
+        memcpy (buf, ylasym (e).sym, len);
+    }
+
+    _YLREADV_EPILOGUE;
+}
+
+ylerr_t
+ylreadv_dbl (const char* sym, double* out) {
+    /* check input parameter */
+    if (!sym || !out) return YLErr_invalid_param;
+
+    _YLREADV_PROLOGUE;
+
+    if (!e || ylaif (e) != ylaif_dbl ()) ret = YLErr_invalid_param;
+    else *out = yladbl (e);
+
+    _YLREADV_EPILOGUE;
+}
+
+#undef _YLREADV_PROLOGUE
+#undef _YLREADV_EPILOGUE
+
+
 int
 ylsym_nr_candidates(const char* start_with, unsigned int* max_symlen) {
     return ylgsym_nr_candidates(start_with, max_symlen);

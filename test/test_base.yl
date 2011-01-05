@@ -9,12 +9,14 @@
 
 
 (set 'rrr 'ttt)
-(assert
-    (equal rrr 'ttt))
+(assert (equal rrr 'ttt))
+
+(interpret '"(set 'rrr 'yyy)")
+(assert (equal rrr 'yyy))
+(interpret '"(set 'rrr 'ttt)")
 
 (mset zzz rrr)
-(assert
-    (equal zzz 'ttt))
+(assert (equal zzz 'ttt))
 
 (mset rrr ttt)
 (mset ttt (car (list yy '(x y))))

@@ -31,6 +31,13 @@ ylmp_init();
 extern void
 ylmp_deinit();
 
+/*
+ * enable/disable GC
+ * @return : previous value
+ */
+extern int
+ylmp_gc_enable(int v);
+
 /*****************************************
  * Multi-Thread
  *****************************************/

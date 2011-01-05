@@ -194,6 +194,7 @@ ylsubst(yle_t* x, yle_t* y, yle_t* z) {
     }
     yllogE0("subst : Should not reach here!\n");
     ylinterpret_undefined(YLErr_eval_undefined);
+    return NULL; /* to make compiler be happy */
 }
 
 

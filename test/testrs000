@@ -20,4 +20,13 @@ MT OK
 OK
 (interpret-file 'test_ext.yl)
 
+=================================================
 
+MT OK
+OK
+; these values are read from test program by 'ylreadv_xxx' interface
+(set 'tstdbl_100 100)
+(set 'tstdbl_67  67)
+(set 'tststr_hoho 'hoho)
+(set 'tststr_haha 'haha)
+(set 'tstbin_hoho (to-bin 'hoho))

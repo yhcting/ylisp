@@ -411,6 +411,28 @@ main(int argc, char* argv[]) {
     /* Test for single thread */
     _start_test(_TESTRS, 0);
 
+    /*
+     * Now, test case is not many.
+     * So, to make code simple, cases are hard-coded!
+     * FIXME: do not hardcode
+     */
+    { /* Just scope */
+        double d;
+        char   b[100];
+        /* Following code should match code in 'test.yl' */
+        if (YLOk != ylreadv_dbl ("tstdbl_100", &d)) assert(0);
+        assert (100 == d);
+        if (YLOk != ylreadv_dbl ("tstdbl_67", &d)) assert(0);
+        assert (67 == d);
+        if (YLOk != ylreadv_str ("tststr_hoho", b, 100)) assert(0);
+        assert (0 == strcmp ("hoho", b));
+        if (YLOk != ylreadv_str ("tststr_haha", b, 100)) assert(0);
+        assert (0 == strcmp ("haha", b));
+        if (YLOk != ylreadv_bin ("tstbin_hoho", (unsigned char*)b, 100)) assert(0);
+        assert (0 == memcmp ("hoho", b, sizeof("hoho")-1));
+    }
+
+
     printf("\n************ Multi Thread Test *************\n");
     /* Test for multi thread */
     /* _binit_section = 1; *//* HACK */

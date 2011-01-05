@@ -256,14 +256,17 @@ YLDEFNF(unload_cnf, 1, 1) {
     return NULL; /* to make compiler happy */
 } YLENDNF(unload_cnf)
 
+YLDEFNF(interpret, 1, 1) {
+    const char* code;
+    ylnfcheck_parameter (ylais_type_chain (e, ylaif_sym ()));
+    code = ylasym (ylcar (e)).sym;
+    if (YLOk != ylinterpret_internal (cxt, (unsigned char*) code, (unsigned int) strlen (code))) {
+        ylnflogE1 ("ERROR at interpreting given code\n%s\n", code);
+        return ylnil ();
+    } else return ylt ();
+} YLENDNF(interpret)
 
-/*
- * We can easily implement that this function can handle variable number of paramter.
- * But, considering GC, we restrict number of parameter to one.!
- * (FULL scan GC can be run only at the topmost evaluation!.
- *    So, calling 'interpret-file' serveral times is good in GC's point of view!)
- */
-YLDEFNF(interpret_file, 1, 1) {
+YLDEFNF(interpret_file, 1, 9999) {
     FILE*            fh = NULL;
     unsigned char*   buf = NULL;
     const char*      fname = NULL; /* file name */
@@ -281,7 +284,7 @@ YLDEFNF(interpret_file, 1, 1) {
             goto bail;
         }
 
-        /* do ylnot check error.. very rare to fail!! */
+        /* do not check error.. very rare to fail!! */
         fseek(fh, 0, SEEK_END);
         sz = ftell(fh);
         fseek(fh, 0, SEEK_SET);

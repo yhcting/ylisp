@@ -22,7 +22,7 @@
  *
  * Handling dynamic buffer
  *
- * This is just DATA STRUCTURE HELPER for YILSP
+ * This is just HELPER DATA STRUCTURE for YLISP
  *================================*/
 
 #ifndef ___YLDYNb_h___

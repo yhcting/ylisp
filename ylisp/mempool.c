@@ -79,10 +79,12 @@ static ylstk_t*         _bbs;   /**< Base-Block-Stack */
 
 
 /* condition - used at GC */
-pthread_cond_t          _condgc = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t   _condgc = PTHREAD_COND_INITIALIZER;
 
 static pthread_mutex_t  _mbbs;
 static pthread_mutex_t  _mm;
+
+static int              _gc_enabled = 1; /**< 0 means gc is disabled forcely! */
 
 static inline int
 _used_block_count() { return ylmpsz() - _m.fbi; }
@@ -277,7 +279,8 @@ static void
 _mt_listener_all_safe(pthread_mutex_t* mtx) {
     _mlock(&_mm);
     if(_usage_ratio() >= ylgctp()) {
-        _gc();
+        if (_gc_enabled) _gc();
+        else yllogW0 ("Memory is running out! But GC is disabled!!!\n");
         _munlock(&_mm);
         dbg_mutex(yllogI0("+CondBroadcast : GC done\n"););
         pthread_cond_broadcast(&_condgc);
@@ -298,6 +301,16 @@ static ylmtlsn_t _mtlsnr = {
     &_mt_listener_thd_safe,
     &_mt_listener_all_safe,
 };
+
+int
+ylmp_gc_enable(int v) {
+    int sv;
+    _mlock (&_mm);
+    sv = _gc_enabled;
+    _gc_enabled = v;
+    _munlock(&_mm);
+    return sv;
+}
 
 ylerr_t
 ylmp_init() {

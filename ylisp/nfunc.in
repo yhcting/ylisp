@@ -154,12 +154,20 @@ NFUNC(unload_cnf,             "unload-cnf",              ylaif_nfunc(),
     "     *ex\n"
     "         (unload-cnf 'ylbase.so 'yllibylbase_unregister)\n")
 
-NFUNC(interpret_file,         "interpret-file",          ylaif_nfunc(),
-    "interpret-file <file name> : [t/nil]\n"
-    "    -interpret other ylisp script file\n"
-    "    @file name [Symbol]: file path\n"
+NFUNC(interpret,              "interpret",               ylaif_nfunc(),
+    "interpret-file <code> : [t/nil]\n"
+    "    -interpret given code at runtime\n"
+    "    @code [Symbol]: ylisp code\n"
     "    *ex\n"
-    "        (interpret-file 'ylbase.yl)\n")
+    "        (set 'ylcode '\"(print 'haha)\")\n"
+    "        (interpret ylcode)\n")
+
+NFUNC(interpret_file,         "interpret-file",          ylaif_nfunc(),
+    "interpret-file <file1> <file2> <file2> ... : [t/nil]\n"
+    "    -interpret other ylisp script file\n"
+    "    @fileN [Symbol]: file path\n"
+    "    *ex\n"
+    "        (interpret-file 'ylbase.yl 'ylext.yl)\n")
 
 /****************************************************
  *
