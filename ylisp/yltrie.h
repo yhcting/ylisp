@@ -33,6 +33,7 @@ typedef struct _sTrie yltrie_t;
 
 /*
  * @fcb : callback to free trie value.
+ *        Can be NULL.
  */
 extern yltrie_t*
 yltrie_create(void(*fcb)(void*));

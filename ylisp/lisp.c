@@ -661,7 +661,7 @@ ylinit_thread_context(yletcxt_t* cxt) {
     yllist_init_link(&cxt->pres);
     cxt->slut = ylslu_create();
     yldynb_init(&cxt->dynb, 4096);
-    return 0;
+    return YLOk;
 }
 
 void
@@ -752,4 +752,5 @@ yldeinit() {
     ylmp_deinit();
     ylgsym_deinit();
     ylmt_deinit();
+    ylsfunc_deinit();
 }

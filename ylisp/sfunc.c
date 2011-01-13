@@ -25,6 +25,23 @@
 #include <string.h>
 #include "lisp.h"
 
+static yltrie_t* _lfsymtab = NULL; /* lfsymtab : Lambda Form SYMbol TABle - trie */
+
+static yle_t* _evlf_lambda  (yletcxt_t*, yle_t*, yle_t*);
+static yle_t* _evlf_mlambda (yletcxt_t*, yle_t*, yle_t*);
+static yle_t* _evlf_label   (yletcxt_t*, yle_t*, yle_t*);
+static yle_t* _evlf_flabel  (yletcxt_t*, yle_t*, yle_t*);
+
+static struct _lfsym {
+    const char*  sym;
+    yle_t*      (*f) (yletcxt_t*, yle_t*, yle_t*);
+} _lfsyms[] = {
+    {"lambda",     &_evlf_lambda},
+    {"mlambda",    &_evlf_mlambda},
+    {"label",      &_evlf_label},
+    {"flabel",     &_evlf_flabel},
+};
+
 #ifdef CONFIG_DBG_EVAL
 /*
  * this is for debugging perforce
@@ -67,25 +84,22 @@ _list_clone(yle_t* e) {
  * It doesn't detect cycle due to performance reason.
  */
 const yle_t*
-yleq(const yle_t* e1, const yle_t* e2) {
-    if(e1 == e2) { return ylt(); } /* trivial case (even if e1 and e2 are pair-type.*/
-    if(yleis_atom(e1) && yleis_atom(e2)) {
-        if( ylaif(e1)->eq == ylaif(e2)->eq ) {
-            if(ylaif(e1)->eq) {
-                return ylaif(e1)->eq(e1, e2)? ylt(): ylnil();
-            } else {
-                yllogW0("There is an atom that doesn't support/allow EQ!\n");
-                return ylnil(); /* default is 'not equal' */
+yleq (const yle_t* e1, const yle_t* e2) {
+    if (e1 == e2) return ylt (); /* trivial case (even if e1 and e2 are pair-type.*/
+    if (yleis_atom (e1) && yleis_atom (e2)) {
+        if (ylaif (e1)->eq == ylaif (e2)->eq ) {
+            if (ylaif (e1)->eq) return ylaif (e1)->eq (e1, e2)? ylt (): ylnil ();
+            else {
+                yllogW0 ("There is an atom that doesn't support/allow EQ!\n");
+                return ylnil (); /* default is 'not equal' */
             }
-        } else {
-            return ylnil();
-        }
-    } else if(!yleis_atom(e1) && !yleis_atom(e2)) {
-        return ( yleis_nil(yleq(ylcar(e1), ylcar(e2)))
-                 || yleis_nil(yleq(ylcdr(e1), ylcdr(e2))) )?
-            ylnil(): ylt();
+        } else return ylnil();
+    } else if (!yleis_atom (e1) && !yleis_atom (e2)) {
+        return ( yleis_nil (yleq (ylcar (e1), ylcar (e2)))
+                 || yleis_nil (yleq (ylcdr (e1), ylcdr (e2))) )?
+            ylnil (): ylt ();
 
-    } else { return ylnil(); }
+    } else return ylnil ();
 }
 
 /*=================================
@@ -329,14 +343,222 @@ _assoc(yletcxt_t* cxt, int* ovty, yle_t* x, yle_t* y) {
 /*=================================
  * Universal S-functions - START
  *=================================*/
+static yle_t*
+_evatom_form (yletcxt_t* cxt, yle_t* e, yle_t* a) {
+    /*
+     * 'e' is atom
+     */
+    yle_t*  r = NULL;
+    int     vty;
+    if (ylaif_sym () == ylaif (e)) {
+        r = (yle_t*)_assoc (cxt, &vty, e, a);
+        if (styis (vty, STymac)) r = yleval (cxt, r, a);
+    } else {
+        yllogE0 ("ERROR to evaluate atom(only symbol can be evaluated!.\n");
+        ylinterpret_undefined (YLErr_eval_undefined);
+    }
+    ylassert (r);
+    return r;
+ }
 
+static yle_t*
+_evfunc_form (yletcxt_t* cxt, yle_t* e, yle_t* a) {
+    /*
+     * 'ylcar (e)' is atom.
+     */
+    yle_t*   r = NULL;
+    int      vty;
+
+    if (ylaif_sym () != ylaif (ylcar (e))) goto bail;
+
+    r = (yle_t*)_assoc (cxt, &vty, ylcar (e), a);
+    if (styis (vty, STymac)) {
+        /*
+         * This is macro symbol! replace target expression with symbol.
+         * And evaluate it with replaced value!
+         */
+        r = yleval (cxt, ylcons (r, ylcdr (e)), a);
+    } else {
+        if (!yleis_atom (r)) goto bail;
+
+        if (ylaif_sfunc () == ylaif (r)) {
+            /*
+             * This is 'sfunc' type symbol.
+             * parameters are not evaluated before being passed!
+             */
+            r = (*(ylanfunc (r).f)) (cxt, ylcdr (e), a);
+        } else if (ylaif_nfunc () == ylaif (r)) {
+            yle_t* param;
+            /*
+             * 'yleval' is called in 'ylevlis'.
+             * We should keep 'r' from GC!
+             */
+            ylmp_add_bb1 (r);
+            param = ylevlis (cxt, ylcdr (e), a);
+            ylmp_rm_bb1 (r);
+
+            /* preserving 'param' is prerequisite of calling native function! */
+            ylmp_add_bb1 (param);
+            r = (*(ylanfunc (r).f)) (cxt, param, a);
+            ylmp_rm_bb1 (param);
+        } else goto bail;
+    }
+
+    return r;
+
+ bail:
+    yllogE0 ("ERROR. First element should be a symbol that represents 'function!'\n");
+    ylinterpret_undefined (YLErr_eval_undefined);
+    return NULL; /* to make compiler be happy */
+}
+
+
+static yle_t*
+_evlf_lambda (yletcxt_t* cxt, yle_t* e, yle_t* a) {
+    /*
+     * eq [caar [e] -> LAMBDA] -> eval [caddar [e]; append [pair [cadar [e]; evlis [cdr [e]; a]]; a]]
+     * ylpair and ylappend don't call yleval in it. So, we don't need to preserve base blocks explicitly
+     *
+     * car     : lambda expression list
+     * cdr     : parameter list
+     * cadar   : arguement list
+     * caddar  : lambda body
+     */
+    return yleval (cxt, ylcaddar (e), ylappend (ylpair (ylcadar (e), ylevlis (cxt, ylcdr (e), a)), a));
+}
+
+static yle_t*
+_evlf_mlambda (yletcxt_t* cxt, yle_t* e, yle_t* a) {
+    yle_t* r = NULL;
+
+    if (yleis_nil (ylcadar (e)) && !yleis_nil (ylcaddar (e))) {
+        /*
+         * !!! Special usage of mlambda !!!
+         * If parameter is nil, than, arguments are appended to the body!
+         */
+
+        /*
+         * At below, we should change cdr value.
+         * In case of MT evaluation, this may cause racing condition.
+         * Use list-copied one!
+         */
+        yle_t* exp = _list_clone (ylcaddar (e));
+        yle_t* we = exp;
+        while (!yleis_nil (ylcdr (we))) { we = ylcdr (we); }
+
+        /* connect body with argument */
+        ylpsetcdr (we, ylcdr (e));
+        r = yleval (cxt, exp, a);
+        /* we don't need to restore. it was just copied one. */
+        /* ylpsetcdr(we, ylnil()); */
+    } else {
+        /*
+         * NOTE!!
+         *     expression itself may be changed in '_mreplace'.
+         *     To reserve original expression, we need to use cloned one.
+         *  --> Now expression is preserved!
+         */
+        yle_t* exp = _list_clone (ylcaddar (e));
+        if (0 > _mreplace (exp, ylappend (ylpair (ylcadar (e), ylcdr (e)), ylnil ()))) {
+            yllogE0 ("Fail to mreplace!!\n");
+            ylinterpret_undefined (YLErr_eval_undefined);
+        } else r = yleval (cxt, exp, a);
+    }
+    return r;
+}
+
+static yle_t*
+_evlf_label (yletcxt_t* cxt, yle_t* e, yle_t* a) {
+    /*
+     * car     : label expression list
+     * cdr     : parameter list
+     * cadar   : label name
+     * caddar  : lambda expression list
+     */
+    if (!ylais_type (ylcadar (e), ylaif_sym ())) {
+        yllogE0 ("label name shoud be symbol!\n");
+        ylinterpret_undefined (YLErr_eval_undefined);
+    }
+    /* eq [caar [e]; LABEL] -> eval [cons [caddar [e]; cdr [e]]; cons [list [cadar [e]; car [e]]; a]] */
+    return yleval (cxt, ylcons (ylcaddar (e), ylcdr (e)), ylcons (yllist (ylcadar (e), ylcar (e)), a));
+}
+
+static yle_t*
+_evlf_flabel (yletcxt_t* cxt, yle_t* e, yle_t* a) {
+    /*
+     * Abbrev :
+     *    - LAL : local association list
+     *
+     * Why 'flabel' is required
+     * The main reason is 'performance to access global symbol'.
+     * Script usually keeps some amount of function call stack during runtime.
+     * So, Using inherited LAL in function means "size of LAL grows in proportion to depth of call-stack".
+     * And this leads performance-inefficency to access global symbol (usually, function symbol, reserved words etc).
+     * Functions from typical LISP - ex. label, lambda - uses inherited LAL.
+     * So, special new symbol 'flabel' is adopted.
+     * This is usually used to implement 'defun' function.
+     * (Actually, 'defun' is not the one that is described in LISP's mathemetical model.
+     *  But it is very popular and important.)
+     *
+     * exactly same with label except for new label is added to LAL as macro symbol (NOT normal one)
+     */
+
+    /*
+     * (flabel name arg exp) p1 p2 ...
+     * car     : flabel expression list
+     * cdr     : parameter list
+     *
+     * In flabel expression list
+     * cadr   : label name
+     * caddr  : argument list
+     * cadddr : expression
+     */
+    yle_t*    fl  = ylcar (e);    /* flabel */
+    yle_t*    fln = ylcadr (fl);  /* flabel name */
+    yle_t*    fla = ylcaddr (fl); /* flabel arguement list */
+    yle_t*    fle = ylcadddr (fl);/* flabel expression */
+    yle_t*    flp = ylcdr (e);    /* parameter of flabel */
+    yle_t*    param_assoc;
+    if (!ylais_type (fln, ylaif_sym ())) {
+        yllogE0 ("flabel name should be symbol!\n");
+        ylinterpret_undefined (YLErr_eval_undefined);
+    }
+    /* set symbol type as macro */
+    styset (ylasym (fln).ty, STymac);
+    param_assoc = ylpair (fla, ylevlis (cxt, flp, a));
+    return yleval (cxt, fle, ylcons (yllist (fln, fl), param_assoc));
+}
+
+static yle_t*
+_evlambda_form (yletcxt_t* cxt, yle_t* e, yle_t* a) {
+    yle_t*      (*lffunc) (yletcxt_t*, yle_t*, yle_t*);
+
+    /*
+     * 'ylcaar (e)' is atom.
+     */
+
+    if (ylaif (ylcaar (e)) != ylaif_sym ()) {
+        yllogE0("First element of lambda format SHOULD be a symbol-type-atom\n");
+        ylinterpret_undefined(YLErr_eval_undefined);
+    }
+
+    { /* Just Scope */
+        const char*   lfsym;
+        lfsym = ylasym (ylcaar (e)).sym;
+        lffunc = yltrie_get (_lfsymtab, (unsigned char*) lfsym, (unsigned int) strlen (lfsym));
+    }
+
+    if (lffunc) return (*lffunc) (cxt, e, a);
+    else {
+        /* my extention */
+        return yleval (cxt, ylcons (yleval (cxt, ylcar (e), a), ylcdr (e)), a);
+        /* ylinterpret_undefined(YLErr_eval_undefined); */
+    }
+}
 
 yle_t*
 yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
-#define _cmp(x, e) !strcmp(#x, ylasym(e).sym)
-
     yle_t*       r = NULL;
-    int          vty;
 #ifdef CONFIG_DBG_EVAL
     unsigned int evid = _eval_id++; /* evaluation id for debugging */
 #endif /* CONFIG_DBG_EVAL */
@@ -356,224 +578,49 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
      */
     ylmp_add_bb2(e, a);
 
-    if( yleis_atom(e) ) {
-        if(ylaif_sym() == ylaif(e)) {
-            r = (yle_t*)_assoc(cxt, &vty, e, a);
-            if (styis (vty, STymac)) r = yleval (cxt, r, a);
-        } else {
-            yllogE0("ERROR to evaluate atom(only symbol can be evaluated!.\n");
-            ylinterpret_undefined(YLErr_eval_undefined);
-        }
-    } else if( yleis_atom(ylcar(e)) ) {
-        yle_t*   car_e =ylcar(e);
-
-        if(ylaif_sym() == ylaif(car_e) ) {
-            r = (yle_t*)_assoc(cxt, &vty, car_e, a);
-            if (styis (vty, STymac)) {
-                /*
-                 * This is macro symbol! replace target expression with symbol.
-                 * And evaluate it with replaced value!
-                 */
-                r = yleval (cxt, ylcons (r, ylcdr (e)), a);
-            } else {
-                if (yleis_atom (r)) {
-                    if (ylaif_sfunc () == ylaif (r)) {
-                        /*
-                         * This is 'sfunc' type symbol.
-                         * parameters are not evaluated before being passed!
-                         */
-                        r = (*(ylanfunc (r).f)) (cxt, ylcdr (e), a);
-                    } else if (ylaif_nfunc () == ylaif (r)) {
-                        yle_t* param;
-                        /*
-                         * 'yleval' is called in 'ylevlis'.
-                         * We should keep 'r' from GC!
-                         */
-                        ylmp_add_bb1 (r);
-                        param = ylevlis (cxt, ylcdr (e), a);
-                        ylmp_rm_bb1 (r);
-
-                        /* preserving 'param' is prerequisite of calling native function! */
-                        ylmp_add_bb1 (param);
-                        r = (*(ylanfunc (r).f)) (cxt, param, a);
-                        ylmp_rm_bb1 (param);
-                    } else {
-                        yllogE0 ("ERROR to evaluate. First element should be a function.\n");
-                        ylinterpret_undefined (YLErr_eval_undefined);
-                    }
-                } else {
-                    /* try to evaluate it again with evaluated expression! */
-                    yle_t* param;
-                    ylmp_add_bb1 (r);
-                    param = ylevlis (cxt, ylcdr (e), a);
-                    ylmp_rm_bb1 (r);
-                    r = yleval (cxt, ylcons (r, param), a);
-                }
-            }
-        } else {
-            yllogE0("ERROR to evaluate. Only symbol and list can be evaluated!\n");
-            ylinterpret_undefined(YLErr_eval_undefined);
-        }
-    } else {
-        yle_t* ce = ylcaar(e);
-        if (!ylais_type (ce, ylaif_sym ())) {
-            yllogE0("Invalid expression to evaluate!\n"
-                    "    (symbol ...) or ((<symbol> ...)) are allowed!!\n"
-                    "    (((xxx))) is not allowed!\n");
-            ylinterpret_undefined(YLErr_eval_undefined);
-        }
-
-        /*
-         * Abbrev :
-         *    - LAL : local association list
-         *
-         * Why 'flabel' is required
-         * The main reason is 'performance to access global symbol'.
-         * Script usually keeps some amount of function call stack during runtime.
-         * So, Using inherited LAL in function means "size of LAL grows in proportion to depth of call-stack".
-         * And this leads performance-inefficency to access global symbol (usually, function symbol, reserved words etc).
-         * Functions from typical LISP - ex. label, lambda - uses inherited LAL.
-         * So, special new symbol 'flabel' is adopted.
-         * This is usually used to implement 'defun' function.
-         * (Actually, 'defun' is not the one that is described in LISP's mathemetical model.
-         *  But it is very popular and important.)
-         */
-        if (_cmp (flabel, ce)) {
-            /*
-             * exactly same with label except for new label is added to LAL as macro symbol (NOT normal one)
-             */
-            /*
-             * (flabel name arg exp) p1 p2 ...
-             * car     : flabel expression list
-             * cdr     : parameter list
-             *
-             * In flabel expression list
-             * cadr   : label name
-             * caddr  : argument list
-             * cadddr : expression
-             */
-            yle_t*    fl  = ylcar (e);    /* flabel */
-            yle_t*    fln = ylcadr (fl);  /* flabel name */
-            yle_t*    fla = ylcaddr (fl); /* flabel arguement list */
-            yle_t*    fle = ylcadddr (fl);/* flabel expression */
-            yle_t*    flp = ylcdr (e);    /* parameter of flabel */
-            yle_t*    param_assoc;
-            if (!ylais_type (fln, ylaif_sym ())) {
-                yllogE0("flabel name should be symbol!\n");
-                ylinterpret_undefined(YLErr_eval_undefined);
-            }
-            /* set symbol type as macro */
-            styset (ylasym (fln).ty, STymac);
-            param_assoc = ylpair (fla, ylevlis (cxt, flp, a));
-            r = yleval (cxt, fle,
-                        ylcons (yllist (fln, fl), param_assoc));
-        } else if (_cmp (lambda, ce)) {
-            /*
-             * eq [caar [e] -> LAMBDA] -> eval [caddar [e]; append [pair [cadar [e]; evlis [cdr [e]; a]]; a]]
-             * ylpair and ylappend don't call yleval in it. So, we don't need to preserve base blocks explicitly
-             *
-             * car     : lambda expression list
-             * cdr     : parameter list
-             * cadar   : arguement list
-             * caddar  : lambda body
-             */
-            r = yleval(cxt, ylcaddar(e), ylappend(ylpair(ylcadar(e), ylevlis(cxt, ylcdr(e), a)), a));
-        } else if(_cmp(mlambda, ce)) {
-            if( yleis_nil(ylcadar(e)) && !yleis_nil(ylcaddar(e)) ) {
-                /*
-                 * !!! Special usage of mlambda !!!
-                 * If parameter is nil, than, arguments are appended to the body!
-                 */
-
-                /*
-                 * At below, we should change cdr value.
-                 * In case of MT evaluation, this may cause racing condition.
-                 * Use list-copied one!
-                 */
-                yle_t* exp = _list_clone(ylcaddar(e));
-                yle_t* we = exp;
-                while(!yleis_nil(ylcdr(we))) { we = ylcdr(we); }
-
-                /* connect body with argument */
-                ylpsetcdr(we, ylcdr(e));
-                r = yleval(cxt, exp, a);
-                /* we don't need to restore. it was just copied one. */
-                /* ylpsetcdr(we, ylnil()); */
-            } else {
-                /*
-                 * NOTE!!
-                 *     expression itself may be changed in '_mreplace'.
-                 *     To reserve original expression, we need to use cloned one.
-                 *  --> Now expression is preserved!
-                 */
-                yle_t* exp = _list_clone(ylcaddar(e));
-                if(0 > _mreplace(exp, ylappend(ylpair(ylcadar(e), ylcdr(e)), ylnil()))) {
-                    yllogE0("Fail to mreplace!!\n");
-                    ylinterpret_undefined(YLErr_eval_undefined);
-                } else {
-                    r = yleval(cxt, exp, a);
-                }
-            }
-        } else if (_cmp(label, ce)) {
-            /*
-             * car     : label expression list
-             * cdr     : parameter list
-             * cadar   : label name
-             * caddar  : lambda expression list
-             */
-            if (!ylais_type (ylcadar (e), ylaif_sym ())) {
-                yllogE0("label name shoud be symbol!\n");
-                ylinterpret_undefined(YLErr_eval_undefined);
-            }
-            /* eq [caar [e]; LABEL] -> eval [cons [caddar [e]; cdr [e]]; cons [list [cadar [e]; car [e]]; a]] */
-            r = yleval(cxt, ylcons(ylcaddar(e), ylcdr(e)), ylcons(yllist(ylcadar(e), ylcar(e)), a));
-        } else {
-            /* my extention */
-            r = yleval(cxt, ylcons(yleval(cxt, ylcar(e), a), ylcdr(e)), a);
-            /* ylinterpret_undefined(YLErr_eval_undefined); */
-        }
+    if (yleis_atom (e)) r = _evatom_form (cxt, e, a);
+    else if (yleis_atom (ylcar (e))) r = _evfunc_form (cxt, e, a);
+    else if (yleis_atom (ylcaar (e))) r = _evlambda_form (cxt, e, a);
+    else {
+        yllogE0 ("(((xxx))) format is not allowed to evaluate!\n");
+        ylinterpret_undefined (YLErr_eval_undefined);
     }
 
-#undef _cmp
-
-    if(r) {
-
-        dbg_eval(yllogD2("[%d] eval Out:\n"
-                         "    %s\n", evid, ylechain_print(ylethread_buf(cxt), r)););
-        ylmp_rm_bb2(e, a);
-
-        /*
-         * pop evaluation stack -- for debugging
-         * (Push and Pop should be in one 'evaluatin-step' -- before unlock inteval_mutex)
-         */
-        ylstk_pop(cxt->evalstk);
-
-        /* Returned value should be pretected from GC. */
-        ylmp_add_bb1(r);
-
-        /*
-         * This is right place to interrupt evaluation!
-         * - Evaulation is pushed to debugging stack.
-         * - Parameter's are kept from GC.
-         * Now interrupting is acceptable!
-         * Let's notify memory module that evaluation thread is in safe state!
-         * (I need to find more places to put this function!.
-         *   -> make SW stable! And then find more places!
-         *   [ex. Starting point of evaluation!])
-         */
-        ylmt_notify_safe(cxt);
-        ylmt_notify_unsafe(cxt);
-
-        /* Pass responsibility about preserving return value to the caller! */
-        ylmp_rm_bb1(r);
-
-        return r;
-    } else {
-        yllogE0("NULL return! is it possible!\n");
-        ylinterpret_undefined(YLErr_eval_undefined);
+    if (!r) {
+        yllogE0 ("NULL return! is it possible!\n");
+        ylinterpret_undefined (YLErr_eval_undefined);
     }
-    ylassert(0);
-    return NULL; /* to make compiler happy */
+
+    dbg_eval(yllogD2("[%d] eval Out:\n"
+                     "    %s\n", evid, ylechain_print(ylethread_buf(cxt), r)););
+    ylmp_rm_bb2(e, a);
+
+    /*
+     * pop evaluation stack -- for debugging
+     * (Push and Pop should be in one 'evaluatin-step' -- before unlock inteval_mutex)
+     */
+    ylstk_pop(cxt->evalstk);
+
+    /* Returned value should be pretected from GC. */
+    ylmp_add_bb1(r);
+
+    /*
+     * This is right place to interrupt evaluation!
+     * - Evaulation is pushed to debugging stack.
+     * - Parameter's are kept from GC.
+     * Now interrupting is acceptable!
+     * Let's notify memory module that evaluation thread is in safe state!
+     * (I need to find more places to put this function!.
+     *   -> make SW stable! And then find more places!
+     *   [ex. Starting point of evaluation!])
+     */
+    ylmt_notify_safe(cxt);
+    ylmt_notify_unsafe(cxt);
+
+    /* Pass responsibility about preserving return value to the caller! */
+    ylmp_rm_bb1(r);
+
+    return r;
 }
 
 
@@ -582,11 +629,8 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
  */
 static inline yle_t*
 _appq(yle_t* m) {
-    if( yleis_true(ylnull(m)) ) {
-        return ylnil();
-    } else {
-        return ylcons(yllist(ylq(), ylcar(m)), _appq(ylcdr(m)));
-    }
+    if (yleis_true (ylnull (m))) return ylnil ();
+    else return ylcons (yllist (ylq (), ylcar (m)), _appq (ylcdr (m)));
 }
 
 /**
@@ -601,9 +645,20 @@ ylapply(yletcxt_t* cxt, yle_t* f, yle_t* args, yle_t* a) {
  * Universal S-functions - END
  *=================================*/
 
-
-
 ylerr_t
-ylsfunc_init() {
+ylsfunc_init () {
+    int i;
+    _lfsymtab = yltrie_create (NULL);
+    ylassert (_lfsymtab);
+    for (i = 0; i < sizeof (_lfsyms)/sizeof (_lfsyms[0]); i++)
+        if (0 > yltrie_insert (_lfsymtab, (unsigned char*)_lfsyms[i].sym,
+                               (unsigned int)strlen (_lfsyms[i].sym), _lfsyms[i].f))
+            ylassert (0);
+
     return YLOk;
+}
+
+void
+ylsfunc_deinit () {
+    yltrie_destroy (_lfsymtab);
 }

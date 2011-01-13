@@ -21,8 +21,8 @@
 
 
 /****************************************************
- * 'lambda', 'mlambda' and 'flambda' here are dummy to use 'Auto Completion' and 'help'.
- * Function '__dummy' for 'lambda', 'mlamdba' and 'flambda' are never used.
+ * 'lambda', 'mlambda', 'label' and 'flabel' here are dummy to use 'Auto Completion' and 'help'.
+ * Function '__dummy' is never used.
  * (For details, see 'sfunc.c')
  ****************************************************/
 NFUNC(__dummy,                "lambda",                  ylaif_sfunc(),
@@ -39,6 +39,12 @@ NFUNC(__dummy,                "mlambda",                 ylaif_sfunc(),
     "    +Special usage for 'mlambda' - in the case of <arg> = ()\n"
     "        (eval ((mlambda () (<body>)) <param1> ...))\n"
     "            => eval [ (<body> <param1> ...) ]\n")
+
+NFUNC(__dummy,                "label",                   ylaif_sfunc(),
+    "\n")
+
+NFUNC(__dummy,                "flabel",                  ylaif_sfunc(),
+    "\n")
 
 NFUNC(quote,                  "quote",                   ylaif_sfunc(),
     "quote <exp>\n"

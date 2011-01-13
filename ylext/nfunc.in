@@ -422,6 +422,8 @@ NFUNC(make_trie,           "make-trie",         ylaif_nfunc(),
 
 NFUNC(trie_insert,         "trie+",             ylaif_nfunc(),
     "trie+ <instance> <slot> (<value>)\n"
+    "    -Trie SHOULD NOT be RECURSIVE!\n"
+    "     See help message of 'arr+' for details.\n"
     "    @instance : returned value from st_create\n"
     "    @slot     : newly added slot\n"
     "    @value    : initial value of newly added slot. (default is nil)\n"
@@ -466,6 +468,10 @@ NFUNC(arr_get,             "arr*",              ylaif_nfunc(),
 NFUNC(arr_set,             "arr+",              ylaif_nfunc(),
     "arr+ <arr> <value> <dim0> <dim1> ...\n"
     "    -access array of given dimension - row major\n"
+    "     Array itself can be element of array.\n"
+    "     But, recursive array reference - one of element or sub array's element of array A,\n"
+    "      is array A itself - may lead to deadlock or crash.\n"
+    "     So, be careful not to be recursive\n"
     "    @value :\n"
     "    @dimN [Double] : \n"
     "    *ex\n"

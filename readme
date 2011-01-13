@@ -332,9 +332,9 @@ GC(Garbage collection)
     Memory pool is used.
         - fixed-size-memory-pool is used. We may use
            dynamically-growing-memory-pool.
-    'Scanning and Marking', are used for GC.
-        - Blocks that are reachable from global symbol space or registerred
-           base blocks, are protected from GC.
+    'Scanning and Marking', are used for GC - Tracing GC.
+        - Blocks that are reachable from global or per-thread symbol space, or
+           registerred base blocks, are protected from GC.
     GC is triggered.
         - If memory pool usage exceeded predefined threshold, GC is triggered.
         - GC is started only at the end of 'evaluation step'.

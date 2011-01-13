@@ -26,6 +26,68 @@
 
 #define _LOGLV YLLogW
 
+
+/* =================================
+ * Simple Hash for memory address
+ * ================================= */
+
+/* hash node */
+struct _hn {
+    yllist_link_t    lk;
+    const void*      addr;
+    const void*      ra;   /* return address */
+};
+
+/* 16bit */
+static yllist_link_t _mh[0xffff]; /* memory hash */
+
+static void
+_mhinit () {
+    int i;
+    for (i=0; i<0xffff; i++)
+        yllist_init_link (_mh+i);
+
+}
+
+static void
+_mhadd (const void* addr, const void* ra) {
+    struct _hn* n = malloc (sizeof (*n));
+    n->addr = addr;
+    n->ra = ra;
+    yllist_add_last (_mh + (0xffff & (unsigned long)addr), &n->lk);
+}
+
+static void
+_mhdel (const void* addr) {
+    struct _hn    *n, *p;
+    yllist_link_t* h = _mh + (0xffff & (unsigned long)addr);
+    yllist_foreach_item_removal_safe (p, n, h, struct _hn, lk) {
+        if (p->addr == addr) {
+            yllist_del (&p->lk);
+            free (p);
+            break;
+        }
+    }
+}
+
+static void
+_mhdump () {
+    yllist_link_t *h, *hend;
+    h = _mh;
+    hend = h + 0xffff;
+    for (;h<hend; h++)
+        if (!yllist_is_empty (h)) {
+            struct _hn* n;
+            yllist_foreach_item (n, h, struct _hn, lk)
+                printf ("%p, ", n->ra);
+            printf ("\n");
+        }
+}
+
+/* =================================
+ * To run test script
+ * ================================= */
+
 #define _NR_MAX_COLUMN 1024
 #define _MAX_SLEEP_MS  20   /* max sleep in miliseconds */
 
@@ -350,20 +412,29 @@ _start_test(const char* rsname, int bmt) {
  * To use ylisp interpreter
  * ================================= */
 
+
 static unsigned int      _mblk = 0;
 static pthread_mutex_t   _msys = PTHREAD_MUTEX_INITIALIZER;
+
 void*
 _malloc(unsigned int size) {
+    register void* ra; /* return address */
+    void*          m;
+    m = malloc (size);
+    asm ("movl 4(%%ebp), %0;"
+         :"=r"(ra));
     pthread_mutex_lock(&_msys);
+    _mhadd (m, ra);
     _mblk++;
     pthread_mutex_unlock(&_msys);
-    return malloc(size);
+    return m;
 }
 
 void
 _free(void* p) {
     pthread_mutex_lock(&_msys);
     assert(_mblk > 0);
+    _mhdel (p);
     _mblk--;
     pthread_mutex_unlock(&_msys);
     free(p);
@@ -393,6 +464,8 @@ int
 main(int argc, char* argv[]) {
     ylsys_t        sys;
     unsigned int   maxwait = 60;
+
+    _mhinit ();
 
     /* set system parameter */
     sys.print = printf;
@@ -452,8 +525,13 @@ main(int argc, char* argv[]) {
     yldeinit();
 
     if(_get_mblk_size()) {
-        printf("\n=== Leak : count(%d) ===\n", _get_mblk_size());
-        assert(0);
+        printf("\n"
+               "!!!!!!!!!!!!!!!! ERROR !!!!!!!!!!!!!!!!!!!!\n"
+               "====             TEST FAILS!            ===\n"
+               "====           Leak : count(%d)         ===\n", _get_mblk_size());
+        _mhdump ();
+        sleep (999999999);
+        assert (0);
     }
 
     printf("\n\n\n"
