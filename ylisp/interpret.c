@@ -130,7 +130,7 @@ _interpret(void* arg) {
     _interp_req_t*  req = (_interp_req_t*)arg;
     yletcxt_t       cxt;
     ret =  ylinit_thread_context(&cxt);
-    if(YLOk != ret) { return (void*)ret; }
+    if (YLOk != ret) goto done;
 
     cxt.stream = req->s;
     cxt.streamsz = req->sz;
@@ -141,10 +141,8 @@ _interpret(void* arg) {
     ylmt_rm(&cxt);
     yldeinit_thread_context(&cxt);
 
-    if(req->fcb) {
-        (*req->fcb)(req);
-    }
-
+ done:
+    if (req->fcb) (*req->fcb) (req);
     return (void*)ret;
 }
 
@@ -157,9 +155,14 @@ _fcb_interp_req(_interp_req_t* req) {
 ylerr_t
 ylinterpret_async(pthread_t* thd, const unsigned char* stream, unsigned int streamsz) {
     _interp_req_t*  req = ylmalloc(sizeof(_interp_req_t));
-
+    /* this rarely fails! */
+    ylassert (req);
     req->s = ylmalloc(streamsz);
-    if(!req->sz) { return YLErr_out_of_memory; }
+    if (!req->s) {
+        ylfree (req);
+        return YLErr_out_of_memory;
+    }
+
     memcpy(req->s, stream, streamsz);
     req->sz = streamsz;
     req->fcb = &_fcb_interp_req;
