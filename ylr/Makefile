@@ -25,7 +25,7 @@ C_COMPILE=$(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 C_DEPENDENCIES=-Wp,-MD,$(DEPDIR)$(*F).P
 C_LINK=$(CC) $(CFLAGS) $(LDFLAGS) -L.
 
-all: $(TARGET)
+release: $(TARGET)
 
 DEPS_MAGIC := $(shell mkdir $(DEPDIR) $(OUTDIR) > /dev/null 2>&1 || :)
 

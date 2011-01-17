@@ -108,12 +108,12 @@
                 (cond ((not (null S))
                     (progn
                         (f-mset (concat st '. (car S) '*)
-                            (list 'mlambda '(inst) (list 'trie* 'inst (list 'car (list 'quote S)))))
+                            (list 'mlambda '(inst) (list 'map* 'inst (list 'car (list 'quote S)))))
                         (f-mset (concat st '. (car S) '+)
-                           (list 'mlambda '(inst val) (list 'trie+ 'inst (list 'car (list 'quote S)) 'val)))
+                           (list 'mlambda '(inst val) (list 'map+ 'inst (list 'car (list 'quote S)) 'val)))
                         (rf st (cdr S))))))
             (f-mset (concat 'make- 'name)
-                '(lambda () (make-trie (pr-from-list '() 'SLOTS ''()))))
+                '(lambda () (make-trie-map (pr-from-list '() 'SLOTS ''()))))
             (rf 'name 'SLOTS)
 
             ; undef functions. (unset all auto-defined symbols...)
@@ -154,15 +154,15 @@
 ; ==============================
 (set '.bintype (type (to-bin 't)))
 (set '.arrtype (type (make-array 0)))
-(set '.trietype (type (make-trie '())))
+(set '.maptype (type (make-trie-map '())))
 
 (defun arrtype? (e)
 "is array type?\n"
     (equal (type e) .arrtype))
 
-(defun trietype? (e)
-"is trie type?\n"
-    (equal (type e) .trietype))
+(defun maptype? (e)
+"is map type?\n"
+    (equal (type e) .maptype))
 
 (defun bintype? (e)
 "is binary type?\n"

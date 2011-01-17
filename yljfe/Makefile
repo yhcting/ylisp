@@ -36,7 +36,7 @@ JC=javac
 JSOURCES=$(JSRCDIR)YLJEditArea.java $(JSRCDIR)Main.java
 JFLAGS=-Xlint:unchecked -d $(JOUTDIR)
 
-all: $(TARGET) $(JTARGET)
+release: $(TARGET) $(JTARGET)
 
 DEPS_MAGIC := $(shell mkdir $(DEPDIR) $(OUTDIR) $(JOUTDIR) > /dev/null 2>&1 || :)
 

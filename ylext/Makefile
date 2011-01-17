@@ -12,7 +12,9 @@ EXTLIB_DIR:=../lib/
 EXT_LIBRARY:=ylisp
 EXTLIB=$(addprefix $(EXTLIB_DIR),$(addsuffix .a,$(addprefix lib,$(EXT_LIBRARY))))
 
-SOURCES= main.c nfunc_str.c nfunc_bin.c nfunc_arr.c nfunc_math.c nfunc_sys.c nfunc_trie.c nfunc_re.c
+SOURCES= main.c nfunc_str.c nfunc_bin.c nfunc_arr.c nfunc_math.c nfunc_sys.c \
+	nfunc_map.c nfunc_re.c \
+	crc.c hash.c
 OBJ=$(subst .c,.o, $(addprefix $(OUTDIR),$(SOURCES)))
 DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 

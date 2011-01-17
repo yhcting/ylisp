@@ -333,6 +333,15 @@ yltrie_walk(_trie_t* t, void* user,
 }
 
 int
+yltrie_full_walk (yltrie_t* t, void* user,
+                  /* return : b_keepgoing => return 1 for keep going, 0 for stop and don't do anymore*/
+                  int(cb)(void*/*user*/,
+                          const unsigned char*/*key*/, unsigned int/*sz*/,
+                          void*/*value*/)) {
+    return yltrie_walk (t, user, (unsigned char*)"", 0, cb);
+}
+
+int
 yltrie_insert(_trie_t* t, const unsigned char* key, unsigned int sz, void* v) {
     _node_t*  n;
 

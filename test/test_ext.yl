@@ -289,34 +289,62 @@
 (unset 'extlst)
 
 ;=============================
-; Test Trie
+; Test crc
 ;=============================
-; test about struct trie interface...
-(set 'exttr0 (make-trie '()))
-(assert (equal '() (trie* exttr0 'a))) ; access to inalid slot.
-(set 'exttr0 (make-trie '((ab 12) (cd 34) (ef 56))))
-(set 'exttr1 (make-trie '((rs '()) (tu 'name) (vw 100) )))
-(assert (equal 12 (trie* exttr0 'ab)))
-(trie+ exttr0 'ab 50)
-(assert (equal 50 (trie* exttr0 'ab)))
-(trie+ exttr0 'gh)
-(assert (equal '() (trie* exttr0 'gh)))
-(trie+ exttr0 'ij 90)
-(assert (equal 90 (trie* exttr0 'ij)))
-(assert (equal 't (trie- exttr0 'gh)))
-(assert (equal '() (trie- exttr0 'gh)))
-(assert (equal 56 (trie* exttr0 'ef)))
-(assert (equal 'name (trie* exttr1 'tu)))
-(trie+ exttr0 'ef exttr1)
-(assert (equal 100 (trie* (trie* exttr0 'ef) 'vw)))
+(print (crc (to-bin '"This is crc test string\n")))
+
+
+;=============================
+; Test Map
+;=============================
+; test about struct map interface...
+(set 'exttr0 (make-trie-map '()))
+(assert (equal '() (map* exttr0 'a))) ; access to inalid slot.
+(set 'exttr0 (make-trie-map '((ab 12) (cd 34) (ef 56))))
+(set 'exttr1 (make-trie-map '((rs '()) (tu 'name) (vw 100) )))
+(assert (equal 12 (map* exttr0 'ab)))
+(map+ exttr0 'ab 50)
+(assert (equal 50 (map* exttr0 'ab)))
+(map+ exttr0 'gh)
+(assert (equal '() (map* exttr0 'gh)))
+(map+ exttr0 'ij 90)
+(assert (equal 90 (map* exttr0 'ij)))
+(assert (equal 't (map- exttr0 'gh)))
+(assert (equal '() (map- exttr0 'gh)))
+(assert (equal 56 (map* exttr0 'ef)))
+(assert (equal 'name (map* exttr1 'tu)))
+(map+ exttr0 'ef exttr1)
+(assert (equal 100 (map* (map* exttr0 'ef) 'vw)))
 
 ; -- & equal
-(set 'exttr0 (make-trie '((ab 12) (cd 34) (ef 56))))
-(set 'exttr1 (make-trie '((ab 12) (cd 34) (ef 56))))
+(set 'exttr0 (make-trie-map '((ab 12) (cd 34) (ef 56))))
+(set 'exttr1 (make-trie-map '((ab 12) (cd 34) (ef 56))))
 (assert (equal exttr0 exttr1))
 
 (unset 'exttr0)
 (unset 'exttr1)
+
+; test about struct map interface...
+(set 'exth0 (make-hash-map '()))
+(assert (equal '() (map* exth0 'a))) ; access to inalid slot.
+(set 'exth0 (make-hash-map '((ab 12) (cd 34) (ef 56))))
+(set 'exth1 (make-hash-map '((rs '()) (tu 'name) (vw 100) )))
+(assert (equal 12 (map* exth0 'ab)))
+(map+ exth0 'ab 50)
+(assert (equal 50 (map* exth0 'ab)))
+(map+ exth0 'gh)
+(assert (equal '() (map* exth0 'gh)))
+(map+ exth0 'ij 90)
+(assert (equal 90 (map* exth0 'ij)))
+(assert (equal 't (map- exth0 'gh)))
+(assert (equal '() (map- exth0 'gh)))
+(assert (equal 56 (map* exth0 'ef)))
+(assert (equal 'name (map* exth1 'tu)))
+(map+ exth0 'ef exth1)
+(assert (equal 100 (map* (map* exth0 'ef) 'vw)))
+
+(unset 'exth0)
+(unset 'exth1)
 
 ;=============================
 ; Test Array
@@ -398,14 +426,14 @@
 (unset 'extar1)
 
 ;=============================
-; Test Trie & Array - Multi-thread
+; Test Map & Array - Multi-thread
 ;=============================
 
 ;(print '"test script is not described yet!!!!!\n")
 ;(assert '())
 
 ; this is global array
-(print '"Trie & Array in multi-thread!!!\n")
+(print '"Map & Array in multi-thread!!!\n")
 (set 'extar0 (make-array 100))
 (let ((i 0))
     (while (< i 100)
@@ -437,7 +465,7 @@
 
 
 ;=============================
-; Test Struct (Trie Based)
+; Test Struct (Map Based)
 ;=============================
 (defstruct person (name sex))
 
@@ -495,7 +523,7 @@
 ;=============================
 (assert (bintype? (to-bin 'a)))
 (assert (arrtype? (make-array 0)))
-(assert (trietype? (make-trie '())))
+(assert (maptype? (make-trie-map '())))
 
 (assert (equal 3 (length2 (to-bin 'aaa))))
 

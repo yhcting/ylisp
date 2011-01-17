@@ -177,9 +177,9 @@ _cb_gcmark(void* user,
 void
 ylslu_gcmark(slut_t* t) {
     /* This is called by only 'GC in Mempool' */
-    yltrie_walk((yltrie_t*)t, NULL, (unsigned char*)"", 0,
-                (int(*)(void*, const unsigned char*,
-                        unsigned int, void*))&_cb_gcmark);
+    yltrie_full_walk((yltrie_t*)t, NULL,
+                     (int(*)(void*, const unsigned char*,
+                             unsigned int, void*))&_cb_gcmark);
 }
 
 int

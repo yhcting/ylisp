@@ -411,41 +411,46 @@ NFUNC(fraw_select,         "fraw-select",       ylaif_nfunc(),
 
 
 /**********************************************
- * Trie
+ * Map
  **********************************************/
-NFUNC(make_trie,           "make-trie",         ylaif_nfunc(),
-    "make-trie (<pair>)\n"
+NFUNC(make_trie_map,       "make-trie-map",     ylaif_nfunc(),
+    "make-trie-map (<pair>)\n"
     "    @pair : <key value> pair list.\n"
     "    *ex\n"
-    "        (make-trie '()) ; make empty trie\n"
-    "        (make-trie '(name class age))\n")
+    "        (make-trie-map '()) ; make empty trie\n"
+    "        (make-trie-map '(name class age))\n")
 
-NFUNC(trie_insert,         "trie+",             ylaif_nfunc(),
-    "trie+ <instance> <slot> (<value>)\n"
-    "    -Trie SHOULD NOT be RECURSIVE!\n"
+NFUNC(make_hash_map,       "make-hash-map",     ylaif_nfunc(),
+    "See help of 'make-trie-map'\n"
+    "NOTE : deep comparison in equal between hash-map isn't supported.\n"
+    "       Only shallow comparison - compare object address - is supported.\n")
+
+NFUNC(map_insert,          "map+",              ylaif_nfunc(),
+    "map+ <instance> <slot> (<value>)\n"
+    "    -map SHOULD NOT be RECURSIVE!\n"
     "     See help message of 'arr+' for details.\n"
     "    @instance : returned value from st_create\n"
     "    @slot     : newly added slot\n"
     "    @value    : initial value of newly added slot. (default is nil)\n"
     "    @return   : t(overwritten). nil(newly inserted)\n"
     "    *ex\n"
-    "        (trie+ me 'age 34)\n")
+    "        (map+ me 'age 34)\n")
 
-NFUNC(trie_del,            "trie-",             ylaif_nfunc(),
-    "trie- <instance> <slot>\n"
+NFUNC(map_del,             "map-",              ylaif_nfunc(),
+    "map- <instance> <slot>\n"
     "    @instance : returned value from st_create\n"
     "    @slot     : slot name.\n"
     "    @return   : t if success. nil if there is no slot whose name is <slot>\n"
     "    *ex\n"
     "        (trie- me 'age)\n")
 
-NFUNC(trie_get,            "trie*",             ylaif_nfunc(),
-    "trie* <instance> <slot>\n"
+NFUNC(map_get,             "map*",              ylaif_nfunc(),
+    "map* <instance> <slot>\n"
     "    @instance : returned value from st_create\n"
     "    @return   : nil if not int the trie, otherwise value.\n"
     "                (value itself can be nil!)\n"
     "    *ex\n"
-    "        (trie* me 'age)\n")
+    "        (map* me 'age)\n")
 
 /**********************************************
  * Array
@@ -480,3 +485,7 @@ NFUNC(arr_set,             "arr+",              ylaif_nfunc(),
 /**********************************************
  *
  **********************************************/
+
+NFUNC(crc,                 "crc",               ylaif_nfunc(),
+    "crc <data> : [Double]\n"
+    "    @data [Binary] : data to calculate crc\n")

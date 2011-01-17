@@ -93,9 +93,16 @@ yltrie_getref(yltrie_t*, const unsigned char* key, unsigned int sz);
 extern int
 yltrie_walk(yltrie_t*, void* user, const unsigned char* from, unsigned int fromsz,
             /* return : b_keepgoing => return 1 for keep going, 0 for stop and don't do anymore*/
-            int(cb)(void*/*user*/,
-                    const unsigned char*/*key*/, unsigned int/*sz*/,
-                    void*/*value*/));
+            int (*cb) (void*/*user*/,
+                       const unsigned char*/*key*/, unsigned int/*sz*/,
+                       void*/*value*/));
+
+extern int
+yltrie_full_walk (yltrie_t* t, void* user,
+                  /* return : b_keepgoing => return 1 for keep going, 0 for stop and don't do anymore*/
+                  int (*cb) (void*/*user*/,
+                             const unsigned char*/*key*/, unsigned int/*sz*/,
+                             void*/*value*/));
 
 /**
  * @cmp    : compare function of trie data. this should return 1 if value is same, otherwise 0.
