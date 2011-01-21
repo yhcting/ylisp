@@ -27,10 +27,9 @@
 #include <malloc.h>
 #include <memory.h>
 #include <string.h>
+#include <assert.h>
 
 #include "lisp.h"
-
-#include <assert.h>
 
 #define _LOGLV  YLLogW
 
@@ -119,9 +118,10 @@ main(int argc, char* argv[]) {
     /* ylset system parameter */
     sys.log = _log;
     sys.print = printf;
-    sys.assert = _assert;
+    sys.assert_ = _assert;
     sys.malloc = _malloc;
     sys.free = _free;
+    sys.mode = YLMode_batch;
     sys.mpsz = 64*1024;
     sys.gctp = 80;
 

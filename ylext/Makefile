@@ -21,11 +21,11 @@ DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 TARGET=$(OUTDIR)ylext
 LIB=$(OUTDIR)libylext.so
 
-CC=gcc
+CC=$(SYSBIN)gcc
 CFLAGS+= -fPIC -Wall -g
 LDFLAGS+= -rdynamic -ldl -lrt -lpthread -lm -L/usr/local/lib -lpcre
 SOFLAGS+=
-INCLUDES=-I../include
+INCLUDES+= -I../include
 C_COMPILE=$(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 C_DEPENDENCIES=-Wp,-MD,$(DEPDIR)$(*F).P
 C_LINK=$(CC) $(CFLAGS) $(LDFLAGS) -L.

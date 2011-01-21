@@ -24,7 +24,11 @@
 #include <string.h>
 #include <memory.h>
 
-#include "pcre.h"
+#ifdef CONFIG_PCRE_REGEX
+#   include "pcre.h"
+#else /* CONFIG_PCRE_REGEX */
+#   include <regex.h>
+#endif /* CONFIG_PCRE_REGEX */
 
 /* enable logging & debugging */
 #define CONFIG_ASSERT
@@ -32,6 +36,26 @@
 
 #include "ylsfunc.h"
 
+
+enum {
+    _OPT_GLOBAL   = 0x01,
+};
+
+static int
+_get_custom_option(const char* optstr) {
+    int         opt = 0;
+    while(*optstr) {
+        switch(*optstr) {
+            case 'g': opt |= _OPT_GLOBAL;     break;
+            /* skip error check intentionally - option string is already verified at '_get_pcre_option' */
+        }
+        optstr++;
+    }
+    return opt;
+}
+
+
+#ifdef CONFIG_PCRE_REGEX
 /*
  * !!! NOTE !!!
  * PCRE functions are 'Thread Safe'!
@@ -42,10 +66,6 @@
 /* out vector count : should be multiple of 3 */
 #define _OVECCNT 60
 
-
-enum {
-    _OPT_GLOBAL   = 0x01,
-};
 
 static int
 _get_pcre_option(const char* optstr) {
@@ -59,19 +79,6 @@ _get_pcre_option(const char* optstr) {
             default:
                 yllogE1("<!pcre_xxx!> Unsupported option! [%c]\n", *optstr);
                 ylinterpret_undefined(YLErr_func_fail);
-        }
-        optstr++;
-    }
-    return opt;
-}
-
-static int
-_get_custom_option(const char* optstr) {
-    int         opt = 0;
-    while(*optstr) {
-        switch(*optstr) {
-            case 'g': opt |= _OPT_GLOBAL;     break;
-            /* skip error check intentionally - option string is already verified at '_get_pcre_option' */
         }
         optstr++;
     }
@@ -228,3 +235,210 @@ YLDEFNF(re_replace, 4, 4) {
     ylinterpret_undefined(interp_err);
     return NULL; /* to make compiler be happy. */
 } YLENDNF(re_replace)
+
+#else /* CONFIG_PCRE_REGEX */
+
+static int
+_get_re_option (const char* optstr) {
+    int         opt = REG_EXTENDED | REG_NEWLINE;
+    while (*optstr) {
+        switch (*optstr) {
+            case 'i': opt |= REG_ICASE;       break;
+            case 'm': opt &= ~REG_NEWLINE;    break;
+            case 'g': break; /* do nothing.. this is custom option */
+            default:
+                yllogE1 ("<!re_xxx!> Unsupported option! [%c]\n", *optstr);
+                ylinterpret_undefined (YLErr_func_fail);
+        }
+        optstr++;
+    }
+    return opt;
+}
+
+
+
+#define __ERRBUFSZ 4096
+
+/*
+ * @1 : pattern
+ * @2 : subject
+ * @3 : option
+ */
+YLDEFNF(re_match, 3, 3) {
+    yle_t       *hd, *tl; /* head & tail */
+    char         b[__ERRBUFSZ];
+    regex_t*     re = NULL;
+    regmatch_t*  rm = NULL;
+    int          r, opt;
+    const char  *pattern, *subject;
+
+    ylnfcheck_parameter (ylais_type_chain (e, ylaif_sym ()));
+
+    pattern = ylasym (ylcar (e)).sym;
+    subject = ylasym (ylcadr (e)).sym;
+    opt = _get_re_option (ylasym (ylcaddr (e)).sym);
+
+    re = ylmalloc (sizeof (*re));
+    r = regcomp (re, pattern, opt);
+    if (r < 0) {
+        regerror (r, re, b, __ERRBUFSZ);
+        ylnflogE1 ("RE compilation failed.\n"
+                   "    %s\n", b);
+        goto bail;
+    }
+
+    rm = ylmalloc (sizeof (*rm) * (re->re_nsub + 1));
+    ylassert (rm);
+    r = regexec (re, subject, re->re_nsub + 1, rm, 0);
+
+    /* set head as sentinel */
+    hd = tl = ylmp_block ();
+    ylpassign(hd, ylnil (), ylnil ());
+    if (!r) {
+        /* Matched!! */
+        unsigned int     i, len;
+        char*            substr;
+        for (i=0; i<re->re_nsub + 1; i++) {
+            len = rm[i].rm_eo - rm[i].rm_so;
+            substr = ylmalloc (len + 1); /* +1 for trailing 0 */
+            memcpy (substr, subject + rm[i].rm_so, len);
+            substr[len] = 0;
+            ylpsetcdr (tl, ylcons (ylacreate_sym (substr), ylnil ()));
+            tl = ylcdr (tl);
+        }
+    } else if (REG_NOMATCH == r) {
+        ;/* nothing to do at this case */
+    } else {
+        regerror (r, re, b, __ERRBUFSZ);
+        ylnflogE1 ("RE match failed.\n"
+                   "    %s\n", b);
+        goto bail;
+    }
+
+    regfree (re); ylfree (re);
+    ylfree (rm);
+    return ylcdr (hd);
+
+ bail:
+    if (re) { regfree (re); ylfree (re); }
+    if (rm) ylfree (rm);
+    ylinterpret_undefined (YLErr_func_fail);
+    return NULL; /* to make compiler be happy */
+
+} YLENDNF(re_match)
+
+/*
+ * @1: pattern
+ * @2: string that substitute matched one
+ * @3: subject
+ * @4: option
+ */
+YLDEFNF(re_replace, 4, 4) {
+    ylerr_t       interp_err = YLErr_func_fail;
+    int           r;
+    char          b[__ERRBUFSZ];
+    regex_t*      re = NULL;
+    char*         subject = NULL;
+
+    ylnfcheck_parameter (ylais_type_chain (e, ylaif_sym ()));
+
+    { /* Just scope */
+        const char   *pattern;
+        int           opt;
+        pattern = ylasym (ylcar (e)).sym;
+        /* get pcre option */
+        opt = _get_re_option (ylasym (ylcar (ylcdddr (e))).sym);
+        re = ylmalloc (sizeof (*re));
+
+        r = regcomp (re, pattern, opt);
+        if (r < 0) {
+            regerror (r, re, b, __ERRBUFSZ);
+            ylnflogE1 ("RE compilation failed.\n"
+                       "    %s\n", b);
+            goto bail;
+        }
+    }
+
+    { /* Just scope */
+        int           opt;
+        unsigned int  subjlen, substlen;
+        unsigned int  offset; /* starting offset */
+        regmatch_t    rm;
+        const char*   subst;
+
+        subst = ylasym (ylcadr (e)).sym;
+        /* get custom option */
+        opt = _get_custom_option (ylasym (ylcar (ylcdddr (e))).sym);
+
+        /* use copied one */
+        subject = ylmalloc (strlen (ylasym (ylcaddr (e)).sym) + 1);
+        if (!subject) {
+            ylnflogE0 ("Out of memory\n");
+            interp_err = YLErr_out_of_memory;
+            goto bail;
+        }
+        strcpy (subject, ylasym (ylcaddr (e)).sym);
+        subjlen = strlen (subject);
+        offset = 0;
+
+        substlen = strlen (subst);
+        /* start replacing */
+        do {
+            r = regexec (re, subject + offset, 1, &rm, 0);
+            if (!r) {
+                unsigned int newsz;
+                char*        newstr = NULL;
+                char*        p;
+
+                newsz = subjlen - (rm.rm_eo - rm.rm_so) + substlen;
+                p = newstr = ylmalloc (newsz + 1); /* +1 for trailing NULL */
+                if (!p) {
+                    ylnflogE0 ("Out of memory\n");
+                    interp_err = YLErr_out_of_memory;
+                    goto bail;
+                }
+                memcpy (p, subject, rm.rm_so + offset);
+                p += rm.rm_so + offset;
+                memcpy (p, subst, substlen);
+                p += substlen;
+                memcpy (p, subject + rm.rm_eo + offset, subjlen - rm.rm_eo - offset);
+                newstr[newsz] = 0; /* trailing NULL */
+
+                ylfree (subject);
+                subject = newstr;
+                subjlen = strlen (subject);
+                offset = rm.rm_so + offset + substlen;
+            } else if(REG_NOMATCH == r) {
+                /* nothing to do anymore */
+                break;
+            } else {
+                /* error case */
+                regerror (r, re, b, __ERRBUFSZ);
+                ylnflogE1 ("RE compilation failed.\n"
+                           "    %s\n", b);
+                goto bail;
+            }
+        } while (opt & _OPT_GLOBAL);
+    }
+
+    regfree (re); ylfree (re);
+    return ylacreate_sym (subject);
+
+ bail:
+    if (re) { regfree (re); ylfree (re); }
+    if (subject) ylfree (subject);
+    ylinterpret_undefined (interp_err);
+    return NULL; /* to make compiler be happy. */
+
+} YLENDNF(re_replace)
+
+
+#undef __ERRBUFSZ
+
+
+
+
+#endif /* CONFIG_PCRE_REGEX */
+
+
+

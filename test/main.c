@@ -10,6 +10,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <pthread.h>
+#include <assert.h>
 
 #define CONFIG_LOG
 #define CONFIG_ASSERT
@@ -18,11 +19,6 @@
 #include "yllist.h"
 #include "yldynb.h"
 #include "ylut.h"
-
-/*
- * due to 'assert' macro, put "assert.h" at bottom of include list.
- */
-#include <assert.h>
 
 #define _LOGLV YLLogW
 
@@ -468,13 +464,14 @@ main(int argc, char* argv[]) {
     _mhinit ();
 
     /* set system parameter */
-    sys.print = printf;
-    sys.log = _log;
-    sys.assert = _assert;
-    sys.malloc = _malloc;
-    sys.free = _free;
-    sys.mpsz = 8*1024;
-    sys.gctp = 1;
+    sys.print   = printf;
+    sys.log     = _log;
+    sys.assert_ = _assert;
+    sys.malloc  = _malloc;
+    sys.free    = _free;
+    sys.mode    = YLMode_batch;
+    sys.mpsz    = 8*1024;
+    sys.gctp    = 1;
 
     ylinit(&sys);
 

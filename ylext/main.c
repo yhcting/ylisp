@@ -85,13 +85,14 @@ main(int argc, char* argv[]) {
     ylsys_t   sys;
 
     /* set system parameter */
-    sys.print = printf;
-    sys.log   = _log;
-    sys.assert = _assert;
-    sys.malloc = _malloc;
-    sys.free = _free;
-    sys.mpsz = 8*1024;
-    sys.gctp = 80;
+    sys.print   = printf;
+    sys.log     = _log;
+    sys.assert_ = _assert;
+    sys.malloc  = _malloc;
+    sys.free    = _free;
+    sys.mode    = YLMode_batch;
+    sys.mpsz    = 8*1024;
+    sys.gctp    = 80;
 
     ylinit(&sys);
 
@@ -129,10 +130,13 @@ main(int argc, char* argv[]) {
 #   include "nfunc.in"
 #undef NFUNC
 
-#define PCRELIB_PATH_SYM "pcrelib-path"
+#ifdef CONFIG_PCRE_REGEX
+#   define PCRELIB_PATH_SYM "pcrelib-path"
+static void*  _pcrelib;
+#endif /* CONFIG_PCRE_REGEX */
+
 
 static void*  _libmhandle;
-static void*  _pcrelib;
 
 void
 ylcnf_onload(yletcxt_t* cxt) {
@@ -145,6 +149,7 @@ ylcnf_onload(yletcxt_t* cxt) {
     }
 
 
+#ifdef CONFIG_PCRE_REGEX
     { /* Just Scope */
         char*      sym;
         yle_t*     libpath;
@@ -162,6 +167,7 @@ ylcnf_onload(yletcxt_t* cxt) {
             }
         }
     } /* Just Scope */
+#endif /* CONFIG_PCRE_REGEX */
 
     /* return if fail to register */
 #define NFUNC(n, s, type, desc)  \
@@ -169,6 +175,7 @@ ylcnf_onload(yletcxt_t* cxt) {
 #   include "nfunc.in"
 #undef NFUNC
 
+#ifdef CONFIG_PCRE_REGEX
     /* if fail to load pcre lib */
     if(!_pcrelib) {
         yllogW0("WARNING!\n"
@@ -182,6 +189,7 @@ ylcnf_onload(yletcxt_t* cxt) {
         ylunregister_nfunc("re-replace");
 
     }
+#endif /* CONFIG_PCRE_REGEX */
 }
 
 void
@@ -197,6 +205,7 @@ ylcnf_onunload(yletcxt_t* cxt) {
      */
     dlclose(_libmhandle);
 
+#ifdef CONFIG_PCRE_REGEX
     if(_pcrelib) { /* re is loaded */
         /*
          * All functions that uses 'libpcre.so' SHOULD BE HERE.
@@ -205,5 +214,6 @@ ylcnf_onunload(yletcxt_t* cxt) {
          */
         dlclose(_pcrelib);
     }
+#endif /* CONFIG_PCRE_REGEX */
 }
 #endif /* __YLDBG__ */

@@ -35,13 +35,14 @@ main(int argc, char* argv[]) {
     unsigned int   dsz;
 
     /* set system parameter */
-    sys.print  = printf;
-    sys.log    = _log;
-    sys.assert = _assert;
-    sys.malloc = malloc;
-    sys.free   = free;
-    sys.mpsz   = 1024*1024;
-    sys.gctp   = 80;
+    sys.print   = printf;
+    sys.log     = _log;
+    sys.assert_ = _assert;
+    sys.malloc  = malloc;
+    sys.free    = free;
+    sys.mode    = YLMode_repl;
+    sys.mpsz    = 1024*1024;
+    sys.gctp    = 80;
 
     if (YLOk != ylinit(&sys)) {
         printf("Fail to initialize ylisp\n");

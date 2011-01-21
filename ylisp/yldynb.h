@@ -28,6 +28,7 @@
 #ifndef ___YLDYNb_h___
 #define ___YLDYNb_h___
 
+#include <memory.h>
 #include "yldev.h"
 
 /* DYNmaic Buffer */
@@ -36,18 +37,6 @@ typedef struct yldynb {
     unsigned int    sz;
     unsigned char*  b;
 } yldynb_t;
-
-/*
- * To avoid including <memory.h>
- * (If this walkaround makes headaches, just includes it!)
- *
- * NOTE!
- * Actually 'memcpy' is defined as
- *     extern void * memcpy ( void * destination, const void * source, size_t num );
- * In general, "size_t != unsigned int", but, in some cases, it isn't.
- * In this non-general cases, compiler will complain about this!
- */
-extern void * memcpy ( void * destination, const void * source, unsigned int num );
 
 static inline unsigned int
 yldynb_limit(const yldynb_t* b) {

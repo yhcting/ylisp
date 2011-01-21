@@ -186,7 +186,10 @@ NFUNC(trim,                "trim",              ylaif_nfunc(),
  **********************************************/
 NFUNC(re_match,            "re-match",          ylaif_nfunc(),
     "re-match <pattern> <subject> <option> : <list exp>\n"
-    "    -match with 'pcre - Perl Compatible REgular expression'. And returns matched string.\n"
+    "    -match with regular expression.\n"
+    "     Regular expression can be 'pcre - Perl Compatible REgular expression' or POSIX's one.\n"
+    "     This depends on libylext.so's compile configuaration!\n"
+    "     And returns matched string.\n"
     "    @pattern [Symbol]: Pattern format\n"
     "    @subject [Symbol]: Subject string\n"
     "    @option [Symbol]:  Match option 'i', 'm', 's' are supported\n"
@@ -200,6 +203,7 @@ NFUNC(re_match,            "re-match",          ylaif_nfunc(),
 NFUNC(re_replace,          "re-replace",        ylaif_nfunc(),
     "re-replace <pattern> <new string> <subject> <option> : [Symbol]\n"
     "    -replace matched part with <new string>\n"
+    "     See help messages in 're_match' for more details\n"
     "    @new string [Symbol]:\n"
     "    @pattern, subject, option: see 're-match'\n"
     "    @return : newly generated string.\n"

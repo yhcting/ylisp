@@ -278,7 +278,7 @@ typedef struct sYle {
 #define ylfree(x)       ylsysv()->free(x)
 
 #ifdef CONFIG_ASSERT
-#   define ylassert(x)  do { ylsysv()->assert((int)(x)); } while(0)
+#   define ylassert(x)  do { ylsysv()->assert_(!!(x)); } while(0)
 #else /* CONFIG_ASSERT */
 #   define ylassert(x)  ((void*)0)
 #endif /* CONFIG_ASSERT */
@@ -290,8 +290,9 @@ typedef struct sYle {
 #endif /* CONFIG_LOG */
 
 #define ylprint(x)      do { ylsysv()->print x; } while(0)
-#define ylmpsz(x)       (ylsysv()->mpsz)
-#define ylgctp(x)       (ylsysv()->gctp)
+#define ylmode()        (ylsysv()->mode)
+#define ylmpsz()        (ylsysv()->mpsz)
+#define ylgctp()        (ylsysv()->gctp)
 /*
  * ! Predefined atoms !
  * To improve performance, we may use global variable instead of function.

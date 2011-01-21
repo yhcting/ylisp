@@ -221,9 +221,12 @@ _create_atom_sym(unsigned char* sym, unsigned int len) {
 
 static inline void
 _eval_exp(yletcxt_t* cxt, yle_t* e) {
+    yle_t* r;
     dbg_gen(yllogD1(">>>>> Eval exp:\n"
                     "    %s\n", ylechain_print(ylethread_buf(cxt), e)););
-    yleval(cxt, e, ylnil());
+    r = yleval (cxt, e, ylnil ());
+    if (YLMode_repl == ylmode ())
+        ylprint(("%s\n", ylechain_print (ylethread_buf (cxt), r)));
 }
 
 /* =====================================

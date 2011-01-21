@@ -10,7 +10,11 @@ DISTDIR:=$(top)$(shell basename $(top))-$(VERSION)
 DEPDIR:=.deps/
 EXTLIB_DIR:=../lib/
 EXTLIB_NAME:=
-SYSLIB_DIR:=/usr/lib/
+
+ifndef SYSLIB_DIR
+    SYSLIB_DIR:=/usr/lib/
+endif
+
 SYSLIB_NAME:=pthread dl
 EXTLIB=$(addprefix $(EXTLIB_DIR),$(addsuffix .a,$(addprefix lib,$(EXTLIB_NAME))))
 SYSLIB=$(addprefix $(SYSLIB_DIR),$(addsuffix .a,$(addprefix lib,$(SYSLIB_NAME))))
@@ -25,13 +29,13 @@ TARGET=$(OUTDIR)ylisp
 LIBA=$(OUTDIR)libylisp.a
 LIBSO=$(OUTDIR)libylisp.so
 
-CC=gcc
-AR=ar
+CC=$(SYSBIN)gcc
+AR=$(SYSBIN)ar
 AR_CMD=$(AR) cr
 CFLAGS+= -g -Wall
 LDFLAGS+= -rdynamic -ldl -lrt -lpthread
 SOFLAGS+=
-INCLUDES=-I../include
+INCLUDES+= -I../include
 C_COMPILE=$(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 C_DEPENDENCIES=-Wp,-MD,$(DEPDIR)$(*F).P
 C_LINK=$(CC) $(CFLAGS) $(LDFLAGS) -L.

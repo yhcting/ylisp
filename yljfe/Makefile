@@ -18,12 +18,12 @@ DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 
 TARGET=$(OUTDIR)yljfe
 
-CC=gcc
+CC=$(SYSBIN)gcc
 CFLAGS+= -Wall -g
 LDFLAGS+= -rdynamic -ldl -lrt -lpthread -ljvm
 SOFLAGS+=
 JAVAINC:=/usr/lib/jvm/default-java/include/
-INCLUDES=-I../include -I$(JAVAINC)
+INCLUDES+= -I../include -I$(JAVAINC)
 C_COMPILE=$(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 C_DEPENDENCIES=-Wp,-MD,$(DEPDIR)$(*F).P
 C_LINK=$(CC) $(CFLAGS) $(LDFLAGS) -L.

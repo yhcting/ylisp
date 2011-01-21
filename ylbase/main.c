@@ -83,13 +83,14 @@ main(int argc, char* argv[]) {
     ylsys_t   sys;
 
     /* set system parameter */
-    sys.print = printf;
-    sys.log = _log;
-    sys.assert = _assert;
-    sys.malloc = _malloc;
-    sys.free = _free;
-    sys.mpsz = 4*1024;
-    sys.gctp = 80;
+    sys.print   = printf;
+    sys.log     = _log;
+    sys.assert_ = _assert;
+    sys.malloc  = _malloc;
+    sys.free    = _free;
+    sys.mode    = YLMode_batch;
+    sys.mpsz    = 4*1024;
+    sys.gctp    = 80;
 
     ylinit(&sys);
 

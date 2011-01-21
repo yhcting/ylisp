@@ -23,6 +23,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <assert.h>
+#include <malloc.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include "lisp.h"
 
 
@@ -683,13 +687,48 @@ yldeinit_thread_context(yletcxt_t* cxt) {
 #include "nfunc.in"
 #undef NFUNC
 
+
+/* --------------
+ * For default system value.
+ * --------------*/
+static void
+_log(int lv, const char* format, ...) {
+    if(lv >= YLLogW) {
+        va_list ap;
+        /* print to standard out directly */
+        va_start(ap, format);
+        vprintf(format, ap);
+        va_end(ap);
+    }
+}
+
+static inline void
+_assert(int a) { assert(a); }
+
+int
+ylsys_set_default (ylsys_t* sys) {
+    if (!sys) return -1;
+
+    sys->print     = printf;
+    sys->log       = _log;
+    sys->assert_   = _assert;
+    sys->malloc    = malloc;
+    sys->free      = free;
+    sys->mode      = YLMode_batch;
+    sys->mpsz      = 1024*1024; /* memory pool size */
+    sys->gctp      = 80;
+
+    return 0;
+}
+
+
 /* init this system */
 /* this SHOULD BE called first */
 ylerr_t
 ylinit(ylsys_t* sysv) {
     /* Check system parameter! */
     if(!(sysv && sysv->print
-         && sysv->assert && sysv->malloc
+         && sysv->assert_ && sysv->malloc
          && sysv->free
          && sysv->gctp > 0 && sysv->gctp < 100)) {
         goto bail;

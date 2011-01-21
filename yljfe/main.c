@@ -32,6 +32,8 @@
 #include <malloc.h>
 #include <memory.h>
 #include <unistd.h>
+#include <assert.h>
+
 #include "jni.h"
 
 #define CONFIG_LOG
@@ -46,8 +48,6 @@
  */
 #include "yldynb.h"
 #include "ylut.h"
-
-#include <assert.h>
 
 #define _INIT_OUTBUFSZ        4*1024 /* normal page size */
 
@@ -332,9 +332,10 @@ main(int argc, char* argv[]) {
 
         sys.print     = _print;
         sys.log       = _log;
-        sys.assert    = _assert;
+        sys.assert_   = _assert;
         sys.malloc    = malloc;
         sys.free      = free;
+        sys.mode      = YLMode_repl;
         sys.mpsz      = 1024*1024; /* memory pool size */
         sys.gctp      = 80;
 

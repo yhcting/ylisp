@@ -1,7 +1,11 @@
 (load-cnf '../lib/libylbase.so)
-(set 'pcrelib-path '/usr/local/lib/libpcre.so)
+
+; use POSIX regex
+;(set 'pcrelib-path '/usr/local/lib/libpcre.so)
+
 (load-cnf '../lib/libylext.so)
-(unset 'pcrelib-path)
+
+;(unset 'pcrelib-path)
 
 (interpret-file '../yls/base.yl)
 (interpret-file '../yls/ext.yl)

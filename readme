@@ -39,7 +39,7 @@ Introduction
      examples.
 
     YLISP has been compiled and tested only on:
-        * Linux(Ubuntu)
+        gcc version 4.4.5 on Linux(Ubuntu) 32bit
 
 
 Design Policy
@@ -154,7 +154,12 @@ Directory/File Structure
          begining.
     ylext
         Plugin for extended features.
-        (math, string, system, array, trie, structure, utility funcs. etc)
+        (math, string, system, array, trie/hash map, structure, utility funcs.
+        regular expression etc)
+        ## Available compile configuration ##
+            CONFIG_PCRE_REGEX
+                to use PCRE as an regular expression library.
+                default is POSIX regular expression.
     yls
         YLISP script files.
     ylr
@@ -326,6 +331,7 @@ Local symbol look-up
     'flabel' reset local association list and evaluate expression.
     So, 'defun' implemented by using 'flabel' doesn't hand its assocation
      list over callee function. That is, list doens't grows.
+
 
 GC(Garbage collection)
 ----------------------

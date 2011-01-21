@@ -90,15 +90,28 @@ typedef enum {
     YLErr_func_fail,
 } ylerr_t;
 
-typedef enum {
+enum {
     YLLogV = 0,  /* verbose */
     YLLogD,      /* devleop */
     YLLogI,      /* information */
     YLLogW,      /* warning */
     YLLogE,      /* error */
     YLLogLV_NUM
-} ylloglv_t;
+};
 
+enum {
+    /*
+     * Opposite of YLMode_repl
+     */
+    YLMode_batch,
+
+    /*
+     * Evaulation result for user input is always printed.
+     * Exception.
+     *    'interpret-file' and 'interpret' print result of each sub inputs.
+     */
+    YLMode_repl,
+};
 
 /**
  * All members are mendatory!
@@ -110,8 +123,12 @@ typedef struct {
     /* function for print output - printf like */
     int        (*print)(const char* format, ...);
 
-    /* assert. "assert(0)" means, "module meent unrecoverable error!" */
-    void       (*assert)(int);
+    /*
+     * assert. "assert(0)" means, "module meent unrecoverable error!"
+     * 'assert' is defined at standard header as an macro.
+     * So, to avoid symbol conflicting, '_' is added at the end.
+     */
+    void       (*assert_)(int);
 
     /* memory allocation - to get centralized control about memory statistic */
     void*      (*malloc)(unsigned int);
@@ -119,15 +136,36 @@ typedef struct {
     /* memory free */
     void       (*free)(void*);
 
+    /* YLMode_batch/repl */
+    int          mode;
+
     /* interpreter memory pool size*/
-    unsigned int  mpsz;
+    unsigned int mpsz;
 
     /*
      * GC Trigger point. Percent.
      * '80' means "GC triggered when memory pool is used over 80%
      */
-    int           gctp; /* Garbage Collection Trigger Pointer */
+    int          gctp; /* Garbage Collection Trigger Pointer */
 } ylsys_t; /* system parameter  */
+
+/**
+ * Set 'sysv' as default value.
+ *
+ * ===== default value =====
+ * log     : print to stdout for warning and error.
+ * print   : stdout
+ * assert  : assert
+ * malloc  : malloc
+ * free    : free
+ * mode    : YLMode_batch
+ * mpsz    : 1MByte
+ * gctp    : 80
+ *
+ * @return : < 0 for error.
+ */
+extern int
+ylsys_set_default (ylsys_t* sysv);
 
 /**
  * this SHOULD BE called firstly before using module.

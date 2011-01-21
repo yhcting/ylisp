@@ -19,11 +19,11 @@ DEP_FILES=$(subst .c,.P, $(addprefix $(DEPDIR),$(SOURCES)))
 TARGET=$(OUTDIR)ylbase
 LIB=$(OUTDIR)libylbase.so
 
-CC=gcc
+CC=$(SYSBIN)gcc
 CFLAGS+= -fPIC -Wall -g -Wno-format
 LDFLAGS+= -rdynamic -ldl -lrt -lpthread
 SOFLAGS+=
-INCLUDES=-I../include
+INCLUDES+= -I../include
 C_COMPILE=$(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 C_DEPENDENCIES=-Wp,-MD,$(DEPDIR)$(*F).P
 C_LINK=$(CC) $(CFLAGS) $(LDFLAGS) -L.
