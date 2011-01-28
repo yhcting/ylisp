@@ -18,6 +18,9 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 
 #include <string.h>
@@ -106,7 +109,7 @@ _DEFAIF_COPY_START(sym) {
     /* deep clone */
     ylasym(n).sym = ylmalloc(strlen(ylasym(e).sym)+1);
     if(!ylasym(n).sym) {
-        yllogE1("Out Of Memory : [%d]!\n", strlen(ylasym(e).sym)+1);
+        yllogE ("Out Of Memory : [%d]!\n", strlen(ylasym(e).sym)+1);
         ylinterpret_undefined(YLErr_out_of_memory);
     }
     strcpy(ylasym(n).sym, ylasym(e).sym);
@@ -212,7 +215,7 @@ _DEFAIF_COPY_START(bin) {
     /* deep clone */
     ylabin(n).d = ylmalloc(ylabin(e).sz);
     if(!ylabin(n).d) {
-        yllogE1("Out Of Memory : [%d]!\n", ylabin(e).sz);
+        yllogE ("Out Of Memory : [%d]!\n", ylabin(e).sz);
         ylinterpret_undefined(YLErr_out_of_memory);
     }
     memcpy(ylabin(n).d, ylabin(e).d, ylabin(e).sz);
@@ -237,7 +240,7 @@ _DEFAIF_EQ_START(nil) {
 
 #if 0 /* Keep it for future use! */
 _DEFAIF_COPY_START(nil) {
-    yllogE0("NIL is NOT ALLOWED TO COPY\n");
+    yllogE ("NIL is NOT ALLOWED TO COPY\n");
     ylinterpret_undefined(YLErr_eval_undefined);
 } _DEFAIF_COPY_END
 #endif /* Keep it for future use! */
@@ -251,7 +254,7 @@ _DEFAIF_TO_STRING_START(nil) {
 
 _DEFAIF_CLEAN_START(nil) {
     ylassert(0); /* un-recovable error!! */
-    yllogE0("NIL SHOULD NOT BE CLEANED\n");
+    yllogE ("NIL SHOULD NOT BE CLEANED\n");
     ylinterpret_undefined(YLErr_eval_undefined);
 } _DEFAIF_CLEAN_END
 
@@ -294,7 +297,7 @@ void
 yleclean(yle_t* e) {
     if(yleis_atom(e)) {
         if(ylaif(e)->clean) { (*ylaif(e)->clean)(e); }
-        else { yllogW0("There is an atom that doesn't support/allow CLEAN!\n"); }
+        else { yllogW ("There is an atom that doesn't support/allow CLEAN!\n"); }
     } else {
         /*
          * Let'a think of memory block M that is taken from pool, but not initialized.
@@ -322,10 +325,10 @@ ylregister_nfunc(unsigned int version,
     yle_t*       e;
 
     if(yldev_ver_major(version) < yldev_ver_major(YLDEV_VERSION)) {
-        yllogE4("Version of CNF library is lower than ylisp!!\n"
-              "  ylisp[%d.%d], cnf[%d.%d]\n",
-              yldev_ver_major(YLDEV_VERSION), yldev_ver_minor(YLDEV_VERSION),
-              yldev_ver_major(version), yldev_ver_minor(version));
+        yllogE ("Version of CNF library is lower than ylisp!!\n"
+                "  ylisp[%d.%d], cnf[%d.%d]\n",
+                yldev_ver_major(YLDEV_VERSION), yldev_ver_minor(YLDEV_VERSION),
+                yldev_ver_major(version), yldev_ver_minor(version));
         return YLErr_cnf_register;
     }
 
@@ -334,7 +337,7 @@ ylregister_nfunc(unsigned int version,
     } else if(ylaif_sfunc() == aif) {
         e = ylacreate_sfunc(nfunc, sym);
     } else {
-        yllogE0("Function type should be one of ATOM_NFUNC, ylor ATOM_RAW_NFUNC");
+        yllogE ("Function type should be one of ATOM_NFUNC, ylor ATOM_RAW_NFUNC");
         return YLErr_cnf_register;
     }
 
@@ -418,7 +421,7 @@ _aprint(yldynb_t* b, yle_t* e) {
             }
         }
     } else {
-        yllogW0("There is an atom that doesn't support/allow PRINT!\n");
+        yllogW ("There is an atom that doesn't support/allow PRINT!\n");
         /* !X! is special notation to represet 'it's not printable' */
         _fcall(yldynbstr_append(b, "!X!"));
     }
@@ -744,13 +747,13 @@ ylinit(ylsys_t* sysv) {
     if(!(8 == sizeof(double)
          && 4 == sizeof(int)
          && 8 == sizeof(long long))) {
-        ylprint(("!!!!! WARNING !!!!!\n"
-                 "    Some operations may assumes that\n"
-                 "        sizeof(double) == 8 && sizeof(long long) == 8 && sizeof(int) == 4\n"
-                 "    But, host environment is different.\n"
-                 "        double[%d], long long[%d], int[%d]\n"
-                 "    So, some numeric operation may return unexpected value.!\n",
-                 sizeof(double), sizeof(long long), sizeof(int)));
+        ylprint("!!!!! WARNING !!!!!\n"
+                "    Some operations may assumes that\n"
+                "        sizeof(double) == 8 && sizeof(long long) == 8 && sizeof(int) == 4\n"
+                "    But, host environment is different.\n"
+                "        double[%d], long long[%d], int[%d]\n"
+                "    So, some numeric operation may return unexpected value.!\n",
+                sizeof(double), sizeof(long long), sizeof(int));
     }
 
     if( YLOk != ylsfunc_init()

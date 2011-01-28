@@ -18,111 +18,15 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-
-
-
-
-#ifdef __YLDBG__
-
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include <malloc.h>
-#include <assert.h>
-#include "yldev.h"
-
-#define _LOGLV  YLLogV
-
-static unsigned int _mblk = 0;
-
-static const char* _exp =
-    "(load-cnf '../lib/libylbase.so)\n"
-    "(interpret-file '../yls/base.yl)\n"
-    "(interpret-file '../yls/ext.yl)\n"
-    "(interpret-file '../test/test_ext.yl)\n"
-    ;
-
-static inline void*
-_malloc(unsigned int size) {
-    _mblk++;
-    return malloc(size);
-}
-
-static inline void
-_free(void* p) {
-    assert(_mblk > 0);
-    _mblk--;
-    free(p);
-}
-
-static inline int
-_get_mblk_size() {
-    return _mblk;
-}
-
-static inline void
-_log(int lv, const char* format, ...) {
-    if(lv >= _LOGLV) {
-        va_list ap;
-        va_start(ap, format);
-        vprintf(format, ap);
-        va_end(ap);
-    }
-}
-
-static inline void
-_assert(int a) {
-    if(!a){ assert(0); }
-}
-
-#define NFUNC(n, s, type, desc) extern YLDECLNF(n);
-#   include "nfunc.in"
-#undef NFUNC
-
-
-int
-main(int argc, char* argv[]) {
-    ylsys_t   sys;
-
-    /* set system parameter */
-    sys.print   = printf;
-    sys.log     = _log;
-    sys.assert_ = _assert;
-    sys.malloc  = _malloc;
-    sys.free    = _free;
-    sys.mode    = YLMode_batch;
-    sys.mpsz    = 8*1024;
-    sys.gctp    = 80;
-
-    ylinit(&sys);
-
-#define NFUNC(n, s, type, desc)  \
-    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, desc)) { return 0; }
-#   include "nfunc.in"
-#undef NFUNC
-
-    if(YLOk != ylinterpret((unsigned char*)_exp, (unsigned int)strlen(_exp))) {
-        return 0;
-    }
-
-    /* to check memory status */
-    yldeinit();
-
-    assert(0 == _get_mblk_size());
-
-    printf("---------------------------\n"
-           "Test Success\n");
-
-    return 0;
-}
-
-#else /* __YLDBG__ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <dlfcn.h>
 #include <string.h>
-
-#define CONFIG_LOG
-#define CONFIG_ASSERT
+#ifdef CONFIG_DBG_GEN
+#   include <signal.h>
+#endif
 
 #include "ylsfunc.h"
 
@@ -130,26 +34,60 @@ main(int argc, char* argv[]) {
 #   include "nfunc.in"
 #undef NFUNC
 
-#ifdef CONFIG_PCRE_REGEX
+#ifdef HAVE_LIBPCRE
 #   define PCRELIB_PATH_SYM "pcrelib-path"
 static void*  _pcrelib;
-#endif /* CONFIG_PCRE_REGEX */
+#endif /* HAVE_LIBPCRE */
 
 
 static void*  _libmhandle;
 
+#ifdef CONFIG_DBG_GEN
+
+static void
+_dbg_sig_handler (int sig) {
+    switch (sig) {
+        case SIGCHLD:
+            yllogI ("SIGCHLD received!\n");
+        break;
+
+        case SIGPIPE:
+            yllogE ("SIGPIPE received!\n");
+            ylassert (0);
+        break;
+    }
+}
+
+#endif /* CONFIG_DBG_GEN */
+
+
 void
 ylcnf_onload(yletcxt_t* cxt) {
 
+#ifdef CONFIG_DBG_GEN
+    struct sigaction    act;
+    memset (&act, 0, sizeof (act));
+    act.sa_handler = &_dbg_sig_handler;
+
+    if (sigaction (SIGCHLD, &act, NULL))
+        yllogW ("Fail to set SIGCHLD action. - ignored");
+
+    if (sigaction (SIGPIPE, &act, NULL))
+        yllogW ("Fail to set SIGPIPE action. - ignored");
+    
+#endif /* CONFIG_DBG_GEN */
+
+
+#ifdef HAVE_LIBM
     /* load math library */
     _libmhandle = dlopen("/usr/lib/libm.so", RTLD_NOW | RTLD_GLOBAL);
     if(!_libmhandle) {
-        yllogE0("Cannot open use system library required [/usr/lib/libm.so]\n");
+        yllogE ("Cannot open use system library required [/usr/lib/libm.so]\n");
         return;
     }
+#endif /* HAVE_LIBM */
 
-
-#ifdef CONFIG_PCRE_REGEX
+#ifdef HAVE_LIBPCRE
     { /* Just Scope */
         char*      sym;
         yle_t*     libpath;
@@ -167,7 +105,7 @@ ylcnf_onload(yletcxt_t* cxt) {
             }
         }
     } /* Just Scope */
-#endif /* CONFIG_PCRE_REGEX */
+#endif /* HAVE_LIBPCRE */
 
     /* return if fail to register */
 #define NFUNC(n, s, type, desc)  \
@@ -175,10 +113,10 @@ ylcnf_onload(yletcxt_t* cxt) {
 #   include "nfunc.in"
 #undef NFUNC
 
-#ifdef CONFIG_PCRE_REGEX
+#ifdef HAVE_LIBPCRE
     /* if fail to load pcre lib */
     if(!_pcrelib) {
-        yllogW0("WARNING!\n"
+        yllogW ("WARNING!\n"
                 "    Fail to load pcre library!.\n"
                 "    Set library path to 'string,pcrelib-path' before load-cnf.\n"
                 "    ex. (set 'string,pcrelib-path '/usr/local/lib/libpcre.so).\n"
@@ -189,7 +127,7 @@ ylcnf_onload(yletcxt_t* cxt) {
         ylunregister_nfunc("re-replace");
 
     }
-#endif /* CONFIG_PCRE_REGEX */
+#endif /* HAVE_LIBPCRE */
 }
 
 void
@@ -198,14 +136,16 @@ ylcnf_onunload(yletcxt_t* cxt) {
 #   include "nfunc.in"
 #undef NFUNC
 
+#ifdef HAVE_LIBM
     /*
      * All functions that uses 'libm.so' SHOULD BE HERE.
      * We don't care of others who uses 'libm.so' out of here!
      * Let's close it!
      */
     dlclose(_libmhandle);
+#endif /* HAVE_LIBM */
 
-#ifdef CONFIG_PCRE_REGEX
+#ifdef HAVE_LIBPCRE
     if(_pcrelib) { /* re is loaded */
         /*
          * All functions that uses 'libpcre.so' SHOULD BE HERE.
@@ -214,6 +154,6 @@ ylcnf_onunload(yletcxt_t* cxt) {
          */
         dlclose(_pcrelib);
     }
-#endif /* CONFIG_PCRE_REGEX */
+#endif /* HAVE_LIBPCRE */
 }
-#endif /* __YLDBG__ */
+

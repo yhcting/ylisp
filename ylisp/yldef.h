@@ -40,7 +40,7 @@
 #endif
 
 #ifndef offset_of
-#   define offset_of(type, member) ((unsigned int) &((type*)0)->member)
+#   define offset_of(type, member) ((unsigned long) &((type*)0)->member)
 #endif
 
 #ifndef container_of

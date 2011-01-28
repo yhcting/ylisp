@@ -18,6 +18,11 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+
 /*****************************************************
  *
  * NFunctions to support Multi-Threading Features
@@ -37,13 +42,13 @@ _ts_cb(void* user, yletcxt_t* cxt) {
     unsigned int   mx = (_MAX_EXPSZ > cxt->streamsz)? cxt->streamsz: _MAX_EXPSZ-1;
     memcpy(b, cxt->stream, mx);
     b[mx] = 0; /* trailing 0 */
-    ylprint(("%8x %8x %s\n", cxt->base_id, cxt->sig, b));
+    ylprint ("%8x %8x %s\n", cxt->base_id, cxt->sig, b);
     return 1; /* keep going */
 }
 
 YLDEFNF(ts, 0, 0) {
     static char buf[_MAX_EXPSZ];
-    ylprint(("id       sig      exp\n"));
+    ylprint ("id       sig      exp\n");
     ylmt_walk(cxt, buf, &_ts_cb);
     return ylt();
 } YLENDNF(ts)
@@ -63,7 +68,7 @@ YLDEFNF(create_thread, 1, 1) {
         /* change thd into double...to use easily in other place */
         return ylacreate_dbl((double)thd);
     } else {
-        ylnflogE1("Fail to create interpret thread : %d\n", r);
+        ylnflogE ("Fail to create interpret thread : %d\n", r);
         return ylnil();
     }
 } YLENDNF(create_thread)

@@ -18,6 +18,10 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 /* =========================================
  * We may support unicode later.
  * So, 'Binary' type cannot be put here even if
@@ -27,11 +31,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <memory.h>
-
-/* enable logging & debugging */
-#define CONFIG_ASSERT
-#define CONFIG_LOG
-
 #include "ylsfunc.h"
 #include "yldynb.h"
 
@@ -65,7 +64,7 @@ YLDEFNF(bin_human_read, 1, 1) {
     /* +1 for trailing 0 */
     b = ylmalloc(bsz+1);
     if(!b) {
-        ylnflogE1("Not enough memory: required [%d]\n", bsz);
+        ylnflogE ("Not enough memory: required [%d]\n", bsz);
         ylinterpret_undefined(YLErr_func_fail);
     }
 
@@ -159,7 +158,7 @@ YLDEFNF(concat_bin, 2, 9999) {
 
  bail:
     yldynb_clean(&b);
-    ylnflogE0("Out Of Memory\n");
+    ylnflogE ("Out Of Memory\n");
     ylinterpret_undefined(YLErr_out_of_memory);
     return NULL; /* to make compiler be happy */
 } YLENDNF(concat_bin)
@@ -175,7 +174,7 @@ YLDEFNF(to_bin, 1, 2) {
         int            sz = strlen(ylasym(ylcar(e)).sym);
         unsigned char* b = ylmalloc(sz);
         if(!b) {
-            ylnflogE0("Out Of Memory\n");
+            ylnflogE ("Out Of Memory\n");
             ylinterpret_undefined(YLErr_out_of_memory);
             return NULL; /* to make compiler be happy */
         }
@@ -189,11 +188,11 @@ YLDEFNF(to_bin, 1, 2) {
 
         /* checking parameter!! */
         if((double)l != yladbl(ylcar(e))) {
-            ylnflogE0("Double and long long values mismatch.\n");
+            ylnflogE ("Double and long long values mismatch.\n");
             goto bail;
         }
         if(pcsz < 2) {
-            ylnflogE0("Size in bytes (2nd parameter) is required!.\n");
+            ylnflogE ("Size in bytes (2nd parameter) is required!.\n");
             goto bail;
         }
         sz = (long long)yladbl(ylcadr(e));
@@ -205,12 +204,12 @@ YLDEFNF(to_bin, 1, 2) {
         return ylacreate_bin(b, (unsigned int)sz);
 
     } else {
-        ylnflogE0("Not Supported Atom Type!\n");
+        ylnflogE ("Not Supported Atom Type!\n");
         goto bail;
     }
 
  bail:
-    ylnflogE0("invalid parameter type\n");
+    ylnflogE ("invalid parameter type\n");
     ylinterpret_undefined(YLErr_func_invalid_param);
     return NULL; /* to make compiler be happy */
 
@@ -223,7 +222,7 @@ YLDEFNF(bin_to_num, 1, 1) {
                         && ylabin(ylcar(e)).sz < sizeof(n));
     memcpy(&n, ylabin(ylcar(e)).d, ylabin(ylcar(e)).sz);
     if((double)n != n) {
-        ylnflogE0("Double and long long values mismatch.\n");
+        ylnflogE ("Double and long long values mismatch.\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
         return NULL; /* to make compiler be happy */
     }

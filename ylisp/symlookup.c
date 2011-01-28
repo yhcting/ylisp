@@ -18,6 +18,10 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 /*
  * Handle Global Symbols
  */
@@ -91,7 +95,7 @@ ylslu_insert(slut_t* t, const char* sym, int sty, yle_t* e) {
     if(ov) {
         if (ylais_type (v->e, ylaif_nfunc ())
             || ylais_type (v->e, ylaif_sfunc ())) {
-            yllogW1("Warn : native function symbol is overwrittened\n"
+            yllogW ("Warn : native function symbol is overwrittened\n"
                     "    -> %s\n", sym);
         }
         /*

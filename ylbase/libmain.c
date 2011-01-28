@@ -18,26 +18,35 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
+#include "yldev.h"
 
-#ifndef ___CONFIg_h___
-#define ___CONFIg_h___
+#define NFUNC(n, s, type, desc) extern YLDECLNF(n);
+#   include "nfunc.in"
+#undef NFUNC
 
+extern int ylbase_nfunc_init ();
 
-/* ---------------------------------
- * Feature Configuration
- * ---------------------------------*/
-#define CONFIG_LOG
-#define CONFIG_ASSERT
+void
+ylcnf_onload(yletcxt_t* cxt) {
 
-/* #define CONFIG_DBG_GEN    */  /* general debugging - usually required */
-/* #define CONFIG_DBG_EVAL   */  /* to debug evaluation */
-/* #define CONFIG_DBG_MT     */  /* to debug multithreading */
-/* #define CONFIG_DBG_MEM    */  /* to debug memory pool and GC */
-/* #define CONFIG_DBG_MUTEX  */  /* to debug interrupting evaluation */
+    ylbase_nfunc_init(cxt);
+    /* return if fail to register */
+#define NFUNC(n, s, type, desc) \
+    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylbase <<\n" desc)) { return; }
+#   include "nfunc.in"
+#undef NFUNC
 
-/* ---------------------------------
- * Interpreter Internal Constants
- * ---------------------------------*/
+}
 
-#endif /* ___CONFIg_h___ */
+void
+ylcnf_onunload(yletcxt_t* cxt) {
+
+#define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
+#   include "nfunc.in"
+#undef NFUNC
+
+}

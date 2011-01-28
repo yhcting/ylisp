@@ -18,6 +18,11 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+
 #include <signal.h>
 #include <time.h>
 #include <string.h>
@@ -37,7 +42,7 @@ typedef struct _sInterp_req {
 static inline void
 _show_eval_stack(yletcxt_t* cxt) {
     while(ylstk_size(cxt->evalstk)) {
-        ylprint(("    %s\n", ylechain_print(ylethread_buf(cxt),  (yle_t*)ylstk_pop(cxt->evalstk))));
+        ylprint("    %s\n", ylechain_print(ylethread_buf(cxt),  (yle_t*)ylstk_pop(cxt->evalstk)));
     }
 }
 
@@ -108,7 +113,7 @@ ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int s
          */
         ylmt_close_all_pres(cxt);
         _show_eval_stack(cxt);
-        ylprint(("Interpret FAILS! : ERROR Line : %d\n", line));
+        ylprint("Interpret FAILS! : ERROR Line : %d\n", line);
         goto done;
     } else {
         /*
@@ -186,7 +191,7 @@ ylinterpret(const unsigned char* stream, unsigned int streamsz) {
 }
 
 void
-ylinterpret_undefined(int reason) {
+ylinterpret_undefined(long reason) {
     pthread_exit((void*)reason);
 }
 

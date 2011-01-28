@@ -190,36 +190,39 @@
     (cond ( (null r) '() )
         ('t (cadar r)))))
 
-(defun procia-read (pia to)
+(cond ((set? 'procia-rfd)
+    (defun procia-read (pia to)
 "procia-read <procia data> <timeout>
     -read subprocess's standard output and error stream.
     @timeout : timeout value (milliseconds)
     @return : nil if fails or timeout. otherwise string read.
 "
-(let ( (r '()) )
-    (cond
-        ((< 0 to) (progn
-            (set 'r (fraw-rselect (procia-rfd pia) to))
-            (cond
-                ((null r) '())
-                ('t (progn
-                    (set 'r (fraw-read (procia-rfd pia)))
-                    (cond
-                        ((null r) '())
-                        ('t (to-string r))))))))
-        ('t (progn
-            (set 'r (fraw-read (procia-rfd pia)))
-            (cond
-                ((null r) '())
-                ('t (to-string r))))))))
+    (let ( (r '()) )
+        (cond
+            ((< 0 to) (progn
+                (set 'r (fraw-rselect (procia-rfd pia) to))
+                (cond
+                    ((null r) '())
+                    ('t (progn
+                        (set 'r (fraw-read (procia-rfd pia)))
+                        (cond
+                            ((null r) '())
+                            ('t (to-string r))))))))
+            ('t (progn
+                (set 'r (fraw-read (procia-rfd pia)))
+                (cond
+                    ((null r) '())
+                    ('t (to-string r))))))))
+))
 
-
-(defun procia-write (pia in)
+(cond ((set? 'procia-wfd)
+    (defun procia-write (pia in)
 "procia-read <procia data> <data>
     -write to subprocess's standard input stream
     @in [Symbol]
 "
-    (fraw-write (procia-wfd pia) (to-bin in)))
+        (fraw-write (procia-wfd pia) (to-bin in)))
+))
 
 ;===================================================
 ;=             Integrated Interface                =

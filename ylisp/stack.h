@@ -86,7 +86,7 @@ ylstk_push(ylstk_t* s, void* item) {
         /* doubling stack size */
         void** tmp = (void**)ylmalloc(s->limit * sizeof(void*) * 2);
         if(!tmp) {
-            yllogE1("Internal Error in Stack(OOM). Fail to doubling! : Limit: %d\n", s->limit);
+            yllogE ("Internal Error in Stack(OOM). Fail to doubling! : Limit: %d\n", s->limit);
             ylassert(0);
             return -1;
         }
@@ -104,7 +104,7 @@ ylstk_pop(ylstk_t* s) {
     if(s->sz) {
         return s->item[--s->sz];
     } else {
-        yllogE0("Internal Error in Stack. Try to pop on empty stack!\n");
+        yllogE ("Internal Error in Stack. Try to pop on empty stack!\n");
         ylassert(0);
     }
     return NULL; /* to make compiler happy */
@@ -115,7 +115,7 @@ ylstk_peek(ylstk_t* s) {
     if(s->sz) {
         return s->item[s->sz-1];
     } else {
-        yllogE0("Internal Error in Stack. Try to peek on empty stack!\n");
+        yllogE ("Internal Error in Stack. Try to peek on empty stack!\n");
         ylassert(0);
     }
     return NULL; /* to make compiler happy */

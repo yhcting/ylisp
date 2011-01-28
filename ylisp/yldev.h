@@ -284,12 +284,12 @@ typedef struct sYle {
 #endif /* CONFIG_ASSERT */
 
 #ifdef CONFIG_LOG
-#   define yllog(x)     do { ylsysv()->log x; } while(0)
+#   define yllog(lv, x...)  do { ylsysv()->log (lv, x); } while(0)
 #else /* CONFIG_LOG */
-#   define yllog(x)     ((void*)0)
+#   define yllog(lv, x...)  ((void*)0)
 #endif /* CONFIG_LOG */
 
-#define ylprint(x)      do { ylsysv()->print x; } while(0)
+#define ylprint(x...)   do { ylsysv()->print (x); } while(0)
 #define ylmode()        (ylsysv()->mode)
 #define ylmpsz()        (ylsysv()->mpsz)
 #define ylgctp()        (ylsysv()->gctp)
@@ -334,89 +334,17 @@ extern const ylatomif_t* const ylg_predefined_aif_nil;
  * notify that ylisp reached to the ylinterpret_undefined state.
  * @r: reason
  */
-extern void ylinterpret_undefined(int reason);
+extern void ylinterpret_undefined(long reason);
 
 /* ------------------------------
  * Macros for Log -- START
  * ------------------------------*/
-#define yllogV0(fmt)                     yllog((YLLogV, fmt))
-#define yllogV1(fmt, p0)                 yllog((YLLogV, fmt, p0))
-#define yllogV2(fmt, p0, p1)             yllog((YLLogV, fmt, p0, p1))
-#define yllogV3(fmt, p0, p1, p2)         yllog((YLLogV, fmt, p0, p1, p2))
-#define yllogV4(fmt, p0, p1, p2, p3)     yllog((YLLogV, fmt, p0, p1, p2, p3))
-#define yllogV5(fmt, p0, p1, p2, p3, p4) yllog((YLLogV, fmt, p0, p1, p2, p3, p4))
-#define yllogV6(fmt, p0, p1, p2, p3, p4, p5)            \
-    yllog((YLLogV, fmt, p0, p1, p2, p3, p4, p5))
-#define yllogV7(fmt, p0, p1, p2, p3, p4, p5, p6)        \
-    yllog((YLLogV, fmt, p0, p1, p2, p3, p4, p5, p6))
-#define yllogV8(fmt, p0, p1, p2, p3, p4, p5, p6, p7)            \
-    yllog((YLLogV, fmt, p0, p1, p2, p3, p4, p5, p6, p7))
-#define yllogV9(fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8)        \
-    yllog((YLLogV, fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8))
+#define yllogV(x...) yllog (YLLogV, x)
+#define yllogD(x...) yllog (YLLogD, x)
+#define yllogI(x...) yllog (YLLogI, x)
+#define yllogW(x...) yllog (YLLogW, x)
+#define yllogE(x...) yllog (YLLogE, x)
 
-#define yllogD0(fmt)                     yllog((YLLogD, fmt))
-#define yllogD1(fmt, p0)                 yllog((YLLogD, fmt, p0))
-#define yllogD2(fmt, p0, p1)             yllog((YLLogD, fmt, p0, p1))
-#define yllogD3(fmt, p0, p1, p2)         yllog((YLLogD, fmt, p0, p1, p2))
-#define yllogD4(fmt, p0, p1, p2, p3)     yllog((YLLogD, fmt, p0, p1, p2, p3))
-#define yllogD5(fmt, p0, p1, p2, p3, p4) yllog((YLLogD, fmt, p0, p1, p2, p3, p4))
-#define yllogD6(fmt, p0, p1, p2, p3, p4, p5)            \
-    yllog((YLLogD, fmt, p0, p1, p2, p3, p4, p5))
-#define yllogD7(fmt, p0, p1, p2, p3, p4, p5, p6)        \
-    yllog((YLLogD, fmt, p0, p1, p2, p3, p4, p5, p6))
-#define yllogD8(fmt, p0, p1, p2, p3, p4, p5, p6, p7)            \
-    yllog((YLLogD, fmt, p0, p1, p2, p3, p4, p5, p6, p7))
-#define yllogD9(fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8)        \
-    yllog((YLLogD, fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8))
-
-#define yllogI0(fmt)                     yllog((YLLogI, fmt))
-#define yllogI1(fmt, p0)                 yllog((YLLogI, fmt, p0))
-#define yllogI2(fmt, p0, p1)             yllog((YLLogI, fmt, p0, p1))
-#define yllogI3(fmt, p0, p1, p2)         yllog((YLLogI, fmt, p0, p1, p2))
-#define yllogI4(fmt, p0, p1, p2, p3)     yllog((YLLogI, fmt, p0, p1, p2, p3))
-#define yllogI5(fmt, p0, p1, p2, p3, p4) yllog((YLLogI, fmt, p0, p1, p2, p3, p4))
-#define yllogI6(fmt, p0, p1, p2, p3, p4, p5)            \
-    yllog((YLLogI, fmt, p0, p1, p2, p3, p4, p5))
-#define yllogI7(fmt, p0, p1, p2, p3, p4, p5, p6)        \
-    yllog((YLLogI, fmt, p0, p1, p2, p3, p4, p5, p6))
-#define yllogI8(fmt, p0, p1, p2, p3, p4, p5, p6, p7)            \
-    yllog((YLLogI, fmt, p0, p1, p2, p3, p4, p5, p6, p7))
-#define yllogI9(fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8)        \
-    yllog((YLLogI, fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8))
-
-#define yllogW0(fmt)                     yllog((YLLogW, fmt))
-#define yllogW1(fmt, p0)                 yllog((YLLogW, fmt, p0))
-#define yllogW2(fmt, p0, p1)             yllog((YLLogW, fmt, p0, p1))
-#define yllogW3(fmt, p0, p1, p2)         yllog((YLLogW, fmt, p0, p1, p2))
-#define yllogW4(fmt, p0, p1, p2, p3)     yllog((YLLogW, fmt, p0, p1, p2, p3))
-#define yllogW5(fmt, p0, p1, p2, p3, p4) yllog((YLLogW, fmt, p0, p1, p2, p3, p4))
-#define yllogW6(fmt, p0, p1, p2, p3, p4, p5)            \
-    yllog((YLLogW, fmt, p0, p1, p2, p3, p4, p5))
-#define yllogW7(fmt, p0, p1, p2, p3, p4, p5, p6)        \
-    yllog((YLLogW, fmt, p0, p1, p2, p3, p4, p5, p6))
-#define yllogW8(fmt, p0, p1, p2, p3, p4, p5, p6, p7)            \
-    yllog((YLLogW, fmt, p0, p1, p2, p3, p4, p5, p6, p7))
-#define yllogW9(fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8)        \
-    yllog((YLLogW, fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8))
-
-#define yllogE0(fmt)                     yllog((YLLogE, fmt))
-#define yllogE1(fmt, p0)                 yllog((YLLogE, fmt, p0))
-#define yllogE2(fmt, p0, p1)             yllog((YLLogE, fmt, p0, p1))
-#define yllogE3(fmt, p0, p1, p2)         yllog((YLLogE, fmt, p0, p1, p2))
-#define yllogE4(fmt, p0, p1, p2, p3)     yllog((YLLogE, fmt, p0, p1, p2, p3))
-#define yllogE5(fmt, p0, p1, p2, p3, p4) yllog((YLLogE, fmt, p0, p1, p2, p3, p4))
-#define yllogE6(fmt, p0, p1, p2, p3, p4, p5)            \
-    yllog((YLLogE, fmt, p0, p1, p2, p3, p4, p5))
-#define yllogE7(fmt, p0, p1, p2, p3, p4, p5, p6)        \
-    yllog((YLLogE, fmt, p0, p1, p2, p3, p4, p5, p6))
-#define yllogE8(fmt, p0, p1, p2, p3, p4, p5, p6, p7)            \
-    yllog((YLLogE, fmt, p0, p1, p2, p3, p4, p5, p6, p7))
-#define yllogE9(fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8)        \
-    yllog((YLLogE, fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8))
-
-/* ------------------------------
- * Macros for Log -- END
- * ------------------------------*/
 
 /* ------------------------------
  * Macros for NF Log -- START
@@ -424,80 +352,11 @@ extern void ylinterpret_undefined(int reason);
  *    This log macros automatically add 'nfname' as a prefix of log!
  * ------------------------------*/
 
-#define ylnflogV0(fmt)                     yllog((YLLogV, "<!%s!> " fmt, __nFNAME))
-#define ylnflogV1(fmt, p0)                 yllog((YLLogV, "<!%s!> " fmt, __nFNAME, p0))
-#define ylnflogV2(fmt, p0, p1)             yllog((YLLogV, "<!%s!> " fmt, __nFNAME, p0, p1))
-#define ylnflogV3(fmt, p0, p1, p2)         yllog((YLLogV, "<!%s!> " fmt, __nFNAME, p0, p1, p2))
-#define ylnflogV4(fmt, p0, p1, p2, p3)     yllog((YLLogV, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3))
-#define ylnflogV5(fmt, p0, p1, p2, p3, p4) yllog((YLLogV, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4))
-#define ylnflogV6(fmt, p0, p1, p2, p3, p4, p5)            \
-    yllog((YLLogV, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5))
-#define ylnflogV7(fmt, p0, p1, p2, p3, p4, p5, p6)        \
-    yllog((YLLogV, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6))
-#define ylnflogV8(fmt, p0, p1, p2, p3, p4, p5, p6, p7)            \
-    yllog((YLLogV, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6, p7))
-#define ylnflogV9(fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8)        \
-    yllog((YLLogV, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6, p7, p8))
-
-#define ylnflogD0(fmt)                     yllog((YLLogD, "<!%s!> " fmt, __nFNAME))
-#define ylnflogD1(fmt, p0)                 yllog((YLLogD, "<!%s!> " fmt, __nFNAME, p0))
-#define ylnflogD2(fmt, p0, p1)             yllog((YLLogD, "<!%s!> " fmt, __nFNAME, p0, p1))
-#define ylnflogD3(fmt, p0, p1, p2)         yllog((YLLogD, "<!%s!> " fmt, __nFNAME, p0, p1, p2))
-#define ylnflogD4(fmt, p0, p1, p2, p3)     yllog((YLLogD, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3))
-#define ylnflogD5(fmt, p0, p1, p2, p3, p4) yllog((YLLogD, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4))
-#define ylnflogD6(fmt, p0, p1, p2, p3, p4, p5)            \
-    yllog((YLLogD, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5))
-#define ylnflogD7(fmt, p0, p1, p2, p3, p4, p5, p6)        \
-    yllog((YLLogD, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6))
-#define ylnflogD8(fmt, p0, p1, p2, p3, p4, p5, p6, p7)            \
-    yllog((YLLogD, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6, p7))
-#define ylnflogD9(fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8)        \
-    yllog((YLLogD, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6, p7, p8))
-
-#define ylnflogI0(fmt)                     yllog((YLLogI, "<!%s!> " fmt, __nFNAME))
-#define ylnflogI1(fmt, p0)                 yllog((YLLogI, "<!%s!> " fmt, __nFNAME, p0))
-#define ylnflogI2(fmt, p0, p1)             yllog((YLLogI, "<!%s!> " fmt, __nFNAME, p0, p1))
-#define ylnflogI3(fmt, p0, p1, p2)         yllog((YLLogI, "<!%s!> " fmt, __nFNAME, p0, p1, p2))
-#define ylnflogI4(fmt, p0, p1, p2, p3)     yllog((YLLogI, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3))
-#define ylnflogI5(fmt, p0, p1, p2, p3, p4) yllog((YLLogI, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4))
-#define ylnflogI6(fmt, p0, p1, p2, p3, p4, p5)            \
-    yllog((YLLogI, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5))
-#define ylnflogI7(fmt, p0, p1, p2, p3, p4, p5, p6)        \
-    yllog((YLLogI, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6))
-#define ylnflogI8(fmt, p0, p1, p2, p3, p4, p5, p6, p7)            \
-    yllog((YLLogI, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6, p7))
-#define ylnflogI9(fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8)        \
-    yllog((YLLogI, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6, p7, p8))
-
-#define ylnflogW0(fmt)                     yllog((YLLogW, "<!%s!> " fmt, __nFNAME))
-#define ylnflogW1(fmt, p0)                 yllog((YLLogW, "<!%s!> " fmt, __nFNAME, p0))
-#define ylnflogW2(fmt, p0, p1)             yllog((YLLogW, "<!%s!> " fmt, __nFNAME, p0, p1))
-#define ylnflogW3(fmt, p0, p1, p2)         yllog((YLLogW, "<!%s!> " fmt, __nFNAME, p0, p1, p2))
-#define ylnflogW4(fmt, p0, p1, p2, p3)     yllog((YLLogW, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3))
-#define ylnflogW5(fmt, p0, p1, p2, p3, p4) yllog((YLLogW, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4))
-#define ylnflogW6(fmt, p0, p1, p2, p3, p4, p5)            \
-    yllog((YLLogW, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5))
-#define ylnflogW7(fmt, p0, p1, p2, p3, p4, p5, p6)        \
-    yllog((YLLogW, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6))
-#define ylnflogW8(fmt, p0, p1, p2, p3, p4, p5, p6, p7)            \
-    yllog((YLLogW, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6, p7))
-#define ylnflogW9(fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8)        \
-    yllog((YLLogW, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6, p7, p8))
-
-#define ylnflogE0(fmt)                     yllog((YLLogE, "<!%s!> " fmt, __nFNAME))
-#define ylnflogE1(fmt, p0)                 yllog((YLLogE, "<!%s!> " fmt, __nFNAME, p0))
-#define ylnflogE2(fmt, p0, p1)             yllog((YLLogE, "<!%s!> " fmt, __nFNAME, p0, p1))
-#define ylnflogE3(fmt, p0, p1, p2)         yllog((YLLogE, "<!%s!> " fmt, __nFNAME, p0, p1, p2))
-#define ylnflogE4(fmt, p0, p1, p2, p3)     yllog((YLLogE, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3))
-#define ylnflogE5(fmt, p0, p1, p2, p3, p4) yllog((YLLogE, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4))
-#define ylnflogE6(fmt, p0, p1, p2, p3, p4, p5)            \
-    yllog((YLLogE, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5))
-#define ylnflogE7(fmt, p0, p1, p2, p3, p4, p5, p6)        \
-    yllog((YLLogE, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6))
-#define ylnflogE8(fmt, p0, p1, p2, p3, p4, p5, p6, p7)            \
-    yllog((YLLogE, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6, p7))
-#define ylnflogE9(fmt, p0, p1, p2, p3, p4, p5, p6, p7, p8)        \
-    yllog((YLLogE, "<!%s!> " fmt, __nFNAME, p0, p1, p2, p3, p4, p5, p6, p7, p8))
+#define ylnflogV(x...)  do { yllog (YLLogV, "<!%s!> ", __nFNAME); yllog (YLLogV, x); } while (0)
+#define ylnflogD(x...)  do { yllog (YLLogD, "<!%s!> ", __nFNAME); yllog (YLLogD, x); } while (0)
+#define ylnflogI(x...)  do { yllog (YLLogI, "<!%s!> ", __nFNAME); yllog (YLLogI, x); } while (0)
+#define ylnflogW(x...)  do { yllog (YLLogW, "<!%s!> ", __nFNAME); yllog (YLLogW, x); } while (0)
+#define ylnflogE(x...)  do { yllog (YLLogE, "<!%s!> ", __nFNAME); yllog (YLLogE, x); } while (0)
 
 
 /* ------------------------------
@@ -526,7 +385,7 @@ extern void ylinterpret_undefined(int reason);
     { /* jusg scope */                                                  \
         pcsz = ylelist_size(e);                                         \
         if((minp) > pcsz || pcsz > (maxp)) {                            \
-            ylnflogE0("invalid number of parameter\n");                 \
+            ylnflogE ("invalid number of parameter\n");                 \
             ylinterpret_undefined(YLErr_func_invalid_param);            \
         }                                                               \
     }                                                                   \
@@ -537,7 +396,7 @@ extern void ylinterpret_undefined(int reason);
 
 #define ylnfcheck_parameter(cond)                               \
     if(!(cond)) {                                               \
-        ylnflogE0("invalid parameter type\n");                  \
+        ylnflogE ("invalid parameter type\n");                  \
         ylinterpret_undefined(YLErr_func_invalid_param);        \
     }
 

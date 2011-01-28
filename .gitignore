@@ -2,3 +2,15 @@
 .*
 include/
 lib/
+
+# files for build system
+autom4te.cache/
+config.log
+config.status
+config.h
+missing
+install-sh
+depcomp
+aclocal.m4
+Makefile.in
+stamp-h1

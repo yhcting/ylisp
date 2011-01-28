@@ -18,6 +18,9 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 
 #include <errno.h>
@@ -33,11 +36,6 @@
 #include <sys/wait.h>
 #include <memory.h>
 #include <pthread.h>
-
-/* enable logging & debugging */
-#define CONFIG_ASSERT
-#define CONFIG_LOG
-
 #include "ylsfunc.h"
 #include "ylut.h"
 #include "yldynb.h"
@@ -82,14 +80,14 @@ _strclone (const char* str) {
 static int  _aif_fraw_eq (const yle_t* e0, const yle_t* e1) { return e0 == e1; }
 static void
 _aif_fraw_clean (yle_t* e) {
-    int fd = (int)ylacd (e);
+    int fd = (long)ylacd (e);
     if (_INVALID_FD != fd) close (fd);
     ylacd (e) = (void*)_INVALID_FD;
     return;
 }
 static int
 _aif_fraw_to_string (const yle_t* e, char* b, unsigned int sz) {
-    int bw = snprintf (b, sz, "<fd:%d>", (int)ylacd (e));
+    int bw = snprintf (b, sz, "<fd:%ld>", (long)ylacd (e));
     if (bw >= sz) return -1; /* not enough buffer */
     return bw;
 }
@@ -159,7 +157,7 @@ _is_fraw_data_list (yle_t* e) {
     if (yleis_atom (e)) return 0;
     ylelist_foreach (e) {
         if (! (ylais_type (ylcar (e), &_aif_fraw)
-               && (_INVALID_FD != (int)ylacd (ylcar (e)))) )  return 0;
+               && (_INVALID_FD != (long)ylacd (ylcar (e)))) )  return 0;
     }
     return 1;
 }
@@ -183,11 +181,11 @@ _readf (unsigned int* outsz, const char* func, const char* fpath, int btext) {
             break;
 
             case YLErr_io:
-                yllogW2 ("<!%s!> Error: File IO [%s]\n", func, fpath);
+                yllogW ("<!%s!> Error: File IO [%s]\n", func, fpath);
             break;
 
             case YLErr_out_of_memory:
-                yllogW2 ("<!%s!> Not enough memory to load file [%s]\n", func, fpath);
+                yllogW ("<!%s!> Not enough memory to load file [%s]\n", func, fpath);
             break;
 
             default:
@@ -204,7 +202,7 @@ _ccb_fclose (void* f) {
 
 static void
 _ccb_pkill (void* pid) {
-    _killproc((pid_t)pid);
+    _killproc((pid_t)(long)pid);
 }
 
 YLDEFNF(sh, 1, 1) {
@@ -233,7 +231,7 @@ YLDEFNF(sh, 1, 1) {
         cpid = fork();
 
         if (-1 == cpid) {
-            ylnflogE0("Fail to fork!\n");
+            ylnflogE ("Fail to fork!\n");
             goto bail;
         }
 
@@ -241,7 +239,7 @@ YLDEFNF(sh, 1, 1) {
             /*
              * add process resources to thread context.
              */
-            ylmt_add_pres(cxt, (void*)cpid, &_ccb_pkill);
+            ylmt_add_pres(cxt, (void*)(long)cpid, &_ccb_pkill);
             ylmt_add_pres(cxt, fout, &_ccb_fclose);
             /* I'm safe. And may take some time. */
             ylmt_notify_safe(cxt);
@@ -256,14 +254,14 @@ YLDEFNF(sh, 1, 1) {
                 } else {
                     ylassert(0);
                     ylmt_notify_unsafe(cxt);
-                    ylnflogE0("Fail to wait child process!\n");
+                    ylnflogE ("Fail to wait child process!\n");
                     _killproc(cpid);
                     goto bail;
                 }
             }
             ylmt_notify_unsafe(cxt);
             ylmt_rm_pres(cxt, fout);
-            ylmt_rm_pres(cxt, (void*)cpid);
+            ylmt_rm_pres(cxt, (void*)(long)cpid);
         } else { /* child */
             /* redirect stderr to the pipe */
             if (0 > dup2(fileno(fout), STDOUT_FILENO )
@@ -280,7 +278,7 @@ YLDEFNF(sh, 1, 1) {
     fclose(fout);
 
     if (!buf) {
-        ylnflogE0("Fail to read output result\n");
+        ylnflogE ("Fail to read output result\n");
         goto bail;
     } else {
         return ylacreate_sym(buf);
@@ -347,7 +345,7 @@ YLDEFNF(getpid, 0, 0) {
 YLDEFNF(chdir, 1, 1) {
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
     if ( 0 > chdir(ylasym(ylcar(e)).sym) ) {
-        ylnflogW1("Fail to change directory to [ %s ]\n", ylasym(ylcar(e)).sym);
+        ylnflogW ("Fail to change directory to [ %s ]\n", ylasym(ylcar(e)).sym);
         return ylnil();
     } else {
         return ylt();
@@ -368,7 +366,7 @@ YLDEFNF(fstat, 1, 1) {
     yle_t         *r, *key, *v;
     ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
     if (0 > stat(ylasym(ylcar(e)).sym, &st)) {
-        ylnflogW1("Cannot get status of file [%s]\n", ylasym(ylcar(e)).sym);
+        ylnflogW ("Cannot get status of file [%s]\n", ylasym(ylcar(e)).sym);
         return ylnil();
     }
 
@@ -451,7 +449,7 @@ YLDEFNF(fwrite, 2, 2) {
 
     fh = fopen(ylasym(ylcar(e)).sym, "w");
     if (!fh) {
-        ylnflogW1("Cannot open file [%s]\n", ylasym(ylcar(e)).sym);
+        ylnflogW ("Cannot open file [%s]\n", ylasym(ylcar(e)).sym);
         goto bail;
     }
 
@@ -464,7 +462,7 @@ YLDEFNF(fwrite, 2, 2) {
     }
 
     if (sz != fwrite(rawdata, 1, sz, fh)) {
-        ylnflogW1("Fail to write file [%s]\n", ylasym(ylcar(e)).sym);
+        ylnflogW ("Fail to write file [%s]\n", ylasym(ylcar(e)).sym);
         goto bail;
     }
 
@@ -486,7 +484,7 @@ YLDEFNF(readdir, 1, 1) {
     dpath = ylasym(ylcar(e)).sym;
     dip = opendir(dpath);
     if (!dip) {
-        ylnflogW1("Fail to open directory [%s]\n", dpath);
+        ylnflogW ("Fail to open directory [%s]\n", dpath);
         goto bail;
     }
 
@@ -540,13 +538,17 @@ _is_in_string (const char* p, char c) {
     return 0;
 }
 
+#ifdef HAVE_LIBSTDBUF
+
 static int
 _procia_create_prepare_libstdbuf () {
     /* FIXME! : don't hardcode */
 #define __MAX_PATH_LEN         1024
 #define __MAX_LD_PRELOAD_LEN   4096
+
 #define __DIR_PATH             "/usr/lib/coreutils/"
 #define __LIB_NAME             "libstdbuf.so"
+
     /* prepare to use libstdbuf */
     int         ret;
     char        libstdbuf[__MAX_PATH_LEN];
@@ -593,6 +595,7 @@ _procia_create_prepare_libstdbuf () {
 
 YLDEFNF(procia_create, 1, 9999) {
     struct procia_cust* pc = NULL;
+    pid_t     cpid; /* child process id */
     int       wp[] = {_INVALID_FD, _INVALID_FD};
     int       rp[] = {_INVALID_FD, _INVALID_FD};
 
@@ -602,66 +605,60 @@ YLDEFNF(procia_create, 1, 9999) {
     /* before forking flush/clean stdout and stderr */
     fflush (stdout); fflush (stderr);
 
-    { /* Just scope */
-        pid_t   cpid; /* child process id */
+    if (0 > pipe (wp)) goto bail;
+    if (0 > pipe (rp)) goto bail;
 
-        if (0 > pipe (wp)) goto bail;
-        if (0 > pipe (rp)) goto bail;
+    cpid = fork ();
 
-        cpid = fork ();
+    if (-1 == cpid) {
+        ylnflogE ("Fail to fork!\n");
+        goto bail;
+    }
 
-        if (-1 == cpid) {
-            ylnflogE0("Fail to fork!\n");
-            goto bail;
+    if (cpid) { /* parent */
+        close (wp[0]);
+        close (rp[1]);
+        pc = (struct procia_cust*)ylmalloc(sizeof(*pc));
+        pc->cpid = cpid;
+        pc->wp = ylacreate_cust(&_aif_fraw, (void*)(long)wp[1]);
+        pc->rp = ylacreate_cust(&_aif_fraw, (void*)(long)rp[0]);
+    } else { /* child */
+        if (0 > _procia_create_prepare_libstdbuf ()) exit (1);
+
+        /* redirect stdin to the pipe */
+        if (0 > dup2 (wp[0], STDIN_FILENO) ) {
+            perror ("Fail to dup stdin\n");
+            exit (0);
         }
 
-        if (cpid) { /* parent */
-            close (wp[0]);
-            close (rp[1]);
-            pc = (struct procia_cust*)ylmalloc(sizeof(*pc));
-            pc->cpid = cpid;
-            pc->wp = ylacreate_cust(&_aif_fraw, (void*)wp[1]);
-            pc->rp = ylacreate_cust(&_aif_fraw, (void*)rp[0]);
-        } else { /* child */
-
-            if (0 > _procia_create_prepare_libstdbuf ()) exit (1);
-
-            /* redirect stderr/stdout to the pipe */
-            if (0 > dup2 (rp[1], STDOUT_FILENO )
-               || 0 > dup2 (rp[1], STDERR_FILENO)) {
-                perror ("Fail to dup stderr or stdout\n");
-                exit (0);
-            }
-
-            /* redirect stdin to the pipe */
-            if (0 > dup2 (wp[0], STDIN_FILENO) ) {
-                perror ("Fail to dup stdin\n");
-                exit (0);
-            }
-
-            close (wp[1]);
-            close (rp[0]);
-            /* close dupped fds */
-            close (wp[0]);
-            close (rp[1]);
-
-            { /* Just scope */
-                int    i;
-                char** argv = ylmalloc (sizeof(char*)*(pcsz+1));
-                ylassert (argv);
-                for (i=0; i<pcsz; i++) {
-                    argv[i] = ylasym (ylcar (e)).sym;
-                    e = ylcdr (e);
-                }
-                argv[pcsz] = (char*)0;
-                execvp (argv[0], &argv[1]);
-
-                perror ("failed to run command\n");
-                exit (1);
-            }
+        /* redirect stderr/stdout to the pipe */
+        if (0 > dup2 (rp[1], STDOUT_FILENO )
+            || 0 > dup2 (rp[1], STDERR_FILENO)) {
+            perror ("Fail to dup stderr or stdout\n");
+            exit (0);
         }
 
-    } /* Just scope */
+        close (wp[1]);
+        close (rp[0]);
+        /* close dupped fds */
+        close (wp[0]);
+        close (rp[1]);
+
+        { /* Just scope */
+            int    i;
+            char** argv = ylmalloc (sizeof(char*)*(pcsz+1));
+            ylassert (argv);
+            for (i=0; i<pcsz; i++) {
+                argv[i] = ylasym (ylcar (e)).sym;
+                e = ylcdr (e);
+            }
+            argv[pcsz] = (char*)0;
+            execvp (argv[0], &argv[1]);
+
+            perror ("failed to run command\n");
+            exit (1);
+        }
+    }
 
     return ylacreate_cust (&_aif_procia, pc);
 
@@ -670,7 +667,7 @@ YLDEFNF(procia_create, 1, 9999) {
     if (_INVALID_FD != wp[1]) close (wp[1]);
     if (_INVALID_FD != rp[0]) close (rp[0]);
     if (_INVALID_FD != rp[1]) close (rp[1]);
-    if (pc) ylfree(pc);
+    if (pc) ylfree (pc);
     ylinterpret_undefined (YLErr_func_fail);
     return NULL; /* to make compiler be happy. */
 
@@ -693,6 +690,8 @@ YLDEFNF(procia_rfd, 1, 1) {
     return ((struct procia_cust*)ylacd (ylcar (e)))->rp;
 } YLENDNF(procia_rfd)
 
+#endif /* HAVE_LIBSTDBUF */
+
 YLDEFNF(fraw_open, 2, 2) {
     int fd;
     int flags = 0;
@@ -712,21 +711,21 @@ YLDEFNF(fraw_open, 2, 2) {
     ylmt_notify_unsafe (cxt);
 
     if (0 > fd) {
-        ylnflogW1 ("Fail to open file : %s\n", strerror (errno));
+        ylnflogW ("Fail to open file : %s\n", strerror (errno));
         return ylnil ();
     }
 
-    return ylacreate_cust (&_aif_fraw, (void*)fd);
+    return ylacreate_cust (&_aif_fraw, (void*)(long)fd);
 } YLENDNF(fraw_open)
 
 YLDEFNF(fraw_close, 1, 1) {
     int fd, ret;
     /* check input parameter */
     ylnfcheck_parameter (ylais_type_chain (e, &_aif_fraw)
-                         && (_INVALID_FD != (int)ylacd (ylcar (e))) );
-    fd = (int)ylacd (ylcar (e));
+                         && (_INVALID_FD != (long)ylacd (ylcar (e))) );
+    fd = (long)ylacd (ylcar (e));
     if (!_is_valid_fd (fd)) {
-        ylnflogE1 ("This is NOT valid file descripter : %d\n", fd);
+        ylnflogE ("This is NOT valid file descripter : %d\n", fd);
         ylinterpret_undefined (YLErr_func_invalid_param);
     }
     ret = close (fd);
@@ -739,14 +738,14 @@ YLDEFNF(fraw_close, 1, 1) {
 
 YLDEFNF(fraw_sysfd, 1, 1) {
     ylnfcheck_parameter (ylais_type_chain (e, &_aif_fraw)
-                         && (_INVALID_FD != (int)ylacd (ylcar (e))) );
-    return ylacreate_dbl ((int)ylacd (ylcar (e)));
+                         && (_INVALID_FD != (long)ylacd (ylcar (e))) );
+    return ylacreate_dbl ((long)ylacd (ylcar (e)));
 } YLENDNF(fraw_sysfd)
 
 YLDEFNF(fraw_is_valid, 1, 1) {
     ylnfcheck_parameter (ylais_type_chain (e, &_aif_fraw)
-                         && (_INVALID_FD != (int)ylacd (ylcar (e))) );
-    return _is_valid_fd ((int)ylacd (ylcar (e)))? ylt (): ylnil ();
+                         && (_INVALID_FD != (long)ylacd (ylcar (e))) );
+    return _is_valid_fd ((long)ylacd (ylcar (e)))? ylt (): ylnil ();
 } YLENDNF(fraw_sysfd)
 
 
@@ -755,11 +754,11 @@ YLDEFNF(fraw_write, 2, 2) {
     yle_t*    d = ylcadr(e);
     /* check input parameter */
     ylnfcheck_parameter (ylais_type (ylcar (e), &_aif_fraw)
-                         && (_INVALID_FD != (int)ylacd (ylcar (e)))
+                         && (_INVALID_FD != (long)ylacd (ylcar (e)))
                          && ylais_type (ylcadr (e), ylaif_bin ()));
-    fd = (int)ylacd (ylcar (e));
+    fd = (long)ylacd (ylcar (e));
     if (!_is_valid_fd (fd)) {
-        ylnflogE1 ("This is NOT valid file descripter : %d\n", fd);
+        ylnflogE ("This is NOT valid file descripter : %d\n", fd);
         ylinterpret_undefined (YLErr_func_invalid_param);
     }
 
@@ -769,7 +768,7 @@ YLDEFNF(fraw_write, 2, 2) {
     ylmt_notify_unsafe(cxt);
 
     if (ylabin (d).sz != bw) {
-        ylnflogW1 ("Fail to write file. : fd : %d\n", fd);
+        ylnflogW ("Fail to write file. : fd : %d\n", fd);
         ylinterpret_undefined (YLErr_func_fail);
     }
     return ylt ();
@@ -786,12 +785,12 @@ YLDEFNF(fraw_read, 1, 1) {
     int        fd, br;
     /* check input parameter */
     ylnfcheck_parameter(ylais_type_chain(e, &_aif_fraw)
-                        && (_INVALID_FD != (int)ylacd (ylcar (e))) );
+                        && (_INVALID_FD != (long)ylacd (ylcar (e))) );
 
-    fd = (int)ylacd (ylcar (e));
+    fd = (long)ylacd (ylcar (e));
 
     if (!_is_valid_fd (fd)) {
-        ylnflogE1 ("This is NOT valid file descripter : %d\n", fd);
+        ylnflogE ("This is NOT valid file descripter : %d\n", fd);
         ylinterpret_undefined (YLErr_func_invalid_param);
     }
 
@@ -805,7 +804,7 @@ YLDEFNF(fraw_read, 1, 1) {
         if (br < 0) {
             if (EAGAIN == errno) { yldynb_reset (dynb); break; }
             else {
-                ylnflogE0 ("Fail to read\n");
+                ylnflogE ("Fail to read\n");
                 ylinterpret_undefined (YLErr_func_fail);
             }
         } else if (br < yldynb_freesz (dynb)) {
@@ -814,7 +813,7 @@ YLDEFNF(fraw_read, 1, 1) {
         } else {
             dynb->sz += br;
             if (0 > yldynb_expand (dynb) ) {
-                ylnflogE1 ("Out of memory : sz requested : %d\n", yldynb_limit (dynb));
+                ylnflogE ("Out of memory : sz requested : %d\n", yldynb_limit (dynb));
                 ylinterpret_undefined (YLErr_out_of_memory);
             }
         }
@@ -873,10 +872,10 @@ YLDEFNF(fraw_select, 4, 4) {
         yle_t* te = e;                                                  \
         int    tfd;                                                     \
         ylelist_foreach (te) {                                          \
-            tfd = (int)ylacd (ylcar (te));                              \
+            tfd = (long)ylacd (ylcar (te));                             \
             if (nfds < tfd) nfds = tfd;                                 \
             if (!_is_valid_fd (tfd)) {                                  \
-                ylnflogE1 ("Invalid file descriptor : %d\n", tfd);      \
+                ylnflogE ("Invalid file descriptor : %d\n", tfd);       \
                 ylinterpret_undefined (YLErr_func_fail);                \
             }                                                           \
             FD_SET (tfd, fdset);                                        \
@@ -894,7 +893,7 @@ YLDEFNF(fraw_select, 4, 4) {
     ylmt_notify_unsafe (cxt);
 
     if (0 > retval) {
-        ylnflogE0 ("Fail to select\n");
+        ylnflogE ("Fail to select\n");
         ylinterpret_undefined (YLErr_func_fail);
     }
     /* check timeout */
@@ -906,7 +905,7 @@ YLDEFNF(fraw_select, 4, 4) {
         int    tfd;                                                     \
         yle_t* l = ylnil ();   /* list */                               \
         ylelist_foreach (te) {                                          \
-            tfd = (int)ylacd (ylcar (te));                              \
+            tfd = (long)ylacd (ylcar (te));                             \
             if (FD_ISSET (tfd, fdset))                                  \
                 l = ylcons (ylcar (te), l);                             \
         }                                                               \

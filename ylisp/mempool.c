@@ -18,6 +18,10 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 
 /**************************************
  *
@@ -100,7 +104,7 @@ ylmp_block() {
     _mlock(&_mm);
     if(_m.fbi <= 0) {
         _munlock(&_mm);
-        yllogE1("Not enough Memory Pool.. Current size is %d\n", ylmpsz());
+        yllogE ("Not enough Memory Pool.. Current size is %d\n", ylmpsz());
         ylassert(0);
         return NULL; /* to make compiler happy */
     } else {
@@ -148,7 +152,7 @@ ylmp_rm_bb(yle_t* e) {
     }
     _munlock(&_mbbs);
     if(i<0) {
-        yllogW1("WARN!! Try to remove unregistered base block! : %p\n", e);
+        yllogW ("WARN!! Try to remove unregistered base block! : %p\n", e);
     }
 }
 
@@ -229,7 +233,7 @@ _gc() {
             _clean_block(_m.fbp[i]);
         }
     }
-    yllogI4("GC Triggered (%d\% -> %d\%) :\n"
+    yllogD ("GC Triggered (%d\% -> %d\%) :\n"
             "%d blocks collected\n"
             "bbs stack size : %d\n",
             ratio_sv, _usage_ratio(),
@@ -280,7 +284,7 @@ _mt_listener_all_safe(pthread_mutex_t* mtx) {
     _mlock(&_mm);
     if(_usage_ratio() >= ylgctp()) {
         if (_gc_enabled) _gc();
-        else yllogW0 ("Memory is running out! But GC is disabled!!!\n");
+        else yllogW ("Memory is running out! But GC is disabled!!!\n");
         _munlock(&_mm);
         dbg_mutex(yllogI0("+CondBroadcast : GC done\n"););
         pthread_cond_broadcast(&_condgc);

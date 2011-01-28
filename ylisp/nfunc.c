@@ -18,6 +18,9 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 
 #include <dlfcn.h>
@@ -33,7 +36,7 @@
 
 YLDEFNF(__dummy, 0, 0) {
     /* This is just dummy */
-    ylnflogE0("'lambda' or 'mlambda' cannot be used as function name!\n");
+    ylnflogE ("'lambda' or 'mlambda' cannot be used as function name!\n");
     ylinterpret_undefined(YLErr_func_fail);
     return ylnil();
 } YLENDNF(__dummy)
@@ -75,7 +78,7 @@ YLDEFNF(set, 2, 3) {
         if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
             return ylset (cxt, ylcar (e), ylcadr (e), a,ylasym (ylcaddr (e)).sym, 0);
         } else {
-            ylnflogE0 ("SET : 3rd parameter should be description string\n");
+            ylnflogE  ("SET : 3rd parameter should be description string\n");
             ylinterpret_undefined (YLErr_func_invalid_param);
             return NULL; /* to make compiler happy */
         }
@@ -89,7 +92,7 @@ YLDEFNF(tset, 2, 3) {
         if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
             return ylset (cxt, ylcar (e), ylcadr (e), a,ylasym (ylcaddr (e)).sym, STyper_thread);
         } else {
-            ylnflogE0 ("SET : 3rd parameter should be description string\n");
+            ylnflogE  ("SET : 3rd parameter should be description string\n");
             ylinterpret_undefined (YLErr_func_invalid_param);
             return NULL; /* to make compiler happy */
         }
@@ -103,7 +106,7 @@ YLDEFNF(f_mset, 2, 3) {
         if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
             return ylset (cxt, ylcar (e), ylcadr (e), a, ylasym (ylcaddr (e)).sym, STymac);
         } else {
-            ylnflogE0 ("MSET : 3rd parameter should be description string\n");
+            ylnflogE  ("MSET : 3rd parameter should be description string\n");
             ylinterpret_undefined (YLErr_func_invalid_param);
             return NULL; /* to make compiler happy */
         }
@@ -117,7 +120,7 @@ YLDEFNF(f_tmset, 2, 3) {
         if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
             return ylset (cxt, ylcar (e), ylcadr (e), a, ylasym (ylcaddr (e)).sym, STymac | STyper_thread);
         } else {
-            ylnflogE0 ("MSET : 3rd parameter should be description string\n");
+            ylnflogE  ("MSET : 3rd parameter should be description string\n");
             ylinterpret_undefined (YLErr_func_invalid_param);
             return NULL; /* to make compiler happy */
         }
@@ -193,19 +196,19 @@ YLDEFNF(load_cnf, 1, 1) {
     fname = ylasym(ylcar(e)).sym;
     handle = dlopen(fname, RTLD_LAZY);
     if(!handle) {
-        ylnflogE1("Cannot open custom command library : %s\n", dlerror());
+        ylnflogE ("Cannot open custom command library : %s\n", dlerror());
         goto bail;
     }
 
     register_cnf = dlsym(handle, "ylcnf_onload");
     if(NULL != dlerror()) {
-        ylnflogE1("Error to get 'ylcnf_onload' : %s\n", dlerror());
+        ylnflogE ("Error to get 'ylcnf_onload' : %s\n", dlerror());
         goto bail;
     }
 
     (*register_cnf)(cxt);
 
-    ylnflogI0("done\n");
+    ylnflogI ("done\n");
 
     /* dlclose(handle); */
     return ylt();
@@ -231,13 +234,13 @@ YLDEFNF(unload_cnf, 1, 1) {
      */
     handle = dlopen(fname, RTLD_LAZY);
     if(!handle) {
-        ylnflogE1("Cannot open custom command library : %s\n", dlerror());
+        ylnflogE ("Cannot open custom command library : %s\n", dlerror());
         goto bail;
     }
 
     unregister_cnf = dlsym(handle, "ylcnf_onunload");
     if(NULL != dlerror()) {
-        ylnflogE1("Error to get symbol : %s\n", dlerror());
+        ylnflogE ("Error to get symbol : %s\n", dlerror());
         goto bail;
     }
 
@@ -245,7 +248,7 @@ YLDEFNF(unload_cnf, 1, 1) {
 
     dlclose(handle);
 
-    ylnflogI0("done\n");
+    ylnflogI ("done\n");
 
     return ylt();
 
@@ -261,7 +264,7 @@ YLDEFNF(interpret, 1, 1) {
     ylnfcheck_parameter (ylais_type_chain (e, ylaif_sym ()));
     code = ylasym (ylcar (e)).sym;
     if (YLOk != ylinterpret_internal (cxt, (unsigned char*) code, (unsigned int) strlen (code))) {
-        ylnflogE1 ("ERROR at interpreting given code\n%s\n", code);
+        ylnflogE  ("ERROR at interpreting given code\n%s\n", code);
         return ylnil ();
     } else return ylt ();
 } YLENDNF(interpret)
@@ -280,7 +283,7 @@ YLDEFNF(interpret_file, 1, 9999) {
 
         fh = fopen(fname, "r");
         if(!fh) {
-            ylnflogE1("Cannot open lisp file [%s]\n", fname);
+            ylnflogE ("Cannot open lisp file [%s]\n", fname);
             goto bail;
         }
 
@@ -289,28 +292,26 @@ YLDEFNF(interpret_file, 1, 9999) {
         sz = ftell(fh);
         fseek(fh, 0, SEEK_SET);
 
-        buf = ylmalloc((unsigned int)sz);
+        buf = ylmalloc(sz);
         if(!buf) {
-            ylnflogE1("Not enough memory to load file [%s]\n", fname);
+            ylnflogE ("Not enough memory to load file [%s]\n", fname);
             goto bail;
         }
 
         if(sz != fread(buf, 1, sz, fh)) {
-            ylnflogE1("Fail to read file [%s]\n", fname);
+            ylnflogE ("Fail to read file [%s]\n", fname);
             goto bail;
         }
 
-        { /* Just Scope */
-            if(YLOk != ylinterpret_internal(cxt, buf, sz)) {
-                ylnflogE1("ERROR at interpreting [%s]\n", fname);
-                goto bail;
-            }
+        if(YLOk != ylinterpret_internal(cxt, buf, sz)) {
+            ylnflogE ("ERROR at interpreting [%s]\n", fname);
+            goto bail;
         }
 
         if(fh) { fclose(fh); }
         if(buf) { ylfree(buf); }
 
-        ylnflogI1("interpret-file: [%s] is done\n", fname);
+        ylnflogI ("interpret-file: [%s] is done\n", fname);
 
         e = ylcdr(e);
     }

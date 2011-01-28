@@ -19,6 +19,8 @@
  *****************************************************************************/
 
 
+#ifdef HAVE_LIBM
+
 /**********************************************
  * Math
  **********************************************/
@@ -105,6 +107,8 @@ NFUNC(fabs,               "fabs",               ylaif_nfunc(),
 NFUNC(pow,                "pow",                ylaif_nfunc(),
     "pow <base> <exponent> : [Double]\n"
     "    -return <base> raised to the power <exponent>\n")
+
+#endif /* HAVE_LIBM */
 
 /**********************************************
  * String
@@ -339,6 +343,8 @@ NFUNC(readdir,             "readdir",           ylaif_nfunc(),
     "    *ex\n"
     "        (readdir '/usr) => <file names in the directory>\n")
 
+#ifdef HAVE_LIBSTDBUF
+
 NFUNC(procia_create,       "procia-create",     ylaif_nfunc(),
     "procia-create <executable file> <arg0> <arg1> ... : <custom data>\n"
     "    -procia [PROCess InterActive]\n"
@@ -347,6 +353,10 @@ NFUNC(procia_create,       "procia-create",     ylaif_nfunc(),
     "      line-buffered, line-buffered, unbuffered respectively\n"
     "      (by convention)\n"
     "     pair function is procia-destroy\n"
+    "    *NOTE*\n"
+    "        'procia_xxxx' is very high level tool function.\n"
+    "        And not fully debugged.\n"
+    "        So, be careful to use this!\n"
     "    @return: custom data\n")
 
 NFUNC(procia_destroy,      "procia-destroy",    ylaif_nfunc(),
@@ -364,6 +374,8 @@ NFUNC(procia_rfd,          "procia-rfd",        ylaif_nfunc(),
     "procia-rfd <custom>: <fraw-xxx custom>\n"
     "    -Get read file descriptor.\n"
     "     Data can be read from process's standard output by using 'fdread'\n")
+
+#endif /* HAVE_LIBSTDBUF */
 
 NFUNC(fraw_open,           "fraw-open",         ylaif_nfunc(),
     "fraw-open <file path> <flag>: [<fd>/nil]\n"

@@ -18,21 +18,20 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 
 #include <stdio.h>
 #include <string.h>
 #include <memory.h>
 
-#ifdef CONFIG_PCRE_REGEX
+#ifdef HAVE_LIBPCRE
 #   include "pcre.h"
-#else /* CONFIG_PCRE_REGEX */
+#else /* HAVE_LIBPCRE */
 #   include <regex.h>
-#endif /* CONFIG_PCRE_REGEX */
-
-/* enable logging & debugging */
-#define CONFIG_ASSERT
-#define CONFIG_LOG
+#endif /* HAVE_LIBPCRE */
 
 #include "ylsfunc.h"
 
@@ -55,7 +54,7 @@ _get_custom_option(const char* optstr) {
 }
 
 
-#ifdef CONFIG_PCRE_REGEX
+#ifdef HAVE_LIBPCRE
 /*
  * !!! NOTE !!!
  * PCRE functions are 'Thread Safe'!
@@ -77,7 +76,7 @@ _get_pcre_option(const char* optstr) {
             case 's': opt |= PCRE_DOTALL;       break;
             case 'g': break; /* do nothing.. this is custom option */
             default:
-                yllogE1("<!pcre_xxx!> Unsupported option! [%c]\n", *optstr);
+                yllogE ("<!pcre_xxx!> Unsupported option! [%c]\n", *optstr);
                 ylinterpret_undefined(YLErr_func_fail);
         }
         optstr++;
@@ -105,7 +104,7 @@ YLDEFNF(re_match, 3, 3) {
 
     re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
     if(!re) {
-        ylnflogE2("PCRE compilation failed.\n"
+        ylnflogE ("PCRE compilation failed.\n"
                   "    offset %d: %s\n", err_offset, errmsg);
         /* This is a kind of function parameter error!! */
         ylinterpret_undefined(YLErr_func_fail);
@@ -131,7 +130,7 @@ YLDEFNF(re_match, 3, 3) {
         ; /* nothing to do */
     } else {
         /* error case */
-        ylnflogE1("PCRE error in match [%d]\n", rc);
+        ylnflogE ("PCRE error in match [%d]\n", rc);
         ylinterpret_undefined(YLErr_func_fail);
     }
     return ylcdr(hd);
@@ -161,7 +160,7 @@ YLDEFNF(re_replace, 4, 4) {
 
         re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
         if(!re) {
-            ylnflogE2("PCRE compilation failed.\n"
+            ylnflogE ("PCRE compilation failed.\n"
                       "    offset %d: %s\n", err_offset, errmsg);
             /* This is a kind of function parameter error!! */
             goto bail;
@@ -182,7 +181,7 @@ YLDEFNF(re_replace, 4, 4) {
         /* use copied one */
         subject = ylmalloc(strlen(ylasym(ylcaddr(e)).sym)+1);
         if(!subject) {
-            ylnflogE0("Out of memory\n");
+            ylnflogE ("Out of memory\n");
             interp_err = YLErr_out_of_memory;
             goto bail;
         }
@@ -202,7 +201,7 @@ YLDEFNF(re_replace, 4, 4) {
                 newsz = subjlen - (ovect[1] - ovect[0]) + substlen;
                 p = newstr = ylmalloc(newsz +1); /* +1 for trailing NULL */
                 if(!p) {
-                    ylnflogE0("Out of memory\n");
+                    ylnflogE ("Out of memory\n");
                     interp_err = YLErr_out_of_memory;
                     goto bail;
                 }
@@ -222,7 +221,7 @@ YLDEFNF(re_replace, 4, 4) {
                 break;
             } else {
                 /* error case */
-                ylnflogE1("PCRE error in match [%d]\n", rc);
+                ylnflogE ("PCRE error in match [%d]\n", rc);
                 goto bail;
             }
         } while (opt & _OPT_GLOBAL);
@@ -236,7 +235,7 @@ YLDEFNF(re_replace, 4, 4) {
     return NULL; /* to make compiler be happy. */
 } YLENDNF(re_replace)
 
-#else /* CONFIG_PCRE_REGEX */
+#else /* HAVE_LIBPCRE */
 
 static int
 _get_re_option (const char* optstr) {
@@ -247,7 +246,7 @@ _get_re_option (const char* optstr) {
             case 'm': opt &= ~REG_NEWLINE;    break;
             case 'g': break; /* do nothing.. this is custom option */
             default:
-                yllogE1 ("<!re_xxx!> Unsupported option! [%c]\n", *optstr);
+                yllogE ("<!re_xxx!> Unsupported option! [%c]\n", *optstr);
                 ylinterpret_undefined (YLErr_func_fail);
         }
         optstr++;
@@ -282,8 +281,8 @@ YLDEFNF(re_match, 3, 3) {
     r = regcomp (re, pattern, opt);
     if (r < 0) {
         regerror (r, re, b, __ERRBUFSZ);
-        ylnflogE1 ("RE compilation failed.\n"
-                   "    %s\n", b);
+        ylnflogE ("RE compilation failed.\n"
+                  "    %s\n", b);
         goto bail;
     }
 
@@ -310,8 +309,8 @@ YLDEFNF(re_match, 3, 3) {
         ;/* nothing to do at this case */
     } else {
         regerror (r, re, b, __ERRBUFSZ);
-        ylnflogE1 ("RE match failed.\n"
-                   "    %s\n", b);
+        ylnflogE ("RE match failed.\n"
+                  "    %s\n", b);
         goto bail;
     }
 
@@ -353,8 +352,8 @@ YLDEFNF(re_replace, 4, 4) {
         r = regcomp (re, pattern, opt);
         if (r < 0) {
             regerror (r, re, b, __ERRBUFSZ);
-            ylnflogE1 ("RE compilation failed.\n"
-                       "    %s\n", b);
+            ylnflogE ("RE compilation failed.\n"
+                      "    %s\n", b);
             goto bail;
         }
     }
@@ -373,7 +372,7 @@ YLDEFNF(re_replace, 4, 4) {
         /* use copied one */
         subject = ylmalloc (strlen (ylasym (ylcaddr (e)).sym) + 1);
         if (!subject) {
-            ylnflogE0 ("Out of memory\n");
+            ylnflogE ("Out of memory\n");
             interp_err = YLErr_out_of_memory;
             goto bail;
         }
@@ -393,7 +392,7 @@ YLDEFNF(re_replace, 4, 4) {
                 newsz = subjlen - (rm.rm_eo - rm.rm_so) + substlen;
                 p = newstr = ylmalloc (newsz + 1); /* +1 for trailing NULL */
                 if (!p) {
-                    ylnflogE0 ("Out of memory\n");
+                    ylnflogE ("Out of memory\n");
                     interp_err = YLErr_out_of_memory;
                     goto bail;
                 }
@@ -414,8 +413,8 @@ YLDEFNF(re_replace, 4, 4) {
             } else {
                 /* error case */
                 regerror (r, re, b, __ERRBUFSZ);
-                ylnflogE1 ("RE compilation failed.\n"
-                           "    %s\n", b);
+                ylnflogE ("RE compilation failed.\n"
+                          "    %s\n", b);
                 goto bail;
             }
         } while (opt & _OPT_GLOBAL);
@@ -438,7 +437,7 @@ YLDEFNF(re_replace, 4, 4) {
 
 
 
-#endif /* CONFIG_PCRE_REGEX */
+#endif /* HAVE_LIBPCRE */
 
 
 

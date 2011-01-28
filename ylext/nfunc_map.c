@@ -18,6 +18,9 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 
 #include <stdlib.h>
@@ -30,12 +33,6 @@
  */
 #include <unistd.h>
 #include <pthread.h>
-
-
-/* enable logging & debugging */
-#define CONFIG_ASSERT
-#define CONFIG_LOG
-
 #include "ylsfunc.h"
 #include "yltrie.h"
 #include "yldynb.h"
@@ -310,7 +307,7 @@ _make_map (yletcxt_t* cxt, yle_t* e, yle_t* a, int pcsz,
             v = yleval (cxt, ylcadar (w), a);
             if (1 == (*_amapi (r)->insert) (_amapd (r), (unsigned char*)ylasym (ylcaar (w)).sym,
                                   (unsigned int)strlen (ylasym (ylcaar (w)).sym), v) )
-                yllogW1 ("Map duplicated intial value : %s\n", ylasym (ylcaar (w)).sym);
+                yllogW ("Map duplicated intial value : %s\n", ylasym (ylcaar (w)).sym);
         }
     }
     ylmp_rm_bb1 (r);
@@ -318,7 +315,7 @@ _make_map (yletcxt_t* cxt, yle_t* e, yle_t* a, int pcsz,
     return r;
 
  invalid_param:
-    yllogE0 ("invalid parameter type\n");
+    yllogE ("invalid parameter type\n");
     return NULL; /* to make compiler be happy */
 }
 
@@ -373,7 +370,7 @@ YLDEFNF(map_insert, 2, 3) {
     /* unref will be done inside of 'insert' by _element_freecb */
     switch (r) {
         case -1:
-            ylnflogE1 ("Fail to insert to trie : %s\n", ylasym (ylcadr (e)).sym);
+            ylnflogE ("Fail to insert to trie : %s\n", ylasym (ylcadr (e)).sym);
             ylinterpret_undefined (YLErr_func_fail);
 
         case 1: return ylt ();   /* overwritten */
@@ -398,7 +395,7 @@ YLDEFNF(map_del, 2, 2) {
 
     if (0 > r) {
         /* invalid slot name */
-        ylnflogW1 ("invalid slot name : %s\n", ylasym (ylcadr (e)).sym);
+        ylnflogW ("invalid slot name : %s\n", ylasym (ylcadr (e)).sym);
         return ylnil ();
     } else
         return ylt ();
@@ -419,7 +416,7 @@ YLDEFNF(map_get, 2, 2) {
     if (v) return (yle_t*)v;
     else {
         /* invalid slot name */
-        ylnflogW1 ("invalid slot name : %s\n", ylasym (ylcadr (e)).sym);
+        ylnflogW ("invalid slot name : %s\n", ylasym (ylcadr (e)).sym);
         return ylnil ();
     }
 } YLENDNF(map_get)

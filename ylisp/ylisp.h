@@ -27,6 +27,7 @@
 #ifndef ___YLISp_h___
 #define ___YLISp_h___
 
+#include <stddef.h>
 
 typedef enum {
     YLOk,
@@ -131,7 +132,7 @@ typedef struct {
     void       (*assert_)(int);
 
     /* memory allocation - to get centralized control about memory statistic */
-    void*      (*malloc)(unsigned int);
+    void*      (*malloc)(size_t);
 
     /* memory free */
     void       (*free)(void*);

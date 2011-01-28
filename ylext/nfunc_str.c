@@ -18,6 +18,10 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 /* =========================================
  * We may support utf-8 later.
  * So, 'Binary' type cannot be put here even if
@@ -27,11 +31,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <memory.h>
-
-/* enable logging & debugging */
-#define CONFIG_ASSERT
-#define CONFIG_LOG
-
 #include "ylsfunc.h"
 
 YLDEFNF(strlen, 1, 1) {
@@ -93,7 +92,7 @@ YLDEFNF(char_at, 2, 2) {
     p = ylasym(ylcar(e)).sym;
     len = strlen(p);
     if(0 > idx || idx >= len) {
-        ylnflogE0("invalid index value\n");
+        ylnflogE ("invalid index value\n");
         ylinterpret_undefined(YLErr_func_invalid_param);
     }
 
@@ -157,7 +156,7 @@ YLDEFNF(start_with, 2, 3) {
 
     /* check index range */
     if(0 > fromi || fromi >= strsz) {
-        ylnflogW1("invalid index value : %d\n", fromi);
+        ylnflogW ("invalid index value : %d\n", fromi);
         return ylnil();
     }
 

@@ -27,14 +27,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <errno.h>
-#include "config.h"
 
-/*
- * Check build environment
- */
-#if USHRT_MAX != 65535 || UINT_MAX != 4294967295
-#   error Unsupported platform.
-#endif
 /*
  * For debugging
  */
@@ -212,7 +205,7 @@ __mtrylock(pthread_mutex_t* m) {
     if(!r) { return 1; }
     else if(EBUSY == r) { return 0; }
     else {
-        yllogE1("ERROR TRYLOCK Mutex [%s]\n", strerror(r));
+        yllogE ("ERROR TRYLOCK Mutex [%s]\n", strerror(r));
         ylassert(0);
         return 0; /* to make compiler be happy */
     }
@@ -224,7 +217,7 @@ __mlock(pthread_mutex_t* m) {
     int r;
     r = pthread_mutex_lock(m);
     if(r) {
-        yllogE1("ERROR LOCK Mutex [%s]\n", strerror(r));
+        yllogE ("ERROR LOCK Mutex [%s]\n", strerror(r));
         ylassert(0);
     }
 }
@@ -234,7 +227,7 @@ __munlock(pthread_mutex_t* m) {
    int r;
     r = pthread_mutex_unlock(m);
     if(r) {
-        yllogE1("ERROR UNLOCK Mutex [%s]\n", strerror(r));
+        yllogE ("ERROR UNLOCK Mutex [%s]\n", strerror(r));
         ylassert(0);
     }
 }

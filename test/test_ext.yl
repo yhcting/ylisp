@@ -4,9 +4,11 @@
 ; Test Math
 ;=============================
 (print '"\n====== Start Testing 'math' ======\n")
-(assert (equal 't (fuzzy-equal 0.9998 0.9999 0.001)))
-(assert (fuzzy-equal 0.98 (fraction 5.98) 0.00000001))
-(assert (equal 1024 (pow 2 10)))
+(cond ((set? 'pow) (progn 
+    (assert (equal 't (fuzzy-equal 0.9998 0.9999 0.001)))
+    (assert (fuzzy-equal 0.98 (fraction 5.98) 0.00000001))
+    (assert (equal 1024 (pow 2 10)))
+)))
 
 ;=============================
 ; Test String
@@ -30,7 +32,8 @@
             (assert (equal '123 (cadr R)))
             (assert (equal 'abcd (caddr R)))
             (set 'R (re-match '"^([0-9]+)([a-z]+)" '"123aBcD fff" '"i"))
-            (assert (equal '123aBcD (car R))))))
+            (assert (equal '123aBcD (car R))))
+))
 
 (cond ((set? 're-replace)
         (let ((R '()) (subj '"hahaha my name is cho!"))
@@ -38,7 +41,8 @@
             (assert (equal R '"hahaha my full name is cho!"))
             (assert (equal '"Abcde abcde ab" (re-replace 'a 'A '"abcde abcde ab" '"")))
             (assert (equal '"abcde" (re-replace 't 'T '"abcde" '"")))
-            (assert (equal '"Abcde Abcde Ab" (re-replace 'a 'A '"abcde abcde ab" '"g"))))))
+            (assert (equal '"Abcde Abcde Ab" (re-replace 'a 'A '"abcde abcde ab" '"g"))))
+))
 
 (assert (equal 'a (char-at 'abcdefg 0)))
 (assert (equal 'g (char-at 'abcdefg 6)))
@@ -194,51 +198,80 @@
 ;(unset 'extfds)
 
 ; ** Test for procia-xxxx
-(set 'extpia (procia-create './__procia_test '1 'a 'ha))
-; strlen of __procia_test is greater than 10!
-(assert (< 10 (strlen (sh '"ps -e | grep __procia_test"))))
-(assert (equal '"1/a/ha/\n" (to-string (fraw-read (procia-rfd extpia)))))
-(fraw-write (procia-wfd extpia) (to-bin '"procia test\n"))
-(assert (equal '"procia test\n" (to-string (fraw-read (procia-rfd extpia)))))
-(procia-destroy extpia)
-(assert (equal 0 (strlen (sh '"ps -e | grep __procia_test"))))
+; 'procia-xxx' is very high level tool function.
+; So, make it be stable against lots of unexpected case is very difficult.
+; FIXME!!
+;     vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+;     !! test for 'procia' is not stable yet. !!
+;     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+;     This test fails very often due to SIGPIPE etc.
+;     All these functions are ightly coupled with OS and system (ex glibc)...
+;     So, very difficult to debug and understand.
+;     This is known bug.... Need to deep dive!!
+;     Hmmm... Not easy... :-(
+;
+; INFO
+;    'procia-xxxx' was not fails til last commit - 94c9a7f634c271f3a3f90532fa3919d105950ec8.
+;    But now, it fails very often.
+;    In my opinion, things that may affect to this state is,
+;        - Source code change... (yes.. definitely, build style and some codes are changed.)
+;        - glibc version is updated to Ubuntu EGLIBC 2.12.1-0ubuntu10.1.
+;    I haven't seen failure in Single-Thread-Test.
+;    Test very often fails at 'MT-test' mode.
+;    And, existence of below line - "(cond ((set? 'procia-create) (progn"
+;     affects to failure frequency. (more when it exists.)
+(cond ((set? 'procia-create) (progn
+    (set 'extstr '"")
+    (set 'extpia (procia-create './__procia_test '1 'a 'ha))
+    (usleep 100000)
+    ; strlen of __procia_test is greater than 10!
+    (assert (< 10 (strlen (sh '"ps -e | grep __procia_test"))))
+    (set 'extstr (to-string (fraw-read (procia-rfd extpia))))
+    (print '------[ extstr '"]\n")
+    (assert (equal '"1/a/ha/\n" extstr))
+    ;(assert (equal '"1/a/ha/\n" (to-string (fraw-read (procia-rfd extpia)))))
+    (fraw-write (procia-wfd extpia) (to-bin '"procia test\n"))
+    (assert (equal '"procia test\n" (to-string (fraw-read (procia-rfd extpia)))))
+    (procia-destroy extpia)
+    (assert (equal 0 (strlen (sh '"ps -e | grep __procia_test"))))
 
-(set 'extpia (procia-create './__procia_test '1 'a 'ha))
-; strlen of __procia_test is greater than 10!
-(assert (< 10 (strlen (sh '"ps -e | grep __procia_test"))))
-(assert (equal '"1/a/ha/\n" (procia-read extpia 0)))
-(procia-write extpia '"procia test\n")
-(assert (equal '"procia test\n" (procia-read extpia 0)))
-(procia-destroy extpia)
-(assert (equal 0 (strlen (sh '"ps -e | grep __procia_test"))))
+    (set 'extpia (procia-create './__procia_test '1 'a 'ha))
+    ; strlen of __procia_test is greater than 10!
+    (assert (< 10 (strlen (sh '"ps -e | grep __procia_test"))))
+    (assert (equal '"1/a/ha/\n" (procia-read extpia 0)))
+    (procia-write extpia '"procia test\n")
+    (assert (equal '"procia test\n" (procia-read extpia 0)))
+    (procia-destroy extpia)
+    (assert (equal 0 (strlen (sh '"ps -e | grep __procia_test"))))
 
-; read timeout test.
-(let ( (pia '()) (sr '()) )
-    (set 'pia (procia-create './__procia_test '1 'a 'ha))
-; remove first starting message of __procia_test
-    (procia-read pia 0)
+    ; read timeout test.
+    (let ( (pia '()) (sr '()) )
+        (set 'pia (procia-create './__procia_test '1 'a 'ha))
+        ; remove first starting message of __procia_test
+        (procia-read pia 0)
 
-    (procia-write pia '"procia test\n")
-    (set 'sr (procia-read pia 1000))
-    (assert (equal '"procia test\n" sr))
+        (procia-write pia '"procia test\n")
+        (set 'sr (procia-read pia 1000))
+        (assert (equal '"procia test\n" sr))
 
-    (procia-write pia '"procia test\n")
-    (set 'sr (procia-read pia 1))
-    (assert (null sr))
+        (procia-write pia '"procia test\n")
+        (set 'sr (procia-read pia 1))
+        (assert (null sr))
 
-    (procia-destroy pia))
+        (procia-destroy pia))
 
-
-; ** Test GC of procia-xxxx
-(set 'extpia (procia-create './__procia_test '1 'a 'ha))
-(assert (< 10  (strlen (sh '"ps -e | grep __procia_test"))))
-(unset 'extpia)
-; trigger GC by newly using memory block
-(set 'extpia (list 'a 'b 'c))
-; Now object created by 'procia-create' should be GCed.
-; So, child process should not exist!!
-(assert (equal 0 (strlen (sh '"ps -e | grep __procia_test"))))
-(unset 'extpia)
+    ; ** Test GC of procia-xxxx
+    (set 'extpia (procia-create './__procia_test '1 'a 'ha))
+    (assert (< 10  (strlen (sh '"ps -e | grep __procia_test"))))
+    (unset 'extpia)
+    ; trigger GC by newly using memory block
+    (set 'extpia (list 'a 'b 'c))
+    ; Now object created by 'procia-create' should be GCed.
+    ; So, child process should not exist!!
+    (assert (equal 0 (strlen (sh '"ps -e | grep __procia_test"))))
+    (unset 'extstr)
+    (unset 'extpia)
+)))
 
 ;=============================
 ; Test Pair Operation

@@ -18,31 +18,31 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
-
-
-
-#ifdef __YLDBG__
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #include <malloc.h>
 #include <assert.h>
-#include <string.h>
 #include "yldev.h"
 
-#define _LOGLV  YLLogW
+#define _LOGLV  YLLogV
 
 static unsigned int _mblk = 0;
 
 static const char* _exp =
+    "(load-cnf '../install/lib/ylisp/libylbase.so)\n"
     "(interpret-file '../yls/base.yl)\n"
-    "(interpret-file '../test/test_base.yl)\n"
+    "(interpret-file '../yls/ext.yl)\n"
+    "(interpret-file '../test/test_ext.yl)\n"
     ;
 
-
 static inline void*
-_malloc(unsigned int size) {
+_malloc(size_t size) {
     _mblk++;
     return malloc(size);
 }
@@ -78,6 +78,7 @@ _assert(int a) {
 #   include "nfunc.in"
 #undef NFUNC
 
+
 int
 main(int argc, char* argv[]) {
     ylsys_t   sys;
@@ -89,7 +90,7 @@ main(int argc, char* argv[]) {
     sys.malloc  = _malloc;
     sys.free    = _free;
     sys.mode    = YLMode_batch;
-    sys.mpsz    = 4*1024;
+    sys.mpsz    = 8*1024;
     sys.gctp    = 80;
 
     ylinit(&sys);
@@ -103,44 +104,13 @@ main(int argc, char* argv[]) {
         return 0;
     }
 
+    /* to check memory status */
     yldeinit();
+
     assert(0 == _get_mblk_size());
 
     printf("---------------------------\n"
            "Test Success\n");
+
     return 0;
 }
-
-
-#else /* __YLDBG__ */
-
-
-#include "yldev.h"
-
-#define NFUNC(n, s, type, desc) extern YLDECLNF(n);
-#   include "nfunc.in"
-#undef NFUNC
-
-extern int ylbase_nfunc_init ();
-
-void
-ylcnf_onload(yletcxt_t* cxt) {
-
-    ylbase_nfunc_init(cxt);
-    /* return if fail to register */
-#define NFUNC(n, s, type, desc) \
-    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylbase <<\n" desc)) { return; }
-#   include "nfunc.in"
-#undef NFUNC
-
-}
-
-void
-ylcnf_onunload(yletcxt_t* cxt) {
-
-#define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
-#   include "nfunc.in"
-#undef NFUNC
-
-}
-#endif /* __YLDBG__ */

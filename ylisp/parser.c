@@ -18,7 +18,11 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-/**
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+/*
  * Main parser...
  * Simple FSA(Finite State Automata) is used to parse syntax.
  */
@@ -202,7 +206,7 @@ _fsa_add_symchar(_fsa_t* fsa, char c) {
     if(fsa->pb < (fsa->bend-1)) {
         *fsa->pb = c; fsa->pb++;
     } else {
-        yllogE0("Syntax Error : too long symbol!!!!!");
+        yllogE ("Syntax Error : too long symbol!!!!!");
         ylinterpret_undefined(YLErr_internal);
     }
 }
@@ -211,7 +215,7 @@ static inline yle_t*
 _create_atom_sym(unsigned char* sym, unsigned int len) {
     char* str = ylmalloc(sizeof(char)*(len+1));
     if(!str) {
-        yllogE1("Out Of Memory : [%d]!\n", len);
+        yllogE ("Out Of Memory : [%d]!\n", len);
         ylinterpret_undefined(YLErr_out_of_memory);
     }
     memcpy(str, sym, len);
@@ -222,7 +226,7 @@ _create_atom_sym(unsigned char* sym, unsigned int len) {
 static inline void
 _eval_exp(yletcxt_t* cxt, yle_t* e) {
     yle_t* r;
-    dbg_gen(yllogD1(">>>>> Eval exp:\n"
+    dbg_gen(yllogD (">>>>> Eval exp:\n"
                     "    %s\n", ylechain_print(ylethread_buf(cxt), e)););
     r = yleval (cxt, e, ylnil ());
     if (YLMode_repl == ylmode ())
@@ -251,7 +255,7 @@ static void
 _fsas_init_come_back(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa) {
     /* check that there is expression to evaluate*/
     if(&fsa->sentinel != fsa->pe) {
-        dbg_gen(yllogD1("\n\n\n------ Line : %d -------\n", *fsa->line););
+        dbg_gen(yllogD ("\n\n\n------ Line : %d -------\n", *fsa->line););
         _eval_exp(cxt, ylcadr(&fsa->sentinel));
     }
     /* unrefer to free dangling block */
@@ -271,7 +275,7 @@ _fsas_init_next_char(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa,
         case '\\': *nexts = &_fsas_escape;                       break;
         case '(':  *nexts = &_fsas_list;                         break;
         case ')':
-            yllogE0("Syntax Error : parenthesis mismatching\n");
+            yllogE ("Syntax Error : parenthesis mismatching\n");
             ylinterpret_undefined(YLErr_syntax_parenthesis);
         case ';':  *nexts = &_fsas_comment;                      break;
         case '\r':
@@ -508,7 +512,7 @@ _fsas_escape_next_char(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa,
         /* "\n" is supported to represent line-feed */
         case 'n':  ch = '\n';        break;
         default:
-            yllogE0("Syntax Error : Unsupported character for escape!!\n");
+            yllogE ("Syntax Error : Unsupported character for escape!!\n");
             ylinterpret_undefined(YLErr_syntax_escape);
     }
     _fsa_add_symchar(fsa, ch);
@@ -607,12 +611,12 @@ ylinterp_automata(void* arg) {
         if(0 == ylstk_size(fsa.pestk)) {
             goto done;
         } else {
-            yllogE0("Syntax Error!!!!!!\n");
+            yllogE ("Syntax Error!!!!!!\n");
             ret = YLErr_syntax_unknown;
             goto done;
         }
     } else {
-        yllogE0("Syntax Error!!!!!!\n");
+        yllogE ("Syntax Error!!!!!!\n");
         ret = YLErr_syntax_unknown;
         goto done;
     }

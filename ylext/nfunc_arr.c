@@ -18,6 +18,9 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 
 #include <stdlib.h>
@@ -30,11 +33,6 @@
  */
 #include <unistd.h>
 #include <pthread.h>
-
-/* enable logging & debugging */
-#define CONFIG_ASSERT
-#define CONFIG_LOG
-
 #include "ylsfunc.h"
 #include "ylut.h"
 
@@ -230,7 +228,7 @@ YLDEFNF(make_array, 1, 9999) {
     return r;
 
  oom:
-    ylnflogE0("Out Of Memory\n");
+    ylnflogE ("Out Of Memory\n");
     ylinterpret_undefined(YLErr_out_of_memory);
     return NULL; /* to make compiler be happy */
 } YLENDNF(make_array)
@@ -257,9 +255,9 @@ _arr_get (yle_t* e, yle_t* ie, int (*lock)(pthread_rwlock_t*)) {
                 lock ( &((_earr_t*)ylacd (ne))->m );
                 ret = _arr_get (at->arr[i], ylcdr (ie), lock);
                 pthread_rwlock_unlock ( &((_earr_t*)ylacd (ne))->m );
-            } else yllogE0("Invalid Array Access\n");
+            } else yllogE ("Invalid Array Access\n");
         }
-    } else yllogE0("Array Access - Out Of Bound\n");
+    } else yllogE ("Array Access - Out Of Bound\n");
 
     return ret;
 }

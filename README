@@ -72,11 +72,10 @@ Design Policy
 
 How Do I Build It?
 ------------------
-    In the YLISP directory, type 'sh build.sh'
-        To apply consumer specific environment, modify Makefile in each
-         directory.
-        Current source requires followings to build.
-            : libpthread.so, libdl.so, librt.so, jre (yljfe), libm.so (ylmath)
+    YLISP uses GNU build system.
+    So, "./configure" -> "make" -> "make install" is required.
+    But, YLISP is not fully portable yet.
+    So, installing to "/usr/" is NOT RECOMMENDED!
 
 
 How Do I Run Demo?
@@ -156,10 +155,6 @@ Directory/File Structure
         Plugin for extended features.
         (math, string, system, array, trie/hash map, structure, utility funcs.
         regular expression etc)
-        ## Available compile configuration ##
-            CONFIG_PCRE_REGEX
-                to use PCRE as an regular expression library.
-                default is POSIX regular expression.
     yls
         YLISP script files.
     ylr
@@ -483,3 +478,4 @@ TODO
 
 Known Bugs
 ----------
+    refer "http://github.com/yhcting/ylisp".

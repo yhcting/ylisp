@@ -18,9 +18,9 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-
-
-#ifdef __LISPTEST__
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -56,7 +56,7 @@ static const char* _exp =
     ;
 
 static void*
-_malloc(unsigned int size) {
+_malloc(size_t size) {
     void* addr = malloc(size);
 #ifdef CONFIG_DBG_MEM
     do {
@@ -151,6 +151,3 @@ main(int argc, char* argv[]) {
     printf("End of Test\n");
     return 0;
 }
-
-
-#endif /* __LISPTEST__ */

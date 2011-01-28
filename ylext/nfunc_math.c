@@ -18,14 +18,13 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
+#ifdef HAVE_LIBM
 
 #include <math.h>
-
-/* enable logging & debugging */
-#define CONFIG_ASSERT
-#define CONFIG_LOG
-
 #include "ylsfunc.h"
 
 #define _MATHFUNC1(nAME)                                        \
@@ -62,3 +61,5 @@ _MATHFUNC1(ceil)
 _MATHFUNC1(floor)
 _MATHFUNC1(fabs)
 _MATHFUNC2(pow)
+
+#endif /* HAVE_LIBM */
