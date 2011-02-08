@@ -41,6 +41,19 @@
 #include "yldynb.h"
 #include "yltrie.h"
 
+
+/*
+ * I hate this pipe issue!!
+ * See comments at 'procia-create'
+ */
+/* #define _SYS_DBG_PIPE 1 */
+
+#ifdef _SYS_DBG_PIPE
+#   define _dbgpipe(x) do { x } while (0)
+#else /* _SYS_DBG_PIPE */
+#   define _dbgpipe(x) ((void*)0)
+#endif /* _SYS_DBG_PIPE */
+
 #define _INVALID_FD -1
 
 
@@ -263,6 +276,7 @@ YLDEFNF(sh, 1, 1) {
             ylmt_rm_pres(cxt, fout);
             ylmt_rm_pres(cxt, (void*)(long)cpid);
         } else { /* child */
+            yllogD (">> sh >> forked >>>\n");
             /* redirect stderr to the pipe */
             if (0 > dup2(fileno(fout), STDOUT_FILENO )
                || 0 > dup2(fileno(fout), STDERR_FILENO)) {
@@ -623,6 +637,9 @@ YLDEFNF(procia_create, 1, 9999) {
         pc->wp = ylacreate_cust(&_aif_fraw, (void*)(long)wp[1]);
         pc->rp = ylacreate_cust(&_aif_fraw, (void*)(long)rp[0]);
     } else { /* child */
+        _dbgpipe (yllogD (">> proc >> forked >>>\n"););
+        _dbgpipe (if (!_is_valid_fd (STDIN_FILENO)) fprintf(stderr, "!!! INVALID STDIN [-1] !!!\n"););
+
         if (0 > _procia_create_prepare_libstdbuf ()) exit (1);
 
         /* redirect stdin to the pipe */
@@ -631,9 +648,15 @@ YLDEFNF(procia_create, 1, 9999) {
             exit (0);
         }
 
+        _dbgpipe (if (!_is_valid_fd (STDIN_FILENO)) fprintf(stderr, "!!! INVALID STDIN [0] !!!\n"););
+
         /* redirect stderr/stdout to the pipe */
+#ifdef _SYS_DBG_PIPE
+        if (0 > dup2 (rp[1], STDOUT_FILENO )) {
+#else /* _SYS_DBG_PIPE */
         if (0 > dup2 (rp[1], STDOUT_FILENO )
             || 0 > dup2 (rp[1], STDERR_FILENO)) {
+#endif /* _SYS_DBG_PIPE */
             perror ("Fail to dup stderr or stdout\n");
             exit (0);
         }
@@ -641,8 +664,28 @@ YLDEFNF(procia_create, 1, 9999) {
         close (wp[1]);
         close (rp[0]);
         /* close dupped fds */
+
+        /*
+         * !! FIXME !!
+         * temporal-walk-around for pipe issue.
+         * (commenting out codes that close dupped file descriptor)
+         *
+         * ********************* PIPE ISSUE **********************
+         * STDIN_FILENO is valid until now.
+         * And file descriptor wp[0] and rp[1] is dupped to STDIN and STDOUT.
+         * But, STDIN_FILENO becomes invalid descripter at below check - "INVALID STDIN [1]"
+         * I have no idea why this happends.
+         * But, commenting out below 'close' codes seems to be successful walk-around for this issue.
+         * Very interesting!
+         * But this is not, definitely, right solution. wp[0] and rp[1] are never closed!
+         * Any idea????
+         */
+        /*
         close (wp[0]);
         close (rp[1]);
+        */
+
+        _dbgpipe (if (!_is_valid_fd (STDIN_FILENO)) fprintf(stderr, "!!! INVALID STDIN [1] !!!\n"););
 
         { /* Just scope */
             int    i;
@@ -653,6 +696,8 @@ YLDEFNF(procia_create, 1, 9999) {
                 e = ylcdr (e);
             }
             argv[pcsz] = (char*)0;
+
+            _dbgpipe (if (!_is_valid_fd (STDIN_FILENO)) fprintf(stderr, "!!! INVALID STDIN [2] !!!\n"););
             execvp (argv[0], &argv[1]);
 
             perror ("failed to run command\n");

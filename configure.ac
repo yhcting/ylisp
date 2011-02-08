@@ -113,7 +113,8 @@ AC_ARG_WITH(debug,
 
 # Common flags!!
 AM_LDFLAGS="$LDFLAGS -rdynamic"
-AM_CPPFLAGS="$INCLUDES -I../ -I../ylisp"
+# '-I..' is already in $INCLUDES
+AM_CPPFLAGS="$INCLUDES -I../ylisp"
 AC_SUBST([AM_CPPFLAGS])
 AC_SUBST([AM_LDFLAGS])
 

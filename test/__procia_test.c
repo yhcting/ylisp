@@ -6,12 +6,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 int
 main(int argc, char* argv[]) {
     int  i;
     char buf[4096];
 
+    /* fprintf (stderr, ">>> proc >> Start\n"); */
     for (i=0; i<argc; i++) printf("%s/", argv[i]);
     printf("\n");
 
@@ -25,5 +27,6 @@ main(int argc, char* argv[]) {
         printf("%s", buf);
     }
     perror("===>__procia_test RETURN\n");
+    /* sleep(999999999); */
     return 0;
 }

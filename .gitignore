@@ -1,16 +1,15 @@
 *~
 .*
-include/
-lib/
+*.lo
+*.la
+*.a
+*.so
+install/
 
 # files for build system
+Makefile
 autom4te.cache/
 config.log
 config.status
 config.h
-missing
-install-sh
-depcomp
-aclocal.m4
-Makefile.in
 stamp-h1

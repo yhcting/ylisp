@@ -48,7 +48,7 @@ static void
 _dbg_sig_handler (int sig) {
     switch (sig) {
         case SIGCHLD:
-            yllogI ("SIGCHLD received!\n");
+            yllogD ("SIGCHLD received!\n");
         break;
 
         case SIGPIPE:
