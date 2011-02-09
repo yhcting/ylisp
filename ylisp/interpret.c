@@ -48,8 +48,8 @@ _show_eval_stack(yletcxt_t* cxt) {
 
 ylerr_t
 ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int streamsz) {
-    /* Declar space to use */
-    ylerr_t                  ret = YLErr_killed;
+    /* this is used for pthread_join. So, declare it as 'void*' */
+    void*                    ret = (void*)YLErr_killed;
     pthread_t                thd;
     struct __interpthd_arg   arg;
     int                      line = 1;
@@ -64,11 +64,11 @@ ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int s
     arg.pestk = ylstk_create(0, NULL);
     arg.bsz = _MAX_SINGLE_ELEM_STR_LEN;
     arg.b = ylmalloc(_MAX_SINGLE_ELEM_STR_LEN);
-    if(!arg.b) { ret = YLErr_out_of_memory; goto done; }
+    if(!arg.b) { ret = (void*)YLErr_out_of_memory; goto done; }
     
 
     if( !(arg.ststk && arg.pestk) ) {
-        ret = YLErr_out_of_memory;
+        ret = (void*)YLErr_out_of_memory;
         goto done;
     }
 
@@ -90,7 +90,7 @@ ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int s
 
     _munlock(&cxt->m);
 
-    if(pthread_join(thd, (void**)&ret)) {
+    if(pthread_join(thd, &ret)) {
         ylassert(0);
         pthread_cancel(thd);
         goto done;
@@ -126,7 +126,7 @@ ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int s
     if(arg.b)     { ylfree(arg.b); }
     if(arg.ststk) { ylstk_destroy(arg.ststk); }
     if(arg.pestk) { ylstk_destroy(arg.pestk); }
-    return ret;
+    return (ylerr_t)ret;
 }
 
 static void*

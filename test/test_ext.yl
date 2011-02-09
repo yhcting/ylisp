@@ -200,12 +200,12 @@
 (defun wait-ps (str)
 "
 "
-    (let ((try 10) (cmd '()))
+    (let ((try 100) (cmd '()))
         (set 'cmd (concat '"ps -e | grep " str))
         (while (< 0 try)
             (cond
                 ((< 0 (strlen (sh cmd))) (set 'try -1))
-                ('t (-- try))))
+                ('t (progn (usleep 100000) (-- try)))))
         (assert (< try 0))))
 
 ; ** Test for procia-xxxx

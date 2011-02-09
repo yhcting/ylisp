@@ -11415,38 +11415,35 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 # version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
 # declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
 # This bug is HP SR number 8606223364.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of int" >&5
-$as_echo_n "checking size of int... " >&6; }
-if test "${ac_cv_sizeof_int+set}" = set; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of char" >&5
+$as_echo_n "checking size of char... " >&6; }
+if test "${ac_cv_sizeof_char+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
-  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (int))" "ac_cv_sizeof_int"        "$ac_includes_default"; then :
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (char))" "ac_cv_sizeof_char"        "$ac_includes_default"; then :
 
 else
-  if test "$ac_cv_type_int" = yes; then
+  if test "$ac_cv_type_char" = yes; then
      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 77 "cannot compute sizeof (int)
+as_fn_error 77 "cannot compute sizeof (char)
 See \`config.log' for more details" "$LINENO" 5 ; }
    else
-     ac_cv_sizeof_int=0
+     ac_cv_sizeof_char=0
    fi
 fi
 
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_int" >&5
-$as_echo "$ac_cv_sizeof_int" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_char" >&5
+$as_echo "$ac_cv_sizeof_char" >&6; }
 
 
 
 cat >>confdefs.h <<_ACEOF
-#define SIZEOF_INT $ac_cv_sizeof_int
+#define SIZEOF_CHAR $ac_cv_sizeof_char
 _ACEOF
 
 
-if test ${ac_cv_sizeof_int} != 4; then
-	as_fn_error $? "Integer size isn't 32 bit." "$LINENO" 5
-fi
 # The cast to long int works around a bug in the HP C Compiler
 # version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
 # declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
@@ -11480,44 +11477,117 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-if test ${ac_cv_sizeof_short} != 2; then
-	as_fn_error $? "Short integer size isn't 16 bit." "$LINENO" 5
-fi
 # The cast to long int works around a bug in the HP C Compiler
 # version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
 # declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
 # This bug is HP SR number 8606223364.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of char" >&5
-$as_echo_n "checking size of char... " >&6; }
-if test "${ac_cv_sizeof_char+set}" = set; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of int" >&5
+$as_echo_n "checking size of int... " >&6; }
+if test "${ac_cv_sizeof_int+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
-  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (char))" "ac_cv_sizeof_char"        "$ac_includes_default"; then :
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (int))" "ac_cv_sizeof_int"        "$ac_includes_default"; then :
 
 else
-  if test "$ac_cv_type_char" = yes; then
+  if test "$ac_cv_type_int" = yes; then
      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 77 "cannot compute sizeof (char)
+as_fn_error 77 "cannot compute sizeof (int)
 See \`config.log' for more details" "$LINENO" 5 ; }
    else
-     ac_cv_sizeof_char=0
+     ac_cv_sizeof_int=0
    fi
 fi
 
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_char" >&5
-$as_echo "$ac_cv_sizeof_char" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_int" >&5
+$as_echo "$ac_cv_sizeof_int" >&6; }
 
 
 
 cat >>confdefs.h <<_ACEOF
-#define SIZEOF_CHAR $ac_cv_sizeof_char
+#define SIZEOF_INT $ac_cv_sizeof_int
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of long" >&5
+$as_echo_n "checking size of long... " >&6; }
+if test "${ac_cv_sizeof_long+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (long))" "ac_cv_sizeof_long"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_long" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (long)
+See \`config.log' for more details" "$LINENO" 5 ; }
+   else
+     ac_cv_sizeof_long=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_long" >&5
+$as_echo "$ac_cv_sizeof_long" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_LONG $ac_cv_sizeof_long
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of void*" >&5
+$as_echo_n "checking size of void*... " >&6; }
+if test "${ac_cv_sizeof_voidp+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (void*))" "ac_cv_sizeof_voidp"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_voidp" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (void*)
+See \`config.log' for more details" "$LINENO" 5 ; }
+   else
+     ac_cv_sizeof_voidp=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_voidp" >&5
+$as_echo "$ac_cv_sizeof_voidp" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_VOIDP $ac_cv_sizeof_voidp
 _ACEOF
 
 
 if test ${ac_cv_sizeof_char} != 1; then
-	as_fn_error $? "Char size isn't 8 bit." "$LINENO" 5
+	as_fn_error $? "Size of char isn't 8 bit." "$LINENO" 5
+fi
+if test ${ac_cv_sizeof_short} != 2; then
+	as_fn_error $? "Size of short isn't 16 bit." "$LINENO" 5
+fi
+if test ${ac_cv_sizeof_int} != 4; then
+	as_fn_error $? "Size of int isn't 32 bit." "$LINENO" 5
+fi
+# some codes assumes below condition.
+if test ${ac_cv_sizeof_long} != ${ac_cv_sizeof_voidp}; then
+        as_fn_error $? "Size of long isn't same with size of pointer." "$LINENO" 5
 fi
 
 # Checks for library functions.

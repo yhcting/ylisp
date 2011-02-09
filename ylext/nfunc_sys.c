@@ -252,7 +252,7 @@ YLDEFNF(sh, 1, 1) {
             /*
              * add process resources to thread context.
              */
-            ylmt_add_pres(cxt, (void*)(long)cpid, &_ccb_pkill);
+            ylmt_add_pres(cxt, itoptr(cpid), &_ccb_pkill);
             ylmt_add_pres(cxt, fout, &_ccb_fclose);
             /* I'm safe. And may take some time. */
             ylmt_notify_safe(cxt);
@@ -274,7 +274,7 @@ YLDEFNF(sh, 1, 1) {
             }
             ylmt_notify_unsafe(cxt);
             ylmt_rm_pres(cxt, fout);
-            ylmt_rm_pres(cxt, (void*)(long)cpid);
+            ylmt_rm_pres(cxt, itoptr(cpid));
         } else { /* child */
             yllogD (">> sh >> forked >>>\n");
             /* redirect stderr to the pipe */
@@ -634,8 +634,8 @@ YLDEFNF(procia_create, 1, 9999) {
         close (rp[1]);
         pc = (struct procia_cust*)ylmalloc(sizeof(*pc));
         pc->cpid = cpid;
-        pc->wp = ylacreate_cust(&_aif_fraw, (void*)(long)wp[1]);
-        pc->rp = ylacreate_cust(&_aif_fraw, (void*)(long)rp[0]);
+        pc->wp = ylacreate_cust(&_aif_fraw, itoptr(wp[1]));
+        pc->rp = ylacreate_cust(&_aif_fraw, itoptr(rp[0]));
     } else { /* child */
         _dbgpipe (yllogD (">> proc >> forked >>>\n"););
         _dbgpipe (if (!_is_valid_fd (STDIN_FILENO)) fprintf(stderr, "!!! INVALID STDIN [-1] !!!\n"););
@@ -760,7 +760,7 @@ YLDEFNF(fraw_open, 2, 2) {
         return ylnil ();
     }
 
-    return ylacreate_cust (&_aif_fraw, (void*)(long)fd);
+    return ylacreate_cust (&_aif_fraw, itoptr(fd));
 } YLENDNF(fraw_open)
 
 YLDEFNF(fraw_close, 1, 1) {

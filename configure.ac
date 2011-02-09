@@ -66,17 +66,23 @@ AC_TYPE_SIZE_T
 AC_C_BIGENDIAN
 
 # Check size of primitive types
-AC_CHECK_SIZEOF(int)
-if test ${ac_cv_sizeof_int} != 4; then
-	AC_MSG_ERROR([Integer size isn't 32 bit.])
-fi
-AC_CHECK_SIZEOF(short)
-if test ${ac_cv_sizeof_short} != 2; then
-	AC_MSG_ERROR([Short integer size isn't 16 bit.])
-fi
 AC_CHECK_SIZEOF(char)
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(void*)
 if test ${ac_cv_sizeof_char} != 1; then
-	AC_MSG_ERROR([Char size isn't 8 bit.])
+	AC_MSG_ERROR([Size of char isn't 8 bit.])
+fi
+if test ${ac_cv_sizeof_short} != 2; then
+	AC_MSG_ERROR([Size of short isn't 16 bit.])
+fi
+if test ${ac_cv_sizeof_int} != 4; then
+	AC_MSG_ERROR([Size of int isn't 32 bit.])
+fi
+# some codes assumes below condition.
+if test ${ac_cv_sizeof_long} != ${ac_cv_sizeof_voidp}; then
+        AC_MSG_ERROR([Size of long isn't same with size of pointer.])
 fi
 
 # Checks for library functions.

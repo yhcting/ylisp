@@ -49,7 +49,7 @@
  *
  ******************************************/
 
-
+#include <stdint.h>
 #include "ylisp.h"
 #include "yldef.h"
 
@@ -215,6 +215,9 @@ typedef struct sYle {
  * Macros
  *
  *===================================*/
+/* type casting integer to pointer */
+#define itoptr(x) ((void*)(intptr_t)(x))
+
 #define not_used(e) do { (e)=(e); } while(0)
 
 #define ylunroll16( expr, count, cond)              \
