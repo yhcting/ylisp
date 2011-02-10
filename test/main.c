@@ -41,7 +41,7 @@
 #include "yldynb.h"
 #include "ylut.h"
 
-#define _LOGLV YLLogI
+#define _LOGLV YLLogW
 
 
 /* =================================
@@ -218,8 +218,7 @@ _is_mt_ok(const char* s) {
     else if (0 == strcmp (s, "MT NO")) return 0;
     else {
         printf ("Script syntax error. MT OK or MT NO is expected.\n");
-        exit (0);
-        return 0; /* to make compiler be happy */
+        exit (1);
     }
 }
 
@@ -229,8 +228,7 @@ _is_return_ok(const char* s) {
     else if (0 == strcmp (s, "FAIL")) return 0;
     else {
         printf ("Script syntax error. OK or FAIL is expected.\n");
-        exit (0);
-        return 0; /* to make compiler be happy */
+        exit (1);
     }
 }
 
@@ -359,7 +357,7 @@ _interp_thread(void* arg) {
                "* %d-th Section\n"
                "* Exp\n"
                "%s\n", ia->fname, ia->section, ia->b);
-        exit(0);
+        exit (1);
     }
     _free_thdarg (ia);
     _dec_tcnt ();

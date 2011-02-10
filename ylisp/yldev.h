@@ -283,13 +283,13 @@ typedef struct sYle {
 #ifdef CONFIG_ASSERT
 #   define ylassert(x)  do { ylsysv()->assert_(!!(x)); } while(0)
 #else /* CONFIG_ASSERT */
-#   define ylassert(x)  ((void*)0)
+#   define ylassert(x)  do {} while (0)
 #endif /* CONFIG_ASSERT */
 
 #ifdef CONFIG_LOG
 #   define yllog(lv, x...)  do { ylsysv()->log (lv, x); } while(0)
 #else /* CONFIG_LOG */
-#   define yllog(lv, x...)  ((void*)0)
+#   define yllog(lv, x...)  do {} while (0)
 #endif /* CONFIG_LOG */
 
 #define ylprint(x...)   do { ylsysv()->print (x); } while(0)
@@ -328,7 +328,7 @@ extern const ylatomif_t* const ylg_predefined_aif_nil;
 
 
 #define ylb2e(i)          ((i)? ylt(): ylnil()) /* boolean => yle_t* */
-#define yle2b(e)         !(ylnil() == (e))      /* yle_t* => boolean */
+#define yle2b(e)          (ylnil() != (e))      /* yle_t* => boolean */
 #define yleis_true(e)     (ylnil() != (e))
 #define yleis_false(e)    (ylnil() == (e))
 
@@ -337,7 +337,7 @@ extern const ylatomif_t* const ylg_predefined_aif_nil;
  * notify that ylisp reached to the ylinterpret_undefined state.
  * @r: reason
  */
-extern void ylinterpret_undefined(long reason);
+extern void ylinterpret_undefined(long reason) __attribute__ ((noreturn));
 
 /* ------------------------------
  * Macros for Log -- START
@@ -347,6 +347,7 @@ extern void ylinterpret_undefined(long reason);
 #define yllogI(x...) yllog (YLLogI, x)
 #define yllogW(x...) yllog (YLLogW, x)
 #define yllogE(x...) yllog (YLLogE, x)
+#define yllogF(x...) yllog (YLLogF, x)
 
 
 /* ------------------------------
@@ -360,11 +361,26 @@ extern void ylinterpret_undefined(long reason);
 #define ylnflogI(x...)  do { yllog (YLLogI, "<!%s!> ", __nFNAME); yllog (YLLogI, x); } while (0)
 #define ylnflogW(x...)  do { yllog (YLLogW, "<!%s!> ", __nFNAME); yllog (YLLogW, x); } while (0)
 #define ylnflogE(x...)  do { yllog (YLLogE, "<!%s!> ", __nFNAME); yllog (YLLogE, x); } while (0)
+#define ylnflogF(x...)  do { yllog (YLLogF, "<!%s!> ", __nFNAME); yllog (YLLogF, x); } while (0)
 
 
 /* ------------------------------
  * Macros for NF Log -- END
  * ------------------------------*/
+
+#define ylinterp_fail(reason, msg...)           \
+    do {                                        \
+        yllogE (msg);                           \
+        ylinterpret_undefined(reason);          \
+    } while (0)
+
+#define ylnfinterp_fail(reason, msg...)         \
+    do {                                        \
+        ylnflogE (msg);                         \
+        ylinterpret_undefined(reason);          \
+    } while (0)
+    
+
 
 
 /*========================
@@ -384,7 +400,7 @@ extern void ylinterpret_undefined(long reason);
 #define YLDEFNF(n, minp, maxp)                                          \
     YLDECLNF(n) {                                                       \
     int             pcsz; /* Parameter Chain SiZe */                    \
-    const char*     __nFNAME = #n;                                      \
+    const char*     __nFNAME __attribute__ ((unused)) = #n ;            \
     { /* jusg scope */                                                  \
         pcsz = ylelist_size(e);                                         \
         if((minp) > pcsz || pcsz > (maxp)) {                            \

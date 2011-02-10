@@ -228,9 +228,7 @@ YLDEFNF(make_array, 1, 9999) {
     return r;
 
  oom:
-    ylnflogE ("Out Of Memory\n");
-    ylinterpret_undefined(YLErr_out_of_memory);
-    return NULL; /* to make compiler be happy */
+    ylnfinterp_fail (YLErr_out_of_memory, "Out Of Memory\n");
 } YLENDNF(make_array)
 
 
@@ -277,11 +275,8 @@ YLDEFNF(arr_get, 2, 9999) {
     pv = _arr_get(ylcar(e), ylcdr(e), &pthread_rwlock_rdlock);
     pthread_rwlock_unlock ( &at->m );
 
-    if(pv) { return *pv; }
-    else {
-        ylinterpret_undefined(YLErr_func_fail);
-        return NULL; /* to make compiler be happy */
-    }
+    if (pv) return *pv;
+    else    ylinterpret_undefined(YLErr_func_fail);
 } YLENDNF(arr_get)
 
 
@@ -307,6 +302,5 @@ YLDEFNF(arr_set, 3, 9999) {
     } else {
         pthread_rwlock_unlock ( &at->m );
         ylinterpret_undefined(YLErr_func_fail);
-        return NULL; /* to make compiler be happy */
     }
 } YLENDNF(arr_set)

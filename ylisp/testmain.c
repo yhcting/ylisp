@@ -61,8 +61,16 @@ _malloc(size_t size) {
 #ifdef CONFIG_DBG_MEM
     do {
         register void* ra; /* return address */
+#ifdef __LP64__
+        /*
+          asm ("movq 8(%%rbp), %0;"
+          :"=r"(ra));
+        */
+        ra = NULL;
+#else /* __LP64__ */
         asm ("movl 4(%%ebp), %0;"
              :"=r"(ra));
+#endif /* __LP64__ */
         _mdbg[_mblk].caller = ra;
         _mdbg[_mblk].addr = addr;
     } while(0);

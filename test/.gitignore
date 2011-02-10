@@ -1,13 +1,2 @@
-.*
-*~
-*.o
-*.a
-*.so
 __procia_test
 test
-GPATH
-GRTAGS
-GSYMS
-GTAGS
-ID
-

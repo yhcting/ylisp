@@ -273,9 +273,9 @@ _mt_listener_thd_safe(const yletcxt_t* cxt, pthread_mutex_t* mtx) {
     btry = (_usage_ratio() >= ylgctp());
     _munlock(&_mm);
     if(btry) {
-        dbg_mutex(yllogI0("+CondWait : TryGC ..."););
+        dbg_mutex (yllogD ("+CondWait : TryGC ..."););
         if(pthread_cond_wait(&_condgc, mtx)) { ylassert(0); }
-        dbg_mutex(yllogI0("OK\n"););
+        dbg_mutex (yllogD ("OK\n"););
     }
 }
 
@@ -286,7 +286,7 @@ _mt_listener_all_safe(pthread_mutex_t* mtx) {
         if (_gc_enabled) _gc();
         else yllogW ("Memory is running out! But GC is disabled!!!\n");
         _munlock(&_mm);
-        dbg_mutex(yllogI0("+CondBroadcast : GC done\n"););
+        dbg_mutex (yllogD ("+CondBroadcast : GC done\n"););
         pthread_cond_broadcast(&_condgc);
     } else {
         _munlock(&_mm);

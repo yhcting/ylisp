@@ -1,15 +1,21 @@
 *~
 .*
+*.o
 *.lo
 *.la
 *.a
 *.so
+*.log
+GPATH
+GRTAGS
+GSYMS
+GTAGS
+ID
 install/
 
 # files for build system
 Makefile
 autom4te.cache/
-config.log
 config.status
 config.h
 stamp-h1

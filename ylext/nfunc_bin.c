@@ -63,10 +63,8 @@ YLDEFNF(bin_human_read, 1, 1) {
     bsz = ylabin(ylcar(e)).sz*3;
     /* +1 for trailing 0 */
     b = ylmalloc(bsz+1);
-    if(!b) {
-        ylnflogE ("Not enough memory: required [%d]\n", bsz);
-        ylinterpret_undefined(YLErr_func_fail);
-    }
+    if (!b)
+        ylnfinterp_fail (YLErr_func_fail, "Not enough memory: required [%d]\n", bsz);
 
     for(i=0, ps=ylabin(ylcar(e)).d, pd = b;
         i<ylabin(ylcar(e)).sz; i++) {
@@ -158,9 +156,7 @@ YLDEFNF(concat_bin, 2, 9999) {
 
  bail:
     yldynb_clean(&b);
-    ylnflogE ("Out Of Memory\n");
-    ylinterpret_undefined(YLErr_out_of_memory);
-    return NULL; /* to make compiler be happy */
+    ylnfinterp_fail (YLErr_out_of_memory, "Out Of Memory\n");
 } YLENDNF(concat_bin)
 
 YLDEFNF(to_bin, 1, 2) {
@@ -173,11 +169,8 @@ YLDEFNF(to_bin, 1, 2) {
     } else if(ylais_type(ylcar(e), ylaif_sym())) {
         int            sz = strlen(ylasym(ylcar(e)).sym);
         unsigned char* b = ylmalloc(sz);
-        if(!b) {
-            ylnflogE ("Out Of Memory\n");
-            ylinterpret_undefined(YLErr_out_of_memory);
-            return NULL; /* to make compiler be happy */
-        }
+        if (!b)
+            ylnfinterp_fail (YLErr_out_of_memory, "Out Of Memory\n");
         memcpy(b, ylasym(ylcar(e)).sym, sz);
         return ylacreate_bin(b, (unsigned int)sz);
 
@@ -209,10 +202,7 @@ YLDEFNF(to_bin, 1, 2) {
     }
 
  bail:
-    ylnflogE ("invalid parameter type\n");
-    ylinterpret_undefined(YLErr_func_invalid_param);
-    return NULL; /* to make compiler be happy */
-
+    ylnfinterp_fail (YLErr_func_invalid_param, "invalid parameter type\n");
 } YLENDNF(to_bin)
 
 YLDEFNF(bin_to_num, 1, 1) {
@@ -221,10 +211,7 @@ YLDEFNF(bin_to_num, 1, 1) {
     ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_bin())
                         && ylabin(ylcar(e)).sz < sizeof(n));
     memcpy(&n, ylabin(ylcar(e)).d, ylabin(ylcar(e)).sz);
-    if((double)n != n) {
-        ylnflogE ("Double and long long values mismatch.\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-        return NULL; /* to make compiler be happy */
-    }
+    if ((double)n != n)
+        ylnfinterp_fail (YLErr_func_invalid_param, "Double and long long values mismatch.\n");
     return ylacreate_dbl((double)n);
 } YLENDNF(bin_to_num)

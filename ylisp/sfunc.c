@@ -165,25 +165,20 @@ static yle_t*
 _set(yletcxt_t* cxt, yle_t* s, yle_t* val, yle_t* a, const char* desc, int ty) {
     yle_t* r;
     if ( !ylais_type (s, ylaif_sym ())
-        || ylnil () == s) {
-        yllogE ("Only symbol can be set!\n");
-        ylinterpret_undefined (YLErr_eval_undefined);
-    }
+        || ylnil () == s)
+        ylinterp_fail (YLErr_eval_undefined, "Only symbol can be set!\n");
 
-    if (0 == *ylasym (s).sym) {
-        yllogE ("empty symbol cannot be set!\n");
-        ylinterpret_undefined (YLErr_eval_undefined);
-    }
+    if (0 == *ylasym (s).sym)
+        ylinterp_fail (YLErr_eval_undefined, "empty symbol cannot be set!\n");
 
     ylassert (ylasym (s).sym);
     r = _list_find (s, a);
     if (r) {
         /* found it */
         ylassert (!yleis_atom (r));
-        if (yleis_atom (ylcdr (r))) {
-            yllogE ("unexpected set operation!\n");
-            ylinterpret_undefined (YLErr_eval_undefined);
-        } else  {
+        if (yleis_atom (ylcdr (r)))
+            ylinterp_fail (YLErr_eval_undefined, "unexpected set operation!\n");
+        else  {
             ylassert (ylais_type (ylcar (r), ylaif_sym ()));
             ylasym (ylcar (r)).ty = ty;
             /* change value of local map yllist */
@@ -270,10 +265,8 @@ _mreplace(yle_t* e, yle_t* a) {
 static const yle_t*
 _assoc(yletcxt_t* cxt, int* ovty, yle_t* x, yle_t* y) {
     yle_t* r;
-    if( !ylais_type(x, ylaif_sym()) ) {
-        yllogE ("Only symbol can be associated!\n");
-        ylinterpret_undefined(YLErr_eval_undefined);
-    }
+    if( !ylais_type (x, ylaif_sym()) )
+        ylinterp_fail (YLErr_eval_undefined, "Only symbol can be associated!\n");
 
     /*
      * !! IMPORTANT NOTE !!
@@ -332,12 +325,8 @@ _assoc(yletcxt_t* cxt, int* ovty, yle_t* x, yle_t* y) {
             /* right coversion - let's assign double type atom*/
             return ylacreate_dbl(d);
         }
-
-        yllogE ("symbol [%s] was not set!\n", ylasym(x).sym);
-        ylinterpret_undefined(YLErr_eval_undefined);
+        ylinterp_fail (YLErr_eval_undefined, "symbol [%s] was not set!\n", ylasym(x).sym);
     }
-
-    return NULL; /* to make compiler happy */
 }
 
 /*=================================
@@ -357,10 +346,9 @@ _evatom_form (yletcxt_t* cxt, yle_t* e, yle_t* a) {
     if (ylaif_sym () == ylaif (e)) {
         r = (yle_t*)_assoc (cxt, &vty, e, a);
         if (styis (vty, STymac)) r = yleval (cxt, r, a);
-    } else {
-        yllogE ("ERROR to evaluate atom(only symbol can be evaluated!.\n");
-        ylinterpret_undefined (YLErr_eval_undefined);
-    }
+    } else
+        ylinterp_fail (YLErr_eval_undefined,
+                       "ERROR to evaluate atom(only symbol can be evaluated!.\n");
     ylassert (r);
     return r;
  }
@@ -411,9 +399,8 @@ _evfunc_form (yletcxt_t* cxt, yle_t* e, yle_t* a) {
     return r;
 
  bail:
-    yllogE ("ERROR. First element should be a symbol that represents 'function!'\n");
-    ylinterpret_undefined (YLErr_eval_undefined);
-    return NULL; /* to make compiler be happy */
+    ylinterp_fail (YLErr_eval_undefined,
+                   "ERROR. First element should be a symbol that represents 'function!'\n");
 }
 
 
@@ -463,10 +450,9 @@ _evlf_mlambda (yletcxt_t* cxt, yle_t* e, yle_t* a) {
          *  --> Now expression is preserved!
          */
         yle_t* exp = _list_clone (ylcaddar (e));
-        if (0 > _mreplace (exp, ylappend (ylpair (ylcadar (e), ylcdr (e)), ylnil ()))) {
-            yllogE ("Fail to mreplace!!\n");
-            ylinterpret_undefined (YLErr_eval_undefined);
-        } else r = yleval (cxt, exp, a);
+        if (0 > _mreplace (exp, ylappend (ylpair (ylcadar (e), ylcdr (e)), ylnil())))
+            ylinterp_fail (YLErr_eval_undefined, "Fail to mreplace!!\n");
+        else r = yleval (cxt, exp, a);
     }
     return r;
 }
@@ -479,10 +465,8 @@ _evlf_label (yletcxt_t* cxt, yle_t* e, yle_t* a) {
      * cadar   : label name
      * caddar  : lambda expression list
      */
-    if (!ylais_type (ylcadar (e), ylaif_sym ())) {
-        yllogE ("label name shoud be symbol!\n");
-        ylinterpret_undefined (YLErr_eval_undefined);
-    }
+    if (!ylais_type (ylcadar (e), ylaif_sym()))
+        ylinterp_fail (YLErr_eval_undefined, "label name shoud be symbol!\n");
     /* eq [caar [e]; LABEL] -> eval [cons [caddar [e]; cdr [e]]; cons [list [cadar [e]; car [e]]; a]] */
     return yleval (cxt, ylcons (ylcaddar (e), ylcdr (e)), ylcons (yllist (ylcadar (e), ylcar (e)), a));
 }
@@ -523,10 +507,8 @@ _evlf_flabel (yletcxt_t* cxt, yle_t* e, yle_t* a) {
     yle_t*    fle = ylcadddr (fl);/* flabel expression */
     yle_t*    flp = ylcdr (e);    /* parameter of flabel */
     yle_t*    param_assoc;
-    if (!ylais_type (fln, ylaif_sym ())) {
-        yllogE ("flabel name should be symbol!\n");
-        ylinterpret_undefined (YLErr_eval_undefined);
-    }
+    if (!ylais_type (fln, ylaif_sym ()))
+        ylinterp_fail (YLErr_eval_undefined, "flabel name should be symbol!\n");
     /* set symbol type as macro */
     styset (ylasym (fln).ty, STymac);
     param_assoc = ylpair (fla, ylevlis (cxt, flp, a));
@@ -541,10 +523,9 @@ _evlambda_form (yletcxt_t* cxt, yle_t* e, yle_t* a) {
      * 'ylcaar (e)' is atom.
      */
 
-    if (ylaif (ylcaar (e)) != ylaif_sym ()) {
-        yllogE ("First element of lambda format SHOULD be a symbol-type-atom\n");
-        ylinterpret_undefined(YLErr_eval_undefined);
-    }
+    if (ylaif (ylcaar (e)) != ylaif_sym ())
+        ylinterp_fail (YLErr_eval_undefined,
+                       "First element of lambda format SHOULD be a symbol-type-atom\n");
 
     { /* Just Scope */
         const char*   lfsym;
@@ -585,15 +566,10 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a) {
     if (yleis_atom (e)) r = _evatom_form (cxt, e, a);
     else if (yleis_atom (ylcar (e))) r = _evfunc_form (cxt, e, a);
     else if (yleis_atom (ylcaar (e))) r = _evlambda_form (cxt, e, a);
-    else {
-        yllogE ("(((xxx))) format is not allowed to evaluate!\n");
-        ylinterpret_undefined (YLErr_eval_undefined);
-    }
+    else ylinterp_fail (YLErr_eval_undefined,
+                        "(((xxx))) format is not allowed to evaluate!\n");
 
-    if (!r) {
-        yllogE ("NULL return! is it possible!\n");
-        ylinterpret_undefined (YLErr_eval_undefined);
-    }
+    if (!r) ylinterp_fail (YLErr_eval_undefined, "NULL return! is it possible!\n");
 
     dbg_eval(yllogD ("[%d] eval Out:\n"
                      "    %s\n", evid, ylechain_print(ylethread_buf(cxt), r)););

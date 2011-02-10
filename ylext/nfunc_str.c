@@ -91,10 +91,8 @@ YLDEFNF(char_at, 2, 2) {
     idx = (int)yladbl(ylcadr(e));
     p = ylasym(ylcar(e)).sym;
     len = strlen(p);
-    if(0 > idx || idx >= len) {
-        ylnflogE ("invalid index value\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
+    if (0 > idx || idx >= len)
+        ylnfinterp_fail (YLErr_func_invalid_param, "invalid index value\n");
 
     p += idx;
     ch = ylmalloc(sizeof(char)*2); /* 1 for tailing NULL */

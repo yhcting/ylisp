@@ -12,8 +12,20 @@
 /* general debugging msg is enabled? */
 #undef CONFIG_DBG_GEN
 
+/* debugging for memory is enabled? */
+#undef CONFIG_DBG_MEM
+
+/* debugging for multithread is enabled? */
+#undef CONFIG_DBG_MT
+
+/* debugging for mutex is enabled? */
+#undef CONFIG_DBG_MUTEX
+
 /* log is enabled? */
 #undef CONFIG_LOG
+
+/* /bin/bash exists? */
+#undef HAVE_BASH
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H

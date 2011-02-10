@@ -334,7 +334,6 @@ YLDEFNF(make_trie_map, 0, 1) {
         yltrie_destroy (t);
         ylinterpret_undefined (YLErr_func_fail);
     }
-    return NULL; /* to make compiler be happy */
 } YLENDNF(make_trie_map)
 
 YLDEFNF(make_hash_map, 0, 1) {
@@ -349,7 +348,6 @@ YLDEFNF(make_hash_map, 0, 1) {
         hash_destroy (h);
         ylinterpret_undefined (YLErr_func_fail);
     }
-    return NULL; /* to make compiler be happy */
 } YLENDNF(make_hash_map)
 
 YLDEFNF(map_insert, 2, 3) {
@@ -370,15 +368,13 @@ YLDEFNF(map_insert, 2, 3) {
     /* unref will be done inside of 'insert' by _element_freecb */
     switch (r) {
         case -1:
-            ylnflogE ("Fail to insert to trie : %s\n", ylasym (ylcadr (e)).sym);
-            ylinterpret_undefined (YLErr_func_fail);
-
+            ylnfinterp_fail (YLErr_func_fail, "Fail to insert to trie : %s\n", ylasym (ylcadr (e)).sym);
         case 1: return ylt ();   /* overwritten */
         case 0: return ylnil (); /* newly inserted */
         default:
             ylassert (0); /* This should not happen! */
+            return NULL; /* to make compiler be happy */
     }
-    return NULL; /* to make compiler be happy */
 } YLENDNF(map_insert)
 
 YLDEFNF(map_del, 2, 2) {

@@ -91,12 +91,16 @@ typedef enum {
     YLErr_func_fail,
 } ylerr_t;
 
+/**
+ * Log level
+ */
 enum {
-    YLLogV = 0,  /* verbose */
-    YLLogD,      /* devleop */
-    YLLogI,      /* information */
-    YLLogW,      /* warning */
-    YLLogE,      /* error */
+    YLLogV = 0,  /**< verbose */
+    YLLogD,      /**< devleop */
+    YLLogI,      /**< information */
+    YLLogW,      /**< warning */
+    YLLogE,      /**< error - interpreting error */
+    YLLogF,      /**< fatal - running interpreter is impossible */
     YLLogLV_NUM
 };
 

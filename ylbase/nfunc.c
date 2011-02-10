@@ -128,10 +128,8 @@ _pair_to_2nd_element_list (yle_t* p, yle_t* l) {
  */
 YLDEFNF(f_let, 2, 9999) {
     yle_t      *ret, *argl, *body, *param, *exp;    /* argument list */
-    if(yleis_atom(ylcar(e)) && !yleis_nil(ylcar(e))) {
-        ylnflogE ("incorrect argument syntax\n");
-        ylinterpret_undefined(YLErr_func_invalid_param);
-    }
+    if (yleis_atom (ylcar (e)) && !yleis_nil (ylcar (e)))
+        ylnfinterp_fail (YLErr_func_invalid_param, "incorrect argument syntax\n");
 
     argl = _pair_to_1st_element_list (ylcar (e), ylnil ());
     param = _pair_to_2nd_element_list (ylcar (e), ylnil ());
@@ -140,10 +138,8 @@ YLDEFNF(f_let, 2, 9999) {
     if (yleis_nil (argl)) {
         ret = yleval (cxt, body, a);
     } else {
-        if (yleis_nil (param)) {
-            ylnflogW ("Invalid f-let syntax!\n");
-            ylinterpret_undefined(YLErr_func_invalid_param);
-        }
+        if (yleis_nil (param))
+            ylnfinterp_fail (YLErr_func_invalid_param, "Invalid f-let syntax!\n");
 
         /* lambda converted expression */
         exp = ylcons (ylcons (&_elambda,
@@ -282,30 +278,25 @@ YLDEFNF(list, 0, 9999) {
 } YLENDNF(list)
 
 YLDEFNF(assert, 1, 1) {
-    if(yleis_nil(ylcar(e))) {
-        ylnflogE ("ASSERT FAILS\n");
-        ylinterpret_undefined(YLErr_eval_assert);
-        return NULL; /* to make compiler be happy. */
-    } else {
+    if (yleis_nil (ylcar (e)))
+        ylnfinterp_fail (YLErr_eval_assert, "ASSERT FAILS\n");
+    else
         return ylt();
-    }
 } YLENDNF(assert)
 
 YLDEFNF(exit, 1, 1) {
     ylnfcheck_parameter (ylais_type_chain(e, ylaif_dbl()));
     exit ((long)ylacd (ylcar (e)));
-    return ylnil (); /* to make compiler be happy */
 } YLENDNF(exit)
 
 YLDEFNF(stop, 0, 0) {
     ylinterpret_undefined (YLOk);
-    return NULL; /* to make compiler be happy. */
 } YLENDNF(stop)
 
 YLDEFNF(print, 1, 9999) {
     ylnfcheck_parameter(!yleis_atom(e));
     ylelist_foreach(e) {
-        ylprint(("%s", ylechain_print(ylethread_buf(cxt), ylcar(e)) ));
+        ylprint ("%s", ylechain_print(ylethread_buf(cxt), ylcar(e)) );
     }
     return ylt();
 } YLENDNF(print)
@@ -362,18 +353,16 @@ YLDEFNF(printf, 1, 10) {
         default: ylassert(0);
     }
 
-    ylprint(("%s", (char*)yldynbstr_string(ylethread_buf(cxt))));
+    ylprint ("%s", (char*)yldynbstr_string(ylethread_buf(cxt)));
     __cleanup();
     return ylt();
 
  bail:
     __cleanup();
-    ylnflogW ("Not enough memory!\n");
-    ylinterpret_undefined(YLErr_func_fail);
+    ylnfinterp_fail (YLErr_func_fail, "Not enough memory!\n");
 
 #undef __cleanup
 
-    return NULL; /* to make compiler be happy. */
 } YLENDNF(printf)
 
 
@@ -435,10 +424,8 @@ YLDEFNF(concat, 2, 9999) {
 
     /* alloc memory and start to copy */
     buf = ylmalloc(len*sizeof(char) +1); /* '+1' for trailing 0 */
-    if(!buf) {
-        ylnflogE ("Not enough memory: required [%d]\n", len);
-        ylinterpret_undefined(YLErr_func_fail);
-    }
+    if(!buf)
+        ylnfinterp_fail (YLErr_func_fail, "Not enough memory: required [%d]\n", len);
 
     pe = e; p = buf;
     while(!yleis_nil(pe)) {
@@ -487,9 +474,8 @@ YLDEFNF(bit_and, 2, 9999) {
     return ylacreate_dbl((double)r);
 
  bail:
-    ylnflogE ("Parameter or return value cannot be cross-changable between long long and double!\n");
-    ylinterpret_undefined(YLErr_func_invalid_param);
-    return NULL; /* to make compiler be happy. */
+    ylnfinterp_fail (YLErr_func_invalid_param,
+                     "Parameter or return value cannot be cross-changable between long long and double!\n");
 } YLENDNF(bit_and)
 
 YLDEFNF(bit_or, 2, 9999) {
@@ -505,9 +491,8 @@ YLDEFNF(bit_or, 2, 9999) {
     return ylacreate_dbl((double)r);
 
  bail:
-    ylnflogE ("Parameter or return value cannot be cross-changable between long long and double!\n");
-    ylinterpret_undefined(YLErr_func_invalid_param);
-    return NULL; /* to make compiler be happy. */
+    ylnfinterp_fail (YLErr_func_invalid_param,
+                     "Parameter or return value cannot be cross-changable between long long and double!\n");
 } YLENDNF(bit_or)
 
 YLDEFNF(bit_xor, 2, 9999) {
@@ -523,10 +508,8 @@ YLDEFNF(bit_xor, 2, 9999) {
     return ylacreate_dbl((double)r);
 
  bail:
-    ylnflogE ("Parameter or return value cannot be cross-changable between long long and double!\n");
-    ylinterpret_undefined(YLErr_func_invalid_param);
-
-    return NULL; /* to make compiler be happy. */
+    ylnfinterp_fail (YLErr_func_invalid_param,
+                     "Parameter or return value cannot be cross-changable between long long and double!\n");
 } YLENDNF(bit_xor)
 
 
@@ -577,10 +560,8 @@ YLDEFNF(div, 2, 9999) {
     r = yladbl(ylcar(e));
     e = ylcdr(e);
     while( !yleis_nil(e) ) {
-        if(0 == yladbl(ylcar(e))) {
-            ylnflogE ("divide by zero!!!\n");
-            ylinterpret_undefined(YLErr_func_fail);
-        }
+        if(0 == yladbl(ylcar(e)))
+            ylnfinterp_fail (YLErr_func_fail, "divide by zero!!!\n");
         r /= yladbl(ylcar(e));
         e = ylcdr(e);
     }

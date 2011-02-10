@@ -748,6 +748,7 @@ am__EXEEXT_TRUE
 LTLIBOBJS
 AM_LDFLAGS
 AM_CPPFLAGS
+AM_CFLAGS
 POW_LIB
 LIBOBJS
 COND_JAVA_FALSE
@@ -1519,8 +1520,9 @@ Optional Packages:
   --with-debug[=<opt>]
        use for debug ylisp
        <opt> can be empty, 'v'
-           empty       : minimal debug
-           v[verbose]  : full debug
+           empty     : minimal debug
+           v[verbose]: verbose debug
+           f[full]   : full debug - not recommended
 
 Some influential environment variables:
   CC          C compiler command
@@ -5083,13 +5085,13 @@ if test "${lt_cv_nm_interface+set}" = set; then :
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:5086: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:5088: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5089: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:5091: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5092: output\"" >&5)
+  (eval echo "\"\$as_me:5094: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -6294,7 +6296,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 6297 "configure"' > conftest.$ac_ext
+  echo '#line 6299 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7552,11 +7554,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7555: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7557: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7559: \$? = $ac_status" >&5
+   echo "$as_me:7561: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7891,11 +7893,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7894: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7896: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7898: \$? = $ac_status" >&5
+   echo "$as_me:7900: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7996,11 +7998,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7999: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8001: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8003: \$? = $ac_status" >&5
+   echo "$as_me:8005: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8051,11 +8053,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8054: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8056: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8058: \$? = $ac_status" >&5
+   echo "$as_me:8060: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10435,7 +10437,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10438 "configure"
+#line 10440 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10531,7 +10533,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10534 "configure"
+#line 10536 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10983,6 +10985,28 @@ fi
 
 done
 
+
+# Check shell to use
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for /bin/bash" >&5
+$as_echo_n "checking for /bin/bash... " >&6; }
+if test "${ac_cv_file__bin_bash+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "/bin/bash"; then
+  ac_cv_file__bin_bash=yes
+else
+  ac_cv_file__bin_bash=no
+fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file__bin_bash" >&5
+$as_echo "$ac_cv_file__bin_bash" >&6; }
+if test "x$ac_cv_file__bin_bash" = x""yes; then :
+
+$as_echo "#define HAVE_BASH 1" >>confdefs.h
+
+fi
 
 
 #### Check for JAVA support #####
@@ -12003,25 +12027,51 @@ done
 # Check whether --with-debug was given.
 if test "${with_debug+set}" = set; then :
   withval=$with_debug;
+    case "$withval" in
+        '')
 
 $as_echo "#define CONFIG_LOG 1" >>confdefs.h
 
 
 $as_echo "#define CONFIG_ASSERT 1" >>confdefs.h
 
-    case "$withval" in
-        '')
             ;;
         v)
+
+$as_echo "#define CONFIG_LOG 1" >>confdefs.h
+
+
+$as_echo "#define CONFIG_ASSERT 1" >>confdefs.h
+
 
 $as_echo "#define CONFIG_DBG_GEN 1" >>confdefs.h
 
 
 $as_echo "#define CONFIG_DBG_EVAL 1" >>confdefs.h
 
-#            AC_DEFINE([CONFIG_DBG_MT],     [1], [debugging for multithread is enabled?])
-#            AC_DEFINE([CONFIG_DBG_MEM],    [1], [debugging for memory is enabled?])
-#            AC_DEFINE([CONFIG_DBG_MUTEX],  [1], [debugging for mutex is enabled?])
+            ;;
+        f)
+
+$as_echo "#define CONFIG_LOG 1" >>confdefs.h
+
+
+$as_echo "#define CONFIG_ASSERT 1" >>confdefs.h
+
+
+$as_echo "#define CONFIG_DBG_GEN 1" >>confdefs.h
+
+
+$as_echo "#define CONFIG_DBG_EVAL 1" >>confdefs.h
+
+
+$as_echo "#define CONFIG_DBG_MT 1" >>confdefs.h
+
+
+$as_echo "#define CONFIG_DBG_MEM 1" >>confdefs.h
+
+
+$as_echo "#define CONFIG_DBG_MUTEX 1" >>confdefs.h
+
             ;;
     esac
 
@@ -12032,6 +12082,8 @@ fi
 AM_LDFLAGS="$LDFLAGS -rdynamic"
 # '-I..' is already in $INCLUDES
 AM_CPPFLAGS="$INCLUDES -I../ylisp"
+AM_CFLAGS="-Wall -Werror"
+
 
 
 

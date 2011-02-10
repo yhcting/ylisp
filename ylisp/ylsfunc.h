@@ -71,22 +71,14 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a);
  *=================================*/
 static inline yle_t*
 ylcar(const yle_t* e) {
-    if(!yleis_atom(e)) {
-        return ylpcar(e);
-    }
-    yllogE("'car' is available only on pair\n");
-    ylinterpret_undefined(YLErr_eval_undefined);
-    return NULL; /* to make compiler happy */
+    if (!yleis_atom (e)) return ylpcar (e);
+    ylinterp_fail (YLErr_eval_undefined, "'car' is available only on pair\n");
 }
 
 static inline yle_t*
 ylcdr(const yle_t* e) {
-    if(!yleis_atom(e)) {
-        return ylpcdr(e);
-    }
-    yllogE("'cdr' is available only on pair\n");
-    ylinterpret_undefined(YLErr_eval_undefined);
-    return NULL; /* to make compiler happy */
+    if (!yleis_atom (e)) return ylpcdr (e);
+    ylinterp_fail (YLErr_eval_undefined, "'cdr' is available only on pair\n");
 }
 
 #define ylcaar(e) ylcar(ylcar(e))
@@ -192,9 +184,7 @@ ylsubst(yle_t* x, yle_t* y, yle_t* z) {
             return ylcons(ylsubst(x, y, ylcar(z)), ylsubst(x, y, ylcdr(z)));
         }
     }
-    yllogE ("subst : Should not reach here!\n");
-    ylinterpret_undefined(YLErr_eval_undefined);
-    return NULL; /* to make compiler be happy */
+    ylinterp_fail (YLErr_eval_undefined, "subst : Should not reach here!\n");
 }
 
 
@@ -242,10 +232,8 @@ ylpair(yle_t* x, yle_t* y) {
     } else if( !yleis_atom(x) && !yleis_atom(y) ) {
         return ylcons(yllist(ylcar(x), ylcar(y)), ylpair(ylcdr(x), ylcdr(y)));
     } else {
-        yllogE ("Fail to map parameter!\n");
-        ylinterpret_undefined(YLErr_eval_undefined);
+        ylinterp_fail (YLErr_eval_undefined, "Fail to map parameter!\n");
     }
-    return NULL; /* to make compiler happy */
 }
 
 

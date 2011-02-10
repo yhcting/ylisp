@@ -76,8 +76,7 @@ _get_pcre_option(const char* optstr) {
             case 's': opt |= PCRE_DOTALL;       break;
             case 'g': break; /* do nothing.. this is custom option */
             default:
-                yllogE ("<!pcre_xxx!> Unsupported option! [%c]\n", *optstr);
-                ylinterpret_undefined(YLErr_func_fail);
+                ylinterp_fail (YLErr_func_fail, "<!pcre_xxx!> Unsupported option! [%c]\n", *optstr);
         }
         optstr++;
     }
@@ -103,12 +102,10 @@ YLDEFNF(re_match, 3, 3) {
     opt = _get_pcre_option(ylasym(ylcaddr(e)).sym);
 
     re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
-    if(!re) {
-        ylnflogE ("PCRE compilation failed.\n"
-                  "    offset %d: %s\n", err_offset, errmsg);
-        /* This is a kind of function parameter error!! */
-        ylinterpret_undefined(YLErr_func_fail);
-    }
+    if (!re)
+        ylnfinterp_fail (YLErr_func_fail,
+                         "PCRE compilation failed.\n"
+                         "    offset %d: %s\n", err_offset, errmsg);
 
     rc = pcre_exec(re, NULL, subject, strlen(subject), 0, 0, ovect, _OVECCNT);
 
@@ -128,11 +125,9 @@ YLDEFNF(re_match, 3, 3) {
         }
     } else if(PCRE_ERROR_NOMATCH == rc) {
         ; /* nothing to do */
-    } else {
-        /* error case */
-        ylnflogE ("PCRE error in match [%d]\n", rc);
-        ylinterpret_undefined(YLErr_func_fail);
-    }
+    } else
+        ylnfinterp_fail (YLErr_func_fail, "PCRE error in match [%d]\n", rc);
+
     return ylcdr(hd);
 } YLENDNF(re_match)
 
@@ -230,9 +225,8 @@ YLDEFNF(re_replace, 4, 4) {
     return ylacreate_sym(subject);
 
  bail:
-    if(subject) { ylfree(subject); }
-    ylinterpret_undefined(interp_err);
-    return NULL; /* to make compiler be happy. */
+    if (subject) ylfree(subject);
+    ylinterpret_undefined (interp_err);
 } YLENDNF(re_replace)
 
 #else /* HAVE_LIBPCRE */
@@ -246,8 +240,7 @@ _get_re_option (const char* optstr) {
             case 'm': opt &= ~REG_NEWLINE;    break;
             case 'g': break; /* do nothing.. this is custom option */
             default:
-                yllogE ("<!re_xxx!> Unsupported option! [%c]\n", *optstr);
-                ylinterpret_undefined (YLErr_func_fail);
+                ylinterp_fail (YLErr_func_fail, "<!re_xxx!> Unsupported option! [%c]\n", *optstr);
         }
         optstr++;
     }
@@ -322,8 +315,6 @@ YLDEFNF(re_match, 3, 3) {
     if (re) { regfree (re); ylfree (re); }
     if (rm) ylfree (rm);
     ylinterpret_undefined (YLErr_func_fail);
-    return NULL; /* to make compiler be happy */
-
 } YLENDNF(re_match)
 
 /*
@@ -427,7 +418,6 @@ YLDEFNF(re_replace, 4, 4) {
     if (re) { regfree (re); ylfree (re); }
     if (subject) ylfree (subject);
     ylinterpret_undefined (interp_err);
-    return NULL; /* to make compiler be happy. */
 
 } YLENDNF(re_replace)
 

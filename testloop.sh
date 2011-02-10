@@ -1,11 +1,10 @@
 #!/bin/bash
 cd test
 
-for i in $(seq 1 99999)
-do
+for i in $(seq 1 99999); do
     ./test
     if [ 0 != $? ]; then
         echo TEST FAILS : $i / $?
-        exit 0
+        exit 1
     fi
 done

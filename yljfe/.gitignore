@@ -1,14 +1,2 @@
-.*
-*~
-*.o
-*.a
-*.so
-*.log
 *.jar
 yljfe
-GPATH
-GRTAGS
-GSYMS
-GTAGS
-ID
-

@@ -46,6 +46,8 @@ AC_CHECK_HEADERS([fcntl.h limits.h malloc.h memory.h stddef.h stdlib.h string.h 
     [AC_MSG_ERROR([sorry, can't do anything without these headers...])],
     [])
 
+# Check shell to use
+AC_CHECK_FILE([/bin/bash], [AC_DEFINE([HAVE_BASH], [1], [/bin/bash exists?])])
 
 #### Check for JAVA support #####
 # Default java include path
@@ -97,21 +99,30 @@ AC_ARG_WITH(debug,
 [  --with-debug[[=<opt>]]
        use for debug ylisp
        <opt> can be empty, 'v'
-           empty       : minimal debug
-           v[[verbose]]  : full debug],
+           empty     : minimal debug
+           v[[verbose]]: verbose debug
+           f[[full]]   : full debug - not recommended],
 
 [
-    AC_DEFINE([CONFIG_LOG],    [1], [log is enabled?])
-    AC_DEFINE([CONFIG_ASSERT], [1], [assert is enabled?])
     case "$withval" in
         '')
+            AC_DEFINE([CONFIG_LOG],        [1], [log is enabled?])
+            AC_DEFINE([CONFIG_ASSERT],     [1], [assert is enabled?])
             ;;
         v)
+            AC_DEFINE([CONFIG_LOG],        [1], [log is enabled?])
+            AC_DEFINE([CONFIG_ASSERT],     [1], [assert is enabled?])
             AC_DEFINE([CONFIG_DBG_GEN],    [1], [general debugging msg is enabled?])
             AC_DEFINE([CONFIG_DBG_EVAL],   [1], [debugging for eval. is enabled?])
-#            AC_DEFINE([CONFIG_DBG_MT],     [1], [debugging for multithread is enabled?])
-#            AC_DEFINE([CONFIG_DBG_MEM],    [1], [debugging for memory is enabled?])
-#            AC_DEFINE([CONFIG_DBG_MUTEX],  [1], [debugging for mutex is enabled?])
+            ;;
+        f)
+            AC_DEFINE([CONFIG_LOG],        [1], [log is enabled?])
+            AC_DEFINE([CONFIG_ASSERT],     [1], [assert is enabled?])
+            AC_DEFINE([CONFIG_DBG_GEN],    [1], [general debugging msg is enabled?])
+            AC_DEFINE([CONFIG_DBG_EVAL],   [1], [debugging for eval. is enabled?])
+            AC_DEFINE([CONFIG_DBG_MT],     [1], [debugging for multithread is enabled?])
+            AC_DEFINE([CONFIG_DBG_MEM],    [1], [debugging for memory is enabled?])
+            AC_DEFINE([CONFIG_DBG_MUTEX],  [1], [debugging for mutex is enabled?])
             ;;
     esac
 ],
@@ -121,6 +132,8 @@ AC_ARG_WITH(debug,
 AM_LDFLAGS="$LDFLAGS -rdynamic"
 # '-I..' is already in $INCLUDES
 AM_CPPFLAGS="$INCLUDES -I../ylisp"
+AM_CFLAGS="-Wall -Werror"
+AC_SUBST([AM_CFLAGS])
 AC_SUBST([AM_CPPFLAGS])
 AC_SUBST([AM_LDFLAGS])
 

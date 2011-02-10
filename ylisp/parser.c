@@ -203,21 +203,16 @@ static const  _fsas_t
  * =====================================*/
 static inline void
 _fsa_add_symchar(_fsa_t* fsa, char c) {
-    if(fsa->pb < (fsa->bend-1)) {
+    if (fsa->pb < (fsa->bend-1)) {
         *fsa->pb = c; fsa->pb++;
-    } else {
-        yllogE ("Syntax Error : too long symbol!!!!!");
-        ylinterpret_undefined(YLErr_internal);
-    }
+    } else
+        ylinterp_fail (YLErr_internal, "Syntax Error : too long symbol!!!!!");
 }
 
 static inline yle_t*
 _create_atom_sym(unsigned char* sym, unsigned int len) {
     char* str = ylmalloc(sizeof(char)*(len+1));
-    if(!str) {
-        yllogE ("Out Of Memory : [%d]!\n", len);
-        ylinterpret_undefined(YLErr_out_of_memory);
-    }
+    if (!str) ylinterp_fail (YLErr_out_of_memory, "Out Of Memory : [%d]!\n", len);
     memcpy(str, sym, len);
     str[len] = 0; /* ylnull-terminator */
     return ylacreate_sym(str);
@@ -230,7 +225,7 @@ _eval_exp(yletcxt_t* cxt, yle_t* e) {
                     "    %s\n", ylechain_print(ylethread_buf(cxt), e)););
     r = yleval (cxt, e, ylnil ());
     if (YLMode_repl == ylmode ())
-        ylprint(("%s\n", ylechain_print (ylethread_buf (cxt), r)));
+        ylprint ("%s\n", ylechain_print (ylethread_buf (cxt), r));
 }
 
 /* =====================================
@@ -275,8 +270,7 @@ _fsas_init_next_char(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa,
         case '\\': *nexts = &_fsas_escape;                       break;
         case '(':  *nexts = &_fsas_list;                         break;
         case ')':
-            yllogE ("Syntax Error : parenthesis mismatching\n");
-            ylinterpret_undefined(YLErr_syntax_parenthesis);
+            ylinterp_fail (YLErr_syntax_parenthesis, "Syntax Error : parenthesis mismatching\n");
         case ';':  *nexts = &_fsas_comment;                      break;
         case '\r':
         case '\n':
@@ -512,8 +506,7 @@ _fsas_escape_next_char(yletcxt_t* cxt, const _fsas_t* fsas, _fsa_t* fsa,
         /* "\n" is supported to represent line-feed */
         case 'n':  ch = '\n';        break;
         default:
-            yllogE ("Syntax Error : Unsupported character for escape!!\n");
-            ylinterpret_undefined(YLErr_syntax_escape);
+            ylinterp_fail (YLErr_syntax_escape, "Syntax Error : Unsupported character for escape!!\n");
     }
     _fsa_add_symchar(fsa, ch);
     return bhandled;

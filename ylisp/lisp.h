@@ -236,23 +236,23 @@ __munlock(pthread_mutex_t* m) {
 
 #define _mlock(m)                                                       \
     do {                                                                \
-        yllogI3("+MLock: %p [%s][%d] ... ", m, __FILE__, __LINE__);     \
+        yllogD ("+MLock: %p [%s][%d] ... ", m, __FILE__, __LINE__);     \
         __mlock(m);                                                     \
-        yllogI0("OK\n");                                                \
+        yllogD ("OK\n");                                                \
     } while(0)
 
 #define _munlock(m)                                                     \
     do {                                                                \
-        yllogI3("+MUnlock: %p [%s][%d]\n", m, __FILE__, __LINE__);      \
+        yllogD ("+MUnlock: %p [%s][%d]\n", m, __FILE__, __LINE__);      \
         __munlock(m);                                                   \
     } while(0)
 
 #define _mtrylock(m)                                                    \
     do {                                                                \
         int r;                                                          \
-        yllogI3("+MTrylock: %p [%s][%d] ... ", m, __FILE__, __LINE__);  \
+        yllogD ("+MTrylock: %p [%s][%d] ... ", m, __FILE__, __LINE__);  \
         r = __mtrylock(m);                                              \
-        yllogI1("%s\n", r? "OK\n": "Fail\n");                           \
+        yllogD ("%s\n", r? "OK\n": "Fail\n");                           \
     } while(0)
 
 #else /* CONFIG_DBG_MUTEX */

@@ -51,7 +51,7 @@
 #ifdef _SYS_DBG_PIPE
 #   define _dbgpipe(x) do { x } while (0)
 #else /* _SYS_DBG_PIPE */
-#   define _dbgpipe(x) ((void*)0)
+#   define _dbgpipe(x) do {} while (0)
 #endif /* _SYS_DBG_PIPE */
 
 #define _INVALID_FD -1
@@ -114,6 +114,7 @@ static ylatomif_t _aif_fraw = {
 };
 
 
+#ifdef HAVE_LIBSTDBUF
 /* ------------------
  * For procia-xxx
  * ------------------*/
@@ -162,7 +163,7 @@ static ylatomif_t _aif_procia = {
     &_aif_procia_clean
 };
 
-
+#endif /* HAVE_LIBSTDBUF */
 
 
 static inline int
@@ -219,6 +220,13 @@ _ccb_pkill (void* pid) {
 }
 
 YLDEFNF(sh, 1, 1) {
+
+#ifdef HAVE_BASH
+#   define __shell "/bin/bash"
+#else /* HAVE_BASH */
+#   define __shell "/bin/sh"
+#endif /* HAVE_BASH */
+
 /*
  * We would better put them in tmp directory, because
  *  out file is actually temporally used one!
@@ -284,7 +292,7 @@ YLDEFNF(sh, 1, 1) {
                 exit(0);
             }
             fclose(fout); /* dupped */
-            execl("/bin/bash", "/bin/bash", "-c", ylasym(ylcar(e)).sym, (char*)0);
+            execl(__shell, __shell, "-c", ylasym(ylcar(e)).sym, (char*)0);
         }
     } /* Just scope */
 
@@ -300,11 +308,11 @@ YLDEFNF(sh, 1, 1) {
 
  bail:
     if (buf) ylfree (buf);
-    ylinterpret_undefined(YLErr_func_fail);
-    return NULL; /* to make compiler be happy. */
+    ylinterpret_undefined (YLErr_func_fail);
 
 #undef __cleanup
 #undef __outf_name
+#undef __shell
 
 } YLENDNF(sh)
 
@@ -714,7 +722,6 @@ YLDEFNF(procia_create, 1, 9999) {
     if (_INVALID_FD != rp[1]) close (rp[1]);
     if (pc) ylfree (pc);
     ylinterpret_undefined (YLErr_func_fail);
-    return NULL; /* to make compiler be happy. */
 
 } YLENDNF(procia_create)
 
@@ -769,10 +776,8 @@ YLDEFNF(fraw_close, 1, 1) {
     ylnfcheck_parameter (ylais_type_chain (e, &_aif_fraw)
                          && (_INVALID_FD != (long)ylacd (ylcar (e))) );
     fd = (long)ylacd (ylcar (e));
-    if (!_is_valid_fd (fd)) {
-        ylnflogE ("This is NOT valid file descripter : %d\n", fd);
-        ylinterpret_undefined (YLErr_func_invalid_param);
-    }
+    if (!_is_valid_fd (fd))
+        ylnfinterp_fail (YLErr_func_invalid_param, "This is NOT valid file descripter : %d\n", fd);
     ret = close (fd);
     if (0 > ret) return ylnil();
     else {
@@ -802,20 +807,16 @@ YLDEFNF(fraw_write, 2, 2) {
                          && (_INVALID_FD != (long)ylacd (ylcar (e)))
                          && ylais_type (ylcadr (e), ylaif_bin ()));
     fd = (long)ylacd (ylcar (e));
-    if (!_is_valid_fd (fd)) {
-        ylnflogE ("This is NOT valid file descripter : %d\n", fd);
-        ylinterpret_undefined (YLErr_func_invalid_param);
-    }
+    if (!_is_valid_fd (fd))
+        ylnfinterp_fail (YLErr_func_invalid_param, "This is NOT valid file descripter : %d\n", fd);
 
     ylmt_notify_safe(cxt);
     bw = write(fd, ylabin(d).d, ylabin(d).sz);
     fsync(fd); /* Is it really required? */
     ylmt_notify_unsafe(cxt);
 
-    if (ylabin (d).sz != bw) {
-        ylnflogW ("Fail to write file. : fd : %d\n", fd);
-        ylinterpret_undefined (YLErr_func_fail);
-    }
+    if (ylabin (d).sz != bw)
+        ylnfinterp_fail (YLErr_func_fail, "Fail to write file. : fd : %d\n", fd);
     return ylt ();
   } YLENDNF(fraw_write)
 
@@ -834,10 +835,8 @@ YLDEFNF(fraw_read, 1, 1) {
 
     fd = (long)ylacd (ylcar (e));
 
-    if (!_is_valid_fd (fd)) {
-        ylnflogE ("This is NOT valid file descripter : %d\n", fd);
-        ylinterpret_undefined (YLErr_func_invalid_param);
-    }
+    if (!_is_valid_fd (fd))
+        ylnfinterp_fail (YLErr_func_invalid_param, "This is NOT valid file descripter : %d\n", fd);
 
     dynb = ylmalloc (sizeof (yldynb_t)); ylassert (dynb);
     if (0 > yldynb_init (dynb, 4096)) ylassert (0);
@@ -848,19 +847,15 @@ YLDEFNF(fraw_read, 1, 1) {
         br = read (fd, yldynb_ptr (dynb), yldynb_freesz (dynb));
         if (br < 0) {
             if (EAGAIN == errno) { yldynb_reset (dynb); break; }
-            else {
-                ylnflogE ("Fail to read\n");
-                ylinterpret_undefined (YLErr_func_fail);
-            }
+            else
+                ylnfinterp_fail (YLErr_func_fail, "Fail to read\n");
         } else if (br < yldynb_freesz (dynb)) {
             dynb->sz += br;
             break;
         } else {
             dynb->sz += br;
-            if (0 > yldynb_expand (dynb) ) {
-                ylnflogE ("Out of memory : sz requested : %d\n", yldynb_limit (dynb));
-                ylinterpret_undefined (YLErr_out_of_memory);
-            }
+            if (0 > yldynb_expand (dynb) )
+                ylnfinterp_fail (YLErr_out_of_memory, "Out of memory : sz requested : %d\n", yldynb_limit (dynb));
         }
     }
     ylmt_notify_unsafe (cxt);
@@ -919,10 +914,8 @@ YLDEFNF(fraw_select, 4, 4) {
         ylelist_foreach (te) {                                          \
             tfd = (long)ylacd (ylcar (te));                             \
             if (nfds < tfd) nfds = tfd;                                 \
-            if (!_is_valid_fd (tfd)) {                                  \
-                ylnflogE ("Invalid file descriptor : %d\n", tfd);       \
-                ylinterpret_undefined (YLErr_func_fail);                \
-            }                                                           \
+            if (!_is_valid_fd (tfd))                                    \
+                ylnfinterp_fail (YLErr_func_fail, "Invalid file descriptor : %d\n", tfd); \
             FD_SET (tfd, fdset);                                        \
         }                                                               \
     } while (0)
@@ -937,10 +930,8 @@ YLDEFNF(fraw_select, 4, 4) {
     retval = select (nfds+1, &rfds, &wfds, &efds, &tv);
     ylmt_notify_unsafe (cxt);
 
-    if (0 > retval) {
-        ylnflogE ("Fail to select\n");
-        ylinterpret_undefined (YLErr_func_fail);
-    }
+    if (0 > retval)
+        ylnfinterp_fail (YLErr_func_fail, "Fail to select\n");
     /* check timeout */
     if (0 == retval) return ylnil ();
 

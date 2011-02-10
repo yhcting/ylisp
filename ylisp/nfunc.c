@@ -36,9 +36,7 @@
 
 YLDEFNF(__dummy, 0, 0) {
     /* This is just dummy */
-    ylnflogE ("'lambda' or 'mlambda' cannot be used as function name!\n");
-    ylinterpret_undefined(YLErr_func_fail);
-    return ylnil();
+    ylnfinterp_fail (YLErr_func_fail, "'lambda' or 'mlambda' cannot be used as function name!\n");
 } YLENDNF(__dummy)
 
 YLDEFNF(quote, 1, 1) {
@@ -75,13 +73,12 @@ YLDEFNF(equal, 2, 2) {
 
 YLDEFNF(set, 2, 3) {
     if (pcsz > 2) {
-        if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
+        if (ylais_type (ylcaddr (e), ylaif_sym ()))
             return ylset (cxt, ylcar (e), ylcadr (e), a,ylasym (ylcaddr (e)).sym, 0);
-        } else {
-            ylnflogE  ("SET : 3rd parameter should be description string\n");
-            ylinterpret_undefined (YLErr_func_invalid_param);
-            return NULL; /* to make compiler happy */
-        }
+        else
+            ylnfinterp_fail (YLErr_func_invalid_param,
+                             "SET : 3rd parameter should be description string\n");
+
     } else {
         return ylset (cxt, ylcar (e), ylcadr (e), a, NULL, 0);
     }
@@ -89,13 +86,11 @@ YLDEFNF(set, 2, 3) {
 
 YLDEFNF(tset, 2, 3) {
     if (pcsz > 2) {
-        if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
+        if (ylais_type (ylcaddr (e), ylaif_sym ()))
             return ylset (cxt, ylcar (e), ylcadr (e), a,ylasym (ylcaddr (e)).sym, STyper_thread);
-        } else {
-            ylnflogE  ("SET : 3rd parameter should be description string\n");
-            ylinterpret_undefined (YLErr_func_invalid_param);
-            return NULL; /* to make compiler happy */
-        }
+        else
+            ylnfinterp_fail (YLErr_func_invalid_param,
+                             "SET : 3rd parameter should be description string\n");
     } else {
         return ylset (cxt, ylcar (e), ylcadr (e), a, NULL, STyper_thread);
     }
@@ -103,13 +98,11 @@ YLDEFNF(tset, 2, 3) {
 
 YLDEFNF(f_mset, 2, 3) {
     if (pcsz > 2) {
-        if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
+        if (ylais_type (ylcaddr (e), ylaif_sym ()))
             return ylset (cxt, ylcar (e), ylcadr (e), a, ylasym (ylcaddr (e)).sym, STymac);
-        } else {
-            ylnflogE  ("MSET : 3rd parameter should be description string\n");
-            ylinterpret_undefined (YLErr_func_invalid_param);
-            return NULL; /* to make compiler happy */
-        }
+        else
+            ylnfinterp_fail (YLErr_func_invalid_param,
+                             "MSET : 3rd parameter should be description string\n");
     } else {
         return ylset (cxt, ylcar (e), ylcadr (e), a, NULL, STymac);
     }
@@ -117,13 +110,11 @@ YLDEFNF(f_mset, 2, 3) {
 
 YLDEFNF(f_tmset, 2, 3) {
     if (pcsz > 2) {
-        if (ylais_type (ylcaddr (e), ylaif_sym ()))  {
+        if (ylais_type (ylcaddr (e), ylaif_sym ()))
             return ylset (cxt, ylcar (e), ylcadr (e), a, ylasym (ylcaddr (e)).sym, STymac | STyper_thread);
-        } else {
-            ylnflogE  ("MSET : 3rd parameter should be description string\n");
-            ylinterpret_undefined (YLErr_func_invalid_param);
-            return NULL; /* to make compiler happy */
-        }
+        else
+            ylnfinterp_fail (YLErr_func_invalid_param,
+                             "MSET : 3rd parameter should be description string\n");
     } else {
         return ylset (cxt, ylcar (e), ylcadr (e), a, NULL, STymac | STyper_thread);
     }
@@ -168,17 +159,17 @@ YLDEFNF(help, 1, 9999) {
             int        outty;
             yle_t*     v;
             v = ylgsym_get(&outty, ylasym(ylcar(e)).sym);
-            ylprint(("\n======== %s Desc =========\n"
+            ylprint ("\n======== %s Desc =========\n"
                      "%s\n"
                      "-- Value --\n"
                      "%s : %s\n"
                      , ylasym(ylcar(e)).sym
                      , desc
                      , styis (outty, STymac)? "M": ""
-                     , ylechain_print(ylethread_buf(cxt), v)));
+                     , ylechain_print(ylethread_buf(cxt), v));
         } else {
-            ylprint(("======== %s =========\n"
-                     "Cannot find symbol\n", ylasym(ylcar(e)).sym));
+            ylprint ("======== %s =========\n"
+                     "Cannot find symbol\n", ylasym(ylcar(e)).sym);
         }
         e = ylcdr(e);
     }
@@ -217,7 +208,6 @@ YLDEFNF(load_cnf, 1, 1) {
     if(handle) { dlclose(handle); }
     ylinterpret_undefined(YLErr_func_fail);
 
-    return NULL; /* to make compiler happy */
 } YLENDNF(load_cnf)
 
 YLDEFNF(unload_cnf, 1, 1) {
@@ -256,7 +246,6 @@ YLDEFNF(unload_cnf, 1, 1) {
     if(handle) { dlclose(handle); }
     ylinterpret_undefined(YLErr_func_fail);
 
-    return NULL; /* to make compiler happy */
 } YLENDNF(unload_cnf)
 
 YLDEFNF(interpret, 1, 1) {
@@ -324,7 +313,6 @@ YLDEFNF(interpret_file, 1, 9999) {
 
     ylinterpret_undefined(YLErr_func_fail); /* error during interpreting */
 
-    return NULL; /* to make compiler happy */
 } YLENDNF(interpret_file)
 
 /**********************************************************

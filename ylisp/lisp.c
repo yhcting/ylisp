@@ -108,10 +108,8 @@ _DEFAIF_EQ_START(sym) {
 _DEFAIF_COPY_START(sym) {
     /* deep clone */
     ylasym(n).sym = ylmalloc(strlen(ylasym(e).sym)+1);
-    if(!ylasym(n).sym) {
-        yllogE ("Out Of Memory : [%d]!\n", strlen(ylasym(e).sym)+1);
-        ylinterpret_undefined(YLErr_out_of_memory);
-    }
+    if (!ylasym (n).sym)
+        ylinterp_fail (YLErr_out_of_memory, "Out Of Memory : [%d]!\n", strlen (ylasym (e).sym) + 1);
     strcpy(ylasym(n).sym, ylasym(e).sym);
 } _DEFAIF_COPY_END
 #endif /* Keep it for future use! */
@@ -214,10 +212,8 @@ _DEFAIF_EQ_START(bin) {
 _DEFAIF_COPY_START(bin) {
     /* deep clone */
     ylabin(n).d = ylmalloc(ylabin(e).sz);
-    if(!ylabin(n).d) {
-        yllogE ("Out Of Memory : [%d]!\n", ylabin(e).sz);
-        ylinterpret_undefined(YLErr_out_of_memory);
-    }
+    if (!ylabin (n).d)
+        ylinterp_fail (YLErr_out_of_memory, "Out Of Memory : [%d]!\n", ylabin(e).sz);
     memcpy(ylabin(n).d, ylabin(e).d, ylabin(e).sz);
 } _DEFAIF_COPY_END
 #endif /* Keep it for future use! */
@@ -240,8 +236,7 @@ _DEFAIF_EQ_START(nil) {
 
 #if 0 /* Keep it for future use! */
 _DEFAIF_COPY_START(nil) {
-    yllogE ("NIL is NOT ALLOWED TO COPY\n");
-    ylinterpret_undefined(YLErr_eval_undefined);
+    ylinterp_fail (YLErr_eval_undefined, "NIL is NOT ALLOWED TO COPY\n");
 } _DEFAIF_COPY_END
 #endif /* Keep it for future use! */
 
@@ -253,9 +248,8 @@ _DEFAIF_TO_STRING_START(nil) {
 } _DEFAIF_TO_STRING_END
 
 _DEFAIF_CLEAN_START(nil) {
-    ylassert(0); /* un-recovable error!! */
-    yllogE ("NIL SHOULD NOT BE CLEANED\n");
-    ylinterpret_undefined(YLErr_eval_undefined);
+    ylassert (0); /* un-recovable error!! */
+    ylinterp_fail (YLErr_eval_undefined, "NIL SHOULD NOT BE CLEANED\n");
 } _DEFAIF_CLEAN_END
 
 

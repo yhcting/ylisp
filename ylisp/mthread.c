@@ -148,7 +148,7 @@ ylmt_close_all_pres(yletcxt_t* cxt) {
     _pres_t *p, *n;
     yllist_foreach_item_removal_safe(p, n, &cxt->pres, _pres_t, lk) {
         yllist_del(&p->lk);
-        ylprint(("close... resource %p\n", p->pres));
+        ylprint ("close... resource %p\n", p->pres);
         (*p->ccb)(p->pres);
         ylfree(p);
     }
@@ -236,8 +236,7 @@ ylmt_notify_safe(yletcxt_t* cxt) {
         etst_clear(cxt, ETST_SAFE);
         _munlock(&_m);
 
-        ylinterpret_undefined(YLErr_killed);
-        ylassert(0); /* Cannot reach here! */
+        ylinterpret_undefined (YLErr_killed);
     } else {
         _handle_etsignal(cxt);
     }
