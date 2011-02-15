@@ -143,6 +143,7 @@ NFUNC(help,                   "help",                    ylaif_nfunc(),
     "    *ex\n"
     "        (help 'help); to see this description\n")
 
+#ifndef CONFIG_STATIC_CNF
 NFUNC(load_cnf,               "load-cnf",                ylaif_nfunc(),
     "load-cnf <file name> : [t/nil]\n"
     "    -LOAD Customized Native Function with given namespace.\n"
@@ -159,6 +160,7 @@ NFUNC(unload_cnf,             "unload-cnf",              ylaif_nfunc(),
     "     See 'load-cnf' for more\n"
     "     *ex\n"
     "         (unload-cnf 'ylbase.so 'yllibylbase_unregister)\n")
+#endif /* CONFIG_STATIC_CNF */
 
 NFUNC(interpret,              "interpret",               ylaif_nfunc(),
     "interpret-file <code> : [t/nil]\n"

@@ -36,6 +36,16 @@
 #include "ylsfunc.h"
 #include "ylut.h"
 
+/* walkaround for android ndk platform 9 */
+#ifdef ANDROID_NDK
+#   define pthread_rwlock_t       pthread_mutex_t
+#   define pthread_rwlock_init    pthread_mutex_init
+#   define pthread_rwlock_destroy pthread_mutex_destroy
+#   define pthread_rwlock_rdlock  pthread_mutex_lock
+#   define pthread_rwlock_wrlock  pthread_mutex_lock
+#   define pthread_rwlock_unlock  pthread_mutex_unlock
+#endif /* ANDROID_NDK */
+
 #define _arr(e) ((_err_t*)ylacd(e))
 
 typedef struct {

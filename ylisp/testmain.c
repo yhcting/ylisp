@@ -68,8 +68,10 @@ _malloc(size_t size) {
         */
         ra = NULL;
 #else /* __LP64__ */
+#   ifdef __i386__
         asm ("movl 4(%%ebp), %0;"
              :"=r"(ra));
+#   endif /* __i386__ */
 #endif /* __LP64__ */
         _mdbg[_mblk].caller = ra;
         _mdbg[_mblk].addr = addr;
@@ -112,11 +114,7 @@ _log(int lv, const char* format, ...) {
 }
 
 static void
-_assert(int a) {
-    if(!a){
-        assert(0);
-    }
-}
+_assert_(int a) { assert(a); }
 
 
 int
@@ -124,14 +122,14 @@ main(int argc, char* argv[]) {
     ylsys_t          sys;
 
     /* ylset system parameter */
-    sys.log = _log;
-    sys.print = printf;
-    sys.assert_ = _assert;
-    sys.malloc = _malloc;
-    sys.free = _free;
-    sys.mode = YLMode_batch;
-    sys.mpsz = 64*1024;
-    sys.gctp = 80;
+    sys.log     = &_log;
+    sys.print   = &printf;
+    sys.assert_ = &_assert_;
+    sys.malloc  = &_malloc;
+    sys.free    = &_free;
+    sys.mode    = YLMode_batch;
+    sys.mpsz    = 64*1024;
+    sys.gctp    = 80;
 
     ylinit(&sys);
 

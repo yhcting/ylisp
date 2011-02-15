@@ -126,7 +126,6 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GREP = @GREP@
-HAVE_JAVAC = @HAVE_JAVAC@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -187,6 +186,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+have_javac = @have_javac@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -220,8 +220,8 @@ top_srcdir = @top_srcdir@
 # SHARED LIBRARY
 pkglib_LTLIBRARIES = libylext.la
 libylext_la_SOURCES = \
-libmain.c crc.c crc.h hash.h hash.c nfunc_arr.c nfunc_bin.c \
-nfunc.in nfunc_map.c nfunc_math.c nfunc_re.c nfunc_str.c nfunc_sys.c
+    libmain.c crc.c crc.h hash.h hash.c nfunc_arr.c nfunc_bin.c \
+    nfunc.in nfunc_map.c nfunc_math.c nfunc_re.c nfunc_str.c nfunc_sys.c
 
 ylext_SOURCES = testmain.c
 ylext_LDADD = ../ylisp/libylisp.a libylext.la

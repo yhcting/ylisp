@@ -749,11 +749,13 @@ LTLIBOBJS
 AM_LDFLAGS
 AM_CPPFLAGS
 AM_CFLAGS
+COND_STATIC_FALSE
+COND_STATIC_TRUE
 POW_LIB
 LIBOBJS
 COND_JAVA_FALSE
 COND_JAVA_TRUE
-HAVE_JAVAC
+have_javac
 JAVAINC
 COND_PCRE_FALSE
 COND_PCRE_TRUE
@@ -873,6 +875,7 @@ enable_fast_install
 with_gnu_ld
 enable_libtool_lock
 with_debug
+with_static
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1523,6 +1526,10 @@ Optional Packages:
            empty     : minimal debug
            v[verbose]: verbose debug
            f[full]   : full debug - not recommended
+  --with-static
+        make ylbase and ylbase as an static linkable libraries.
+        load-cnf and unload cnf is not available.
+        ylr, test and yljfe is generated as static-linked-executable.
 
 Some influential environment variables:
   CC          C compiler command
@@ -5085,13 +5092,13 @@ if test "${lt_cv_nm_interface+set}" = set; then :
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:5088: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:5095: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5091: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:5098: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5094: output\"" >&5)
+  (eval echo "\"\$as_me:5101: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -6296,7 +6303,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 6299 "configure"' > conftest.$ac_ext
+  echo '#line 6306 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7554,11 +7561,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7557: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7564: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7561: \$? = $ac_status" >&5
+   echo "$as_me:7568: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7893,11 +7900,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7896: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7903: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7900: \$? = $ac_status" >&5
+   echo "$as_me:7907: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7998,11 +8005,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8001: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8008: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8005: \$? = $ac_status" >&5
+   echo "$as_me:8012: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8053,11 +8060,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8056: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8063: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8060: \$? = $ac_status" >&5
+   echo "$as_me:8067: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10437,7 +10444,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10440 "configure"
+#line 10447 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10533,7 +10540,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10536 "configure"
+#line 10543 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10904,6 +10911,7 @@ if test "x$ac_cv_file__usr_lib_libm_so" = x""yes; then :
 
 $as_echo "#define HAVE_LIBM 1" >>confdefs.h
 
+    have_m=true
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: math ext. functions aren't available!" >&5
 $as_echo "$as_me: math ext. functions aren't available!" >&6;}
@@ -10928,7 +10936,7 @@ if test "x$ac_cv_file__usr_local_lib_libpcre_so" = x""yes; then :
 
 $as_echo "#define HAVE_LIBPCRE 1" >>confdefs.h
 
-    HAVE_PCRE=true
+    have_pcre=true
     { $as_echo "$as_me:${as_lineno-$LINENO}: 'pcre' is used for regular expression." >&5
 $as_echo "$as_me: 'pcre' is used for regular expression." >&6;}
 else
@@ -10936,7 +10944,7 @@ else
 $as_echo "$as_me: POSIX regex is used for regular expression." >&6;}
 fi
 
- if test "x$HAVE_PCRE" = xtrue; then
+ if test "x${have_pcre}" = xtrue; then
   COND_PCRE_TRUE=
   COND_PCRE_FALSE='#'
 else
@@ -11033,18 +11041,18 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  HAVE_JNI_H=true
+  have_jni_h=true
 fi
 
 # Extract the first word of "javac", so it can be a program name with args.
 set dummy javac; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_prog_HAVE_JAVAC+set}" = set; then :
+if test "${ac_cv_prog_have_javac+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
-  if test -n "$HAVE_JAVAC"; then
-  ac_cv_prog_HAVE_JAVAC="$HAVE_JAVAC" # Let the user override the test.
+  if test -n "$have_javac"; then
+  ac_cv_prog_have_javac="$have_javac" # Let the user override the test.
 else
 as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
 for as_dir in $PATH
@@ -11053,7 +11061,7 @@ do
   test -z "$as_dir" && as_dir=.
     for ac_exec_ext in '' $ac_executable_extensions; do
   if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_prog_HAVE_JAVAC="true"
+    ac_cv_prog_have_javac="true"
     $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
@@ -11063,10 +11071,10 @@ IFS=$as_save_IFS
 
 fi
 fi
-HAVE_JAVAC=$ac_cv_prog_HAVE_JAVAC
-if test -n "$HAVE_JAVAC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HAVE_JAVAC" >&5
-$as_echo "$HAVE_JAVAC" >&6; }
+have_javac=$ac_cv_prog_have_javac
+if test -n "$have_javac"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_javac" >&5
+$as_echo "$have_javac" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -11126,10 +11134,10 @@ $as_echo "$ac_cv_search_JNI_CreateJavaVM" >&6; }
 ac_res=$ac_cv_search_JNI_CreateJavaVM
 if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-  HAVE_JVM=true
+  have_jvm=true
 fi
 
- if test "x$HAVE_JNI_H" = xtrue -a "x$HAVE_JAVAC" = xtrue -a "x$HAVE_JVM" = xtrue; then
+ if test "x${have_jni_h}" = xtrue -a "x${have_javac}" = xtrue -a "x${have_jvm}" = xtrue; then
   COND_JAVA_TRUE=
   COND_JAVA_FALSE='#'
 else
@@ -11137,7 +11145,7 @@ else
   COND_JAVA_FALSE=
 fi
 
-if test "x$HAVE_JNI_H" = xtrue -a "x$HAVE_JAVAC" = xtrue -a "x$HAVE_JVM" = xtrue; then
+if test "x${have_jni_h}" = xtrue -a "x${have_javac}" = xtrue -a "x${have_jvm}" = xtrue; then
   :
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: 'yljfe' is NOT available." >&5
@@ -12078,8 +12086,36 @@ $as_echo "#define CONFIG_DBG_MUTEX 1" >>confdefs.h
 fi
 
 
+
+# Check whether --with-static was given.
+if test "${with_static+set}" = set; then :
+  withval=$with_static;
+$as_echo "#define CONFIG_STATIC_CNF 1" >>confdefs.h
+
+config_static=true
+fi
+
+ if test "x$config_static" = xtrue; then
+  COND_STATIC_TRUE=
+  COND_STATIC_FALSE='#'
+else
+  COND_STATIC_TRUE='#'
+  COND_STATIC_FALSE=
+fi
+
+
+AM_LDFLAGS="${LDFLAGS}"
+if test x${config_static} = xtrue; then
+        if test x${have_m} = xtrue; then
+                AM_LDFLAGS="${AM_LDFLAGS} -lm"
+        fi
+        if test x${have_pcre} = xtrue; then
+                AM_LDFLAGS="${AM_LDFLAGS} -lpcre"
+        fi
+else
+        AM_LDFLAGS="${AM_LDFLAGS} -rdynamic"
+fi
 # Common flags!!
-AM_LDFLAGS="$LDFLAGS -rdynamic"
 # '-I..' is already in $INCLUDES
 AM_CPPFLAGS="$INCLUDES -I../ylisp"
 AM_CFLAGS="-Wall -Werror"
@@ -12213,6 +12249,10 @@ if test -z "${COND_JAVA_TRUE}" && test -z "${COND_JAVA_FALSE}"; then
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 
+if test -z "${COND_STATIC_TRUE}" && test -z "${COND_STATIC_FALSE}"; then
+  as_fn_error $? "conditional \"COND_STATIC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 
 : ${CONFIG_STATUS=./config.status}
 ac_write_fail=0

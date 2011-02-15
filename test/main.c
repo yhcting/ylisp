@@ -443,8 +443,10 @@ _malloc(size_t size) {
     */
     ra = NULL;
 #else /* __LP64__ */
+#   ifdef __i386__
     asm ("movl 4(%%ebp), %0;"
          :"=r"(ra));
+#   endif
 #endif /* __LP64__ */
     pthread_mutex_lock(&_msys);
     _mhadd (m, ra);
@@ -479,9 +481,15 @@ _log(int lv, const char* format, ...) {
 }
 
 static void
-_assert(int a) {
+_assert_(int a) {
     if(!a){ assert(0); }
 }
+
+
+#ifdef CONFIG_STATIC_CNF
+extern void ylcnf_load_ylbase ();
+extern void ylcnf_load_ylext ();
+#endif /* CONFIG_STATIC_CNF */
 
 int
 main(int argc, char* argv[]) {
@@ -491,16 +499,21 @@ main(int argc, char* argv[]) {
     _mhinit ();
 
     /* set system parameter */
-    sys.print   = printf;
-    sys.log     = _log;
-    sys.assert_ = _assert;
-    sys.malloc  = _malloc;
-    sys.free    = _free;
+    sys.print   = &printf;
+    sys.log     = &_log;
+    sys.assert_ = &_assert_;
+    sys.malloc  = &_malloc;
+    sys.free    = &_free;
     sys.mode    = YLMode_batch;
     sys.mpsz    = 8*1024;
     sys.gctp    = 1;
 
     ylinit(&sys);
+
+#ifdef CONFIG_STATIC_CNF
+    ylcnf_load_ylbase (NULL);
+    ylcnf_load_ylext (NULL);
+#endif /* CONFIG_STATIC_CNF */
 
     srand( time(NULL) );
 

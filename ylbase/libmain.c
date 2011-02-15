@@ -30,10 +30,15 @@
 
 extern int ylbase_nfunc_init ();
 
+#ifdef CONFIG_STATIC_CNF
 void
-ylcnf_onload(yletcxt_t* cxt) {
+ylcnf_load_ylbase () {
+#else /* CONFIG_STATIC_CNF */
+void
+ylcnf_onload (yletcxt_t* cxt) {
+#endif /* CONFIG_STATIC_CNF */
 
-    ylbase_nfunc_init(cxt);
+    ylbase_nfunc_init();
     /* return if fail to register */
 #define NFUNC(n, s, type, desc) \
     if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylbase <<\n" desc)) { return; }
@@ -42,8 +47,13 @@ ylcnf_onload(yletcxt_t* cxt) {
 
 }
 
+#ifdef CONFIG_STATIC_CNF
 void
-ylcnf_onunload(yletcxt_t* cxt) {
+ylcnf_unload_ylbase () {
+#else /* CONFIG_STATIC_CNF */
+void
+ylcnf_onunload (yletcxt_t* cxt) {
+#endif /* CONFIG_STATIC_CNF */
 
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc.in"

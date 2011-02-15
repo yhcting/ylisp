@@ -28,14 +28,15 @@ AC_SEARCH_LIBS([pthread_create],   [pthread],
 
 #### Check dynamically loaded libraries - AC_SEARCH_LIBS should NOT be used for this. 
 AC_CHECK_FILE([/usr/lib/libm.so],
-    [AC_DEFINE([HAVE_LIBM],       [1],    [/usr/lib/libm.so exists?])],
+    [AC_DEFINE([HAVE_LIBM],       [1],    [/usr/lib/libm.so exists?])]
+    [have_m=true],
     [AC_MSG_NOTICE([math ext. functions aren't available!])])
 AC_CHECK_FILE([/usr/local/lib/libpcre.so],
     [AC_DEFINE([HAVE_LIBPCRE],    [1],    [/usr/local/lib/libpcre.so exists?])]
-    [HAVE_PCRE=true]
+    [have_pcre=true]
     [AC_MSG_NOTICE(['pcre' is used for regular expression.])],
     [AC_MSG_NOTICE([POSIX regex is used for regular expression.])])
-AM_CONDITIONAL([COND_PCRE], [test "x$HAVE_PCRE" = xtrue])
+AM_CONDITIONAL([COND_PCRE], [test "x${have_pcre}" = xtrue])
 AC_CHECK_FILE([/usr/lib/coreutils/libstdbuf.so],
     [AC_DEFINE([HAVE_LIBSTDBUF],  [1],    [/usr/lib/coreutils/libstdbuf.so exists?])],
     [AC_MSG_NOTICE(['procia_xxxx' ext. functions aren't available.])])
@@ -55,10 +56,10 @@ JAVAINC=/usr/lib/jvm/default-java/include/
 AC_SUBST([JAVAINC])
 
 # Check files for java!
-AC_CHECK_FILE([${JAVAINC}jni.h], [HAVE_JNI_H=true])
-AC_CHECK_PROG([HAVE_JAVAC], [javac], [true])
-AC_SEARCH_LIBS([JNI_CreateJavaVM], [jvm],  [HAVE_JVM=true])
-AM_CONDITIONAL([COND_JAVA], [test "x$HAVE_JNI_H" = xtrue -a "x$HAVE_JAVAC" = xtrue -a "x$HAVE_JVM" = xtrue])
+AC_CHECK_FILE([${JAVAINC}jni.h], [have_jni_h=true])
+AC_CHECK_PROG([have_javac], [javac], [true])
+AC_SEARCH_LIBS([JNI_CreateJavaVM], [jvm],  [have_jvm=true])
+AM_CONDITIONAL([COND_JAVA], [test "x${have_jni_h}" = xtrue -a "x${have_javac}" = xtrue -a "x${have_jvm}" = xtrue])
 AM_COND_IF([COND_JAVA], [], [AC_MSG_NOTICE(['yljfe' is NOT available.])])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -128,8 +129,28 @@ AC_ARG_WITH(debug,
 ],
 [])
 
+AC_ARG_WITH(static,
+[  --with-static
+        make ylbase and ylbase as an static linkable libraries.
+        load-cnf and unload cnf is not available.
+        ylr, test and yljfe is generated as static-linked-executable.],
+[AC_DEFINE([CONFIG_STATIC_CNF],  [1],  [plug-in 'cnf' is not used. static executable is generated.])]
+[config_static=true],
+[])
+AM_CONDITIONAL([COND_STATIC], [test "x$config_static" = xtrue])
+
+AM_LDFLAGS="${LDFLAGS}"
+if test x${config_static} = xtrue; then
+        if test x${have_m} = xtrue; then
+                AM_LDFLAGS="${AM_LDFLAGS} -lm"
+        fi
+        if test x${have_pcre} = xtrue; then
+                AM_LDFLAGS="${AM_LDFLAGS} -lpcre"
+        fi
+else
+        AM_LDFLAGS="${AM_LDFLAGS} -rdynamic"
+fi
 # Common flags!!
-AM_LDFLAGS="$LDFLAGS -rdynamic"
 # '-I..' is already in $INCLUDES
 AM_CPPFLAGS="$INCLUDES -I../ylisp"
 AM_CFLAGS="-Wall -Werror"

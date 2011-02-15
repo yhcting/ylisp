@@ -28,7 +28,7 @@
 #ifndef ___YLDYNb_h___
 #define ___YLDYNb_h___
 
-#include <memory.h>
+#include <string.h> /* for memcpy */
 #include "yldev.h"
 
 /* DYNmaic Buffer */

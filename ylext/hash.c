@@ -22,7 +22,7 @@
 #include "config.h"
 #endif
 
-#include <memory.h>
+#include <string.h> /* for memcpy */
 #include "yldev.h"
 
 #define _MAX_HBITS 32

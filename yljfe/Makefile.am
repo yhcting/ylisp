@@ -15,6 +15,11 @@ AM_CPPFLAGS+= -I$(JAVAINC)
 bin_PROGRAMS = yljfe
 yljfe_SOURCES = main.c
 yljfe_LDADD = ../ylisp/libylisp.a
+
+if COND_STATIC
+    yljfe_LDADD+= ../ylbase/libylbase.la ../ylext/libylext.la
+endif
+
 yljfe_DEPENDENCIES = $(JTARGET)
 dist_pkgdata_DATA = $(JTARGET)
 

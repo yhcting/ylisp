@@ -47,9 +47,12 @@ _log(int lv, const char* format, ...) {
 }
 
 static void
-_assert(int a) {
-    if(!a){ assert(0); }
-}
+_assert_(int a) { assert(a); }
+
+#ifdef CONFIG_STATIC_CNF
+extern void ylcnf_load_ylbase ();
+extern void ylcnf_load_ylext ();
+#endif /* CONFIG_STATIC_CNF */
 
 int
 main(int argc, char* argv[]) {
@@ -59,11 +62,11 @@ main(int argc, char* argv[]) {
     unsigned int   dsz;
 
     /* set system parameter */
-    sys.print   = printf;
-    sys.log     = _log;
-    sys.assert_ = _assert;
-    sys.malloc  = malloc;
-    sys.free    = free;
+    sys.print   = &printf;
+    sys.log     = &_log;
+    sys.assert_ = &_assert_;
+    sys.malloc  = &malloc;
+    sys.free    = &free;
     sys.mode    = YLMode_repl;
     sys.mpsz    = 1024*1024;
     sys.gctp    = 80;
@@ -72,6 +75,11 @@ main(int argc, char* argv[]) {
         printf("Fail to initialize ylisp\n");
         exit(1);
     }
+
+#ifdef CONFIG_STATIC_CNF
+    ylcnf_load_ylbase (NULL);
+    ylcnf_load_ylext (NULL);
+#endif /* CONFIG_STATIC_CNF */
 
     for (i=1; i<argc; i++) {
         d = ylutfile_read(&dsz, argv[i], 1);

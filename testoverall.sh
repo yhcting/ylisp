@@ -36,6 +36,8 @@ for opt in $option; do
     testunit "${cmd}${opt}"
 done
 
+testunit "${cmd}f --with-static"
+
 echo ==========================
 echo =       Well Done!       =
 echo ==========================

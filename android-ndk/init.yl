@@ -1,0 +1,9 @@
+(set '@@ARM@@ 'true)
+
+; on Android-NDK, re-match and re-replace doens't work correctly!
+; So, disable following two regular expression function!
+(unset 're-match)
+(unset 're-replace)
+
+(interpret-file '/data/ylisp/yls/base.yl
+                '/data/ylisp/yls/ext.yl)

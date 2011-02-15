@@ -1,8 +1,8 @@
 # SHARED LIBRARY
 pkglib_LTLIBRARIES = libylext.la
 libylext_la_SOURCES = \
-libmain.c crc.c crc.h hash.h hash.c nfunc_arr.c nfunc_bin.c \
-nfunc.in nfunc_map.c nfunc_math.c nfunc_re.c nfunc_str.c nfunc_sys.c
+    libmain.c crc.c crc.h hash.h hash.c nfunc_arr.c nfunc_bin.c \
+    nfunc.in nfunc_map.c nfunc_math.c nfunc_re.c nfunc_str.c nfunc_sys.c
 
 # EXECUTABLE for debugging
 noinst_PROGRAMS = ylext
@@ -14,4 +14,3 @@ if COND_PCRE
     AM_LDFLAGS+= -lpcre
 endif
 ylext_LDADD = ../ylisp/libylisp.a libylext.la
-

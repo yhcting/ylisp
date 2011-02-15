@@ -68,8 +68,8 @@ _log(int lv, const char* format, ...) {
 }
 
 static inline void
-_assert(int a) {
-    if(!a){ assert(0); }
+_assert_(int a) {
+    assert(a);
 }
 
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
@@ -81,11 +81,11 @@ main(int argc, char* argv[]) {
     ylsys_t   sys;
 
     /* set system parameter */
-    sys.print   = printf;
-    sys.log     = _log;
-    sys.assert_ = _assert;
-    sys.malloc  = _malloc;
-    sys.free    = _free;
+    sys.print   = &printf;
+    sys.log     = &_log;
+    sys.assert_ = &_assert_;
+    sys.malloc  = &_malloc;
+    sys.free    = &_free;
     sys.mode    = YLMode_batch;
     sys.mpsz    = 4*1024;
     sys.gctp    = 80;

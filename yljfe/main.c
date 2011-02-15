@@ -86,7 +86,7 @@ _log(int lv, const char* format, ...) {
 }
 
 static inline void
-_assert(int a) { assert(a); }
+_assert_(int a) { assert(a); }
 
 
 static yldynb_t _dynb = {0, 0, NULL};
@@ -323,6 +323,10 @@ _start_java(JavaVM* jvm, JNIEnv* jenv, int argc, char* argv[]) {
     return 0; /* to make compiler be happy */
 }
 
+#ifdef CONFIG_STATIC_CNF
+extern void ylcnf_load_ylbase ();
+extern void ylcnf_load_ylext ();
+#endif /* CONFIG_STATIC_CNF */
 
 int
 main(int argc, char* argv[]) {
@@ -330,11 +334,11 @@ main(int argc, char* argv[]) {
     { /* just scope */
         ylsys_t     sys;
 
-        sys.print     = _print;
-        sys.log       = _log;
-        sys.assert_   = _assert;
-        sys.malloc    = malloc;
-        sys.free      = free;
+        sys.print     = &_print;
+        sys.log       = &_log;
+        sys.assert_   = &_assert_;
+        sys.malloc    = &malloc;
+        sys.free      = &free;
         sys.mode      = YLMode_repl;
         sys.mpsz      = 1024*1024; /* memory pool size */
         sys.gctp      = 80;
@@ -343,6 +347,12 @@ main(int argc, char* argv[]) {
             printf("Error: Fail to initialize ylisp\n");
             return 0;
         }
+
+#ifdef CONFIG_STATIC_CNF
+        ylcnf_load_ylbase (NULL);
+        ylcnf_load_ylext (NULL);
+#endif /* CONFIG_STATIC_CNF */
+
     }
 
     /* This should be called after ylinit() */

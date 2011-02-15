@@ -147,8 +147,8 @@ NFUNC(printf,         "printf",          ylaif_nfunc(),
     "    *ex\n"
     "        (printf \"%20s  %s --> %s\" e0 e1 e2)\n")
 
-NFUNC(log,            "log",             ylaif_nfunc(),
-    "log <level> <exp1> <exp2> ...\n"
+NFUNC(prlog,          "prlog",           ylaif_nfunc(),
+    "prlog <level> <exp1> <exp2> ...\n"
     "    -send to logger. This logs exactly same string with 'print'.\n"
     "    @<level> [Symbol] : one of 'v, d, i, w, e'. verbose, develop, info, warning, error respectively.\n")
 

@@ -36,7 +36,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = ylisp$(EXEEXT)
+@COND_STATIC_FALSE@noinst_PROGRAMS = ylisp$(EXEEXT)
 subdir = ylisp
 DIST_COMMON = $(include_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
@@ -80,9 +80,10 @@ am_libylisp_a_OBJECTS = lisp.$(OBJEXT) sfunc.$(OBJEXT) \
 	symlookup.$(OBJEXT) gsym.$(OBJEXT) trie.$(OBJEXT) ut.$(OBJEXT)
 libylisp_a_OBJECTS = $(am_libylisp_a_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
-am_ylisp_OBJECTS = testmain.$(OBJEXT)
+am__ylisp_SOURCES_DIST = testmain.c
+@COND_STATIC_FALSE@am_ylisp_OBJECTS = testmain.$(OBJEXT)
 ylisp_OBJECTS = $(am_ylisp_OBJECTS)
-ylisp_DEPENDENCIES = libylisp.a
+@COND_STATIC_FALSE@ylisp_DEPENDENCIES = libylisp.a
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -97,7 +98,7 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(libylisp_a_SOURCES) $(ylisp_SOURCES)
-DIST_SOURCES = $(libylisp_a_SOURCES) $(ylisp_SOURCES)
+DIST_SOURCES = $(libylisp_a_SOURCES) $(am__ylisp_SOURCES_DIST)
 HEADERS = $(include_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -129,7 +130,6 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GREP = @GREP@
-HAVE_JAVAC = @HAVE_JAVAC@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -190,6 +190,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+have_javac = @have_javac@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -224,12 +225,12 @@ top_srcdir = @top_srcdir@
 pkglib_LIBRARIES = libylisp.a
 include_HEADERS = ylisp.h
 libylisp_a_SOURCES = \
-yldef.h ylut.h yllist.h yltrie.h yldynb.h yldev.h ylsfunc.h \
-lisp.c sfunc.c mempool.c mthread.c parser.c interpret.c nfunc.c \
-nfunc_mt.c symlookup.c gsym.c trie.c ut.c
+    yldef.h ylut.h yllist.h yltrie.h yldynb.h yldev.h ylsfunc.h \
+    lisp.c sfunc.c mempool.c mthread.c parser.c interpret.c nfunc.c \
+    nfunc_mt.c symlookup.c gsym.c trie.c ut.c
 
-ylisp_SOURCES = testmain.c
-ylisp_LDADD = libylisp.a
+@COND_STATIC_FALSE@ylisp_SOURCES = testmain.c
+@COND_STATIC_FALSE@ylisp_LDADD = libylisp.a
 all: all-am
 
 .SUFFIXES:
@@ -583,6 +584,8 @@ uninstall-am: uninstall-includeHEADERS uninstall-pkglibLIBRARIES
 	tags uninstall uninstall-am uninstall-includeHEADERS \
 	uninstall-pkglibLIBRARIES
 
+
+@COND_STATIC_FALSE@    # EXECUTABLE for debugging
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

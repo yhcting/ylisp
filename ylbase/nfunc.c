@@ -366,7 +366,7 @@ YLDEFNF(printf, 1, 10) {
 } YLENDNF(printf)
 
 
-YLDEFNF(log, 2, 9999) {
+YLDEFNF(prlog, 2, 9999) {
     const char*  lvstr;
     int          loglv;
     ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
@@ -389,7 +389,7 @@ YLDEFNF(log, 2, 9999) {
  invalid_loglv:
     ylnflogE ("Invalid loglevel: %s\n", lvstr);
     return ylnil();
-} YLENDNF(log)
+} YLENDNF(prlog)
 
 YLDEFNF(to_string, 1, 1) {
     unsigned int len;

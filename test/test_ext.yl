@@ -138,8 +138,9 @@
 (assert (equal 'cde (to-string (subbin (to-bin 'abcdefg) 2 5))))
 (print (bin-human-read (to-bin '123)))
 (assert (equal (concat-bin 'a 'b (to-bin 'c)) (concat-bin 'a 'b 'c)))
-(assert (equal 0x0f (bin-to-num (to-bin 0x0f 1))))
-(assert (equal 0xabcde (bin-to-num (to-bin 0xabcde 3))))
+(cond ( (not (set? '@@ANDROID-NDK@@)) (progn
+    (assert (equal 0x0f (bin-to-num (to-bin 0x0f 1))))
+    (assert (equal 0xabcde (bin-to-num (to-bin 0xabcde 3)))))))
 
 ;=============================
 ; Test System

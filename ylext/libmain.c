@@ -34,6 +34,26 @@
 #   include "nfunc.in"
 #undef NFUNC
 
+#ifdef CONFIG_STATIC_CNF
+void
+ylcnf_load_ylext () {
+    /* return if fail to register */
+#define NFUNC(n, s, type, desc)  \
+    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, ">> lib: ylext <<\n" desc)) { return; }
+#   include "nfunc.in"
+#undef NFUNC
+}
+
+void
+ylcnf_unload_ylext () {
+#define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
+#   include "nfunc.in"
+#undef NFUNC
+}
+
+
+#else /* CONFIG_STATIC_CNF */
+
 #ifdef HAVE_LIBPCRE
 #   define PCRELIB_PATH_SYM "pcrelib-path"
 static void*  _pcrelib;
@@ -60,10 +80,8 @@ _dbg_sig_handler (int sig) {
 
 #endif /* CONFIG_DBG_GEN */
 
-
 void
-ylcnf_onload(yletcxt_t* cxt) {
-
+ylcnf_onload (yletcxt_t* cxt) {
 #ifdef CONFIG_DBG_GEN
     struct sigaction    act;
     memset (&act, 0, sizeof (act));
@@ -131,7 +149,7 @@ ylcnf_onload(yletcxt_t* cxt) {
 }
 
 void
-ylcnf_onunload(yletcxt_t* cxt) {
+ylcnf_onunload (yletcxt_t* cxt) {
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #   include "nfunc.in"
 #undef NFUNC
@@ -157,3 +175,4 @@ ylcnf_onunload(yletcxt_t* cxt) {
 #endif /* HAVE_LIBPCRE */
 }
 
+#endif /* CONFIG_STATIC_CNF */

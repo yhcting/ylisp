@@ -700,24 +700,23 @@ _log(int lv, const char* format, ...) {
 }
 
 static inline void
-_assert(int a) { assert(a); }
+_assert_(int a) { assert(a); }
 
 int
 ylsys_set_default (ylsys_t* sys) {
     if (!sys) return -1;
 
-    sys->print     = printf;
-    sys->log       = _log;
-    sys->assert_   = _assert;
-    sys->malloc    = malloc;
-    sys->free      = free;
+    sys->print     = &printf;
+    sys->log       = &_log;
+    sys->assert_   = &_assert_;
+    sys->malloc    = &malloc;
+    sys->free      = &free;
     sys->mode      = YLMode_batch;
     sys->mpsz      = 1024*1024; /* memory pool size */
     sys->gctp      = 80;
 
     return 0;
 }
-
 
 /* init this system */
 /* this SHOULD BE called first */
