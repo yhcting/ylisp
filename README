@@ -129,6 +129,34 @@ External Dependency
 * Guide for customizing by using plugins
 =================================
 
+Build with Android NDK
+----------------------
+    YLISP can be used on Android Platform (library and test executable) with
+     some constraints.
+     (These constraints comes from Android lib's constraints.)
+    Do following steps to build on Android NDK.
+    (YLISP is tested only on NDK platform android-9)
+    - Make NDK project directory.
+    - Put YLISP directory under NDK project directory. And rename it as 'jni'.
+    - Copy 'config.h' to prject directory.
+    - run 'ndk-build' that is in Android NDK release.
+    Now, libraries and test binaries are generated.
+    Pushing temp to device and run it on android 'shell'.
+
+    Sample install script is 'android-ndk/inst.sh'
+    Sample initial script is 'android-ndk/init.yl'
+    To run test, install with 'inst.sh' and then run test.
+
+    * NOTE *
+    Due to android platform issue, dynamic cnf - shared object - is not
+     supported. Only archive library form is supported.
+
+
+
+=================================
+* Guide for customizing by using plugins
+=================================
+
 Directory/File Structure
 ------------------------
     ylisp:

@@ -1,4 +1,4 @@
-(set '@@ARM@@ 'true)
+(set '@@ANDROID-NDK@@ 'true)
 
 ; on Android-NDK, re-match and re-replace doens't work correctly!
 ; So, disable following two regular expression function!

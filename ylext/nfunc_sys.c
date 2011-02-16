@@ -246,6 +246,12 @@ YLDEFNF(sh, 1, 1) {
 
     fout = tmpfile();
 
+    if (!fout) {
+        ylnflogE ("Fail to get tmpfile for redirection!\n"
+                  "  => %s\n", strerror(errno));
+        ylinterpret_undefined (YLErr_func_fail);
+    }
+
     { /* Just scope */
         pid_t       cpid; /* child process id */
 

@@ -146,6 +146,10 @@
 ; Test System
 ;=============================
 (print '"\n====== Start Testing 'system' =======\n")
+; android doesn't support 'tmpfile()' that is used in 'sh'
+; So, skip this test until this issue is fixed
+(cond ((not (set? '@@ANDROID-NDK@@)) (progn
+
 (sh 'ls)
 (print (sh '"echo abcd"))
 (assert (equal '"abcd
@@ -168,6 +172,7 @@
 (sh (concat '"rm " exttfname))
 (unset 'exttfname)
 
+)))
 ; ==================================
 ; In case of multi-threading mode, file state is unpredictable...
 ; (In single-threading mode, following test work well!)
@@ -551,6 +556,10 @@
 ;=============================
 ; Test System + MT
 ;=============================
+; sh is not available in Android NDK.
+; See comments in System test.
+(cond ((not (set? '@@ANDROID-NDK@@)) (progn
+
 (set 'extff '__________ff)
 (sh (concat '"mknod " extff '" p"))
 (create-thread '"
@@ -567,6 +576,7 @@
 (unset 'extfd)
 (unset 'extff)
 
+)))
 ;=============================
 ; Test Per-thread symbol
 ;=============================

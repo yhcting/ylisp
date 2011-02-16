@@ -494,7 +494,7 @@ extern void ylcnf_load_ylext ();
 int
 main(int argc, char* argv[]) {
     ylsys_t        sys;
-    unsigned int   maxwait = 60;
+    unsigned int   maxwait = 600; /* 10 min - android device is usually very slow. */
 
     _mhinit ();
 
