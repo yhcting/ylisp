@@ -12123,7 +12123,7 @@ AM_CFLAGS="-Wall -Werror"
 
 
 
-ac_config_files="$ac_config_files Makefile ylisp/Makefile ylbase/Makefile ylext/Makefile ylr/Makefile test/Makefile yljfe/Makefile yls/Makefile"
+ac_config_files="$ac_config_files Makefile ylisp/Makefile ylbase/Makefile ylext/Makefile ylr/Makefile yld/Makefile test/Makefile yljfe/Makefile yls/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -13119,6 +13119,7 @@ do
     "ylbase/Makefile") CONFIG_FILES="$CONFIG_FILES ylbase/Makefile" ;;
     "ylext/Makefile") CONFIG_FILES="$CONFIG_FILES ylext/Makefile" ;;
     "ylr/Makefile") CONFIG_FILES="$CONFIG_FILES ylr/Makefile" ;;
+    "yld/Makefile") CONFIG_FILES="$CONFIG_FILES yld/Makefile" ;;
     "test/Makefile") CONFIG_FILES="$CONFIG_FILES test/Makefile" ;;
     "yljfe/Makefile") CONFIG_FILES="$CONFIG_FILES yljfe/Makefile" ;;
     "yls/Makefile") CONFIG_FILES="$CONFIG_FILES yls/Makefile" ;;

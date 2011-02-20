@@ -13,10 +13,14 @@ GTAGS
 ID
 install/
 
+# configuration files
+!.gitignore
+!.emacs-ede.el
+
 # files for build system
 Makefile
 autom4te.cache/
 config.status
-./config.h
+/config.h
 stamp-h1
 libtool

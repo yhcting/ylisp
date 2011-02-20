@@ -304,7 +304,7 @@ _start_java(JavaVM* jvm, JNIEnv* jenv, int argc, char* argv[]) {
     jcls_main = (*jenv)->FindClass(jenv, "Main");
     if(!jcls_main) { return -1; }
 
-    jmid_main = (*jenv)->GetStaticMethodID(jenv, jcls_main, "main", "([Ljava/lang/String;)V");
+    jmid_main = (*jenv)->GetStaticMethodID(jenv, jcls_main, "uimain", "([Ljava/lang/String;)V");
     if(!jmid_main) { return -1; }
 
     /* Make Argument String */

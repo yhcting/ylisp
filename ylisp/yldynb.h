@@ -53,6 +53,11 @@ yldynb_sz(const yldynb_t* b) {
     return b->sz;
 }
 
+static inline void
+yldynb_setsz (yldynb_t* b, unsigned int sz) {
+        b->sz = sz;
+}
+
 static inline unsigned char*
 yldynb_buf(const yldynb_t* b) {
     return b->b;

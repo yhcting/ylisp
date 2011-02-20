@@ -6,10 +6,13 @@ adb shell mkdir /data/ylisp/test
 
 adb push jni/yls/base.yl        /data/ylisp/yls/base.yl
 adb push jni/yls/ext.yl         /data/ylisp/yls/ext.yl
-adb push jni/yls/init.yl        /data/ylisp/yls/init.yl
+adb push jni/android-ndk/init.yl  /data/ylisp/yls/init.yl
+
+# executables
+adb push libs/armeabi/ylr       /data/ylisp/bin/ylr
+adb push libs/armeabi/yld       /data/ylisp/bin/yld
 
 # for test
-adb push libs/armeabi/ylr       /data/ylisp/bin/ylr
 adb push libs/armeabi/test      /data/ylisp/test/test
 adb push jni/test/testrs000     /data/ylisp/test/testrs000
 adb push jni/test/testrs001     /data/ylisp/test/testrs001

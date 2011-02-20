@@ -3,7 +3,10 @@ import java.awt.event.*;
 import javax.swing.*;
 import java.util.*;
 
-public class Main extends JFrame {
+
+public class Main extends JFrame implements SockListener {
+    private static boolean         _REMOTE             = false;
+
     private static final int       _FRAME_WIDTH        = 640;
     private static final int       _FRAME_HEIGHT       = 256;
 
@@ -42,6 +45,98 @@ public class Main extends JFrame {
     private int                 _loglv = _LogLv.Warn.v(); // default is log ouput - refer native code's implementation
     private String              _bufferText;
 
+    // to support remote interpreter daemon
+    private Sock                _sock;
+
+    // for asynchronous request, response sequence.
+    private String              _resp_msg = "";
+    private Object              _resp_lock = new Object();
+    private int                 _resp_result = 0;
+
+    // ============================= To support remote server ==============================
+    private static final String _CMD_DELIMITER       = ":";
+
+    // command string - this should sync. with server side.
+    private static final String _CMD_PRINT           = "PRINT";
+    private static final String _CMD_LOG             = "LOG";
+    private static final String _CMD_AUTOCOMP_PRINT  = "AUTOCOMP_PRINT";
+    private static final String _CMD_AUTOCOMP_MORE   = "AUTOCOMP_MORE";
+    private static final String _CMD_AUTOCOMP_COMP   = "AUTOCOMP_COMP";
+
+    public boolean onSocketRead (String msg) {
+        int i = msg.indexOf(_CMD_DELIMITER);
+        String cmd = msg.substring(0, i);
+        String data = msg.substring(i+1);
+        if (cmd.equals(_CMD_PRINT)) {
+                System.out.print(data);
+        } else if (cmd.equals(_CMD_LOG)) {
+                System.out.print(data);
+        } else if (cmd.equals(_CMD_AUTOCOMP_PRINT)) {
+                synchronized (_resp_lock) {
+                        _resp_result = _AC_HANDLED;
+                        _resp_msg = "";
+                        System.out.print(data);
+                        _resp_lock.notifyAll();
+                }
+        } else if (cmd.equals(_CMD_AUTOCOMP_MORE)) {
+                synchronized (_resp_lock) {
+                        _resp_result = _AC_MORE_PREFIX;
+                        _resp_msg = data;
+                        _resp_lock.notifyAll();
+                }
+        } else if (cmd.equals(_CMD_AUTOCOMP_COMP)) {
+                synchronized (_resp_lock) {
+                        _resp_result = _AC_COMPLETE;
+                        _resp_msg = data;
+                        _resp_lock.notifyAll();
+                }
+        } else {
+                ; // TODO : implement here
+        }
+
+        return true;
+    }
+
+    private boolean _interpret (String str) {
+            if (!_REMOTE) return nativeInterpret(str);
+            return _sock.send("INTERP" + _CMD_DELIMITER + str);
+    }
+
+    private boolean _forceStop () {
+        if (!_REMOTE) return nativeForceStop();
+        // Not implemented yet!
+        return true;
+    }
+
+    private void    _setLogLevel (int lv) {
+        if (!_REMOTE) nativeSetLogLevel(lv);
+        // Not implemented yet!
+    }
+
+    private int     _autoComplete (String[] more, String prefix) {
+            int      r = _AC_HANDLED;
+            if (!_REMOTE) {
+                     r = nativeAutoComplete(prefix);
+                     if (_AC_HANDLED != r) more[0] = nativeGetLastNativeMessage();
+            } else {
+                    if (!_sock.send("AUTOCOMP" + _CMD_DELIMITER + prefix)) {
+                            System.out.println("Fail to send through socket");
+                            return _AC_HANDLED;
+                    }
+                    synchronized (_resp_lock) {
+                            try {
+                                    _resp_lock.wait();
+                                    r = _resp_result;
+                            } catch (InterruptedException e) {
+                                    System.out.println("Thread waiting interrupted!");
+                                    r = _AC_HANDLED; // interrupted
+                            }
+                    }
+                    if (_AC_HANDLED != r) more[0] = _resp_msg;
+            }
+            return r;
+    }
+
     // ============================= ACTIONS START ==============================
     private class InterpretAction extends AbstractAction {
         public void actionPerformed(ActionEvent ev) {
@@ -55,7 +150,7 @@ public class Main extends JFrame {
                     _hi = -1;
                     ins = _edit.getText();
                     _edit.setText(""); // clean
-                    nativeInterpret(ins);
+                    _interpret(ins);
                 }
             }).start();
         }
@@ -65,7 +160,7 @@ public class Main extends JFrame {
         public void actionPerformed(ActionEvent ev) {
             if(_loglv > _LogLv.Verbose.v()) {
                 _loglv--;
-                nativeSetLogLevel(_loglv);
+                _setLogLevel(_loglv);
                 System.out.print(">>> Current Log Level : " + _LogLv.getName(_loglv) + "\n");
             }
         }
@@ -75,7 +170,7 @@ public class Main extends JFrame {
         public void actionPerformed(ActionEvent ev) {
             if(_loglv < _LogLv.Error.v()) {
                 _loglv++;
-                nativeSetLogLevel(_loglv);
+                _setLogLevel(_loglv);
                 System.out.print(">>> Current Log Level : " + _LogLv.getName(_loglv) + "\n");
             }
         }
@@ -121,23 +216,26 @@ public class Main extends JFrame {
             }
 
             { // Just Scope
-                int r;
-                if(0 <= maxi) {
-                    // Normal case
-                    r = nativeAutoComplete(pre.substring(maxi));
-                } else {
-                    // In case of first word
-                    r = nativeAutoComplete(pre.substring(0));
+                int    r;
+                String more;
+                {
+                        String[] out = new String[1];
+                        if(0 <= maxi) {
+                                // Normal case
+                                r = _autoComplete(out, pre.substring(maxi));
+                        } else {
+                                // In case of first word
+                                r = _autoComplete(out, pre.substring(0));
+                        }
+                        more = out[0];
                 }
                 switch(r) {
                     case _AC_MORE_PREFIX: {
-                        String more = nativeGetLastNativeMessage();
                         _edit.setText(pre + more + post);
                         _edit.setCaretPosition(caretpos + more.length());
                     } break;
 
                     case _AC_COMPLETE: {
-                        String more = nativeGetLastNativeMessage();
                         more = more + " ";
                         _edit.setText(pre + more + post);
                         _edit.setCaretPosition(caretpos + more.length());
@@ -160,7 +258,7 @@ public class Main extends JFrame {
 
     // ============================= ACTIONS END ==============================
 
-    public Main() {
+    public Main(String[] args) {
         // Setup UI Frame
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -176,6 +274,17 @@ public class Main extends JFrame {
 
         pack();
         setVisible(true);
+
+        // setup socket
+        if (_REMOTE) {
+            _sock = new Sock();
+            try {
+                _sock.init(this, args[0], Integer.parseInt(args[1]));
+            } catch (NumberFormatException e) {
+                System.out.print(e.getMessage());
+                System.exit(0);
+            }
+        }
     }
 
     private void addToHistory(String cmd) {
@@ -223,6 +332,12 @@ public class Main extends JFrame {
     private native int     nativeAutoComplete(String prefix);
 
     public static void main(String[] args) {
-        new Main();
+        // remote client mode
+        _REMOTE = true;
+        uimain (args);
+    }
+
+    public static void uimain (String[] args) {
+        new Main(args);
     }
 }

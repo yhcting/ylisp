@@ -7,7 +7,7 @@ JTARGET=yljfe.jar
 JSRCDIR=jsrc/
 JOUTDIR=$(JSRCDIR)bin/
 JC=javac
-JSOURCES=$(JSRCDIR)YLJEditArea.java $(JSRCDIR)Main.java
+JSOURCES=$(JSRCDIR)YLJEditArea.java $(JSRCDIR)Main.java $(JSRCDIR)Sock.java
 JFLAGS=-Xlint:unchecked -d $(JOUTDIR)
 
 AM_CPPFLAGS+= -I$(JAVAINC)

@@ -172,6 +172,10 @@ Directory/File Structure
         Very simple java front-end for YLISP.
         To reduce platform dependency, Java is chosen as an UI framework.
         For GUI, this uses java swing. So, to run this, JRE is required.
+        yljfe can be run in two mode - local and remote.
+        For local running mode, execute 'yljfe' native binary.
+        For remote running mode, execute 'yljfe.jar' by running 'java'.
+        (remote mode can be run with 'yld' - server ylisp daemon)
         jsrc/:
             Java source code for GUI.
     ylbase:
@@ -187,6 +191,8 @@ Directory/File Structure
         YLISP script files.
     ylr
         Very simple executable that runs YLISP script files.
+    yld
+        Very simple ylisp-interpreter-daemon.
     test
         Executable binary for sanity test and test scripts.
 

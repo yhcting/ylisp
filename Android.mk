@@ -53,6 +53,16 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/ylisp $(NDK_PROJECT_PATH)
 LOCAL_STATIC_LIBRARIES := libylisp libylbase libylext
 include $(BUILD_EXECUTABLE)
 
+## for yld
+include $(CLEAR_VARS)
+LOCAL_MODULE := yld
+LOCAL_SRC_FILES := yld/main.c yld/cmd.c yld/pdu.c yld/socket.c
+LOCAL_CFLAGS := -DHAVE_CONFIG_H
+LOCAL_LDFLAGS :=
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/ylisp $(NDK_PROJECT_PATH)
+LOCAL_STATIC_LIBRARIES := libylisp libylbase libylext
+include $(BUILD_EXECUTABLE)
+
 ## for test
 include $(CLEAR_VARS)
 LOCAL_MODULE := test

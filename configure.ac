@@ -163,6 +163,7 @@ AC_CONFIG_FILES([Makefile
                  ylbase/Makefile
                  ylext/Makefile
                  ylr/Makefile
+                 yld/Makefile
                  test/Makefile
                  yljfe/Makefile
                  yls/Makefile])
