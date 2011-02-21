@@ -43,6 +43,12 @@
 (assert
     (equal zzz 'ab))
 
+(set 'yy '((a b) (1 2)))
+(assert (equal 'a (caar yy)))
+(assert (equal 'b (cadar yy)))
+(assert (equal '1 (caadr yy)))
+(assert (equal '2 (cadadr yy)))
+
 (assert (equal '(x a b) '(x a b)))
 (assert (equal '(x a) (cons 'x (cons 'a '()))))
 

@@ -78,7 +78,6 @@ _cmd_autocomp (const unsigned char* data, unsigned int sz) {
 
         case 1: {
                 cmd = CMD_AUTOCOMP_COMP;
-                yldynbstr_reset (&b);
         } break;
 
         case 2: {

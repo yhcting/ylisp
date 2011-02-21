@@ -44,9 +44,9 @@
     *ex
         (defun caar (e)
             \"caar\"
-            (if (or (atom e) (atom (car e)))
-                '()
-                (car (car e))); define 'caar' as function
+            (cond ((or (atom e) (atom (car e))) '())
+                ('t (car (car e)))))
+        ; define 'caar' as function
 ")
 
 (mset defmacro
@@ -61,9 +61,9 @@
     @desc [Symbol]: description.
     @body [exp]:    macro body
     *ex
-        (defmacro if (test tRUE fALSE)
-            \"Traditional C-like if/else\"
-            (cond (test tRUE) ('t fALSE)))
+        (defmacro if (test tRUE)
+            \"Traditional C-like if\"
+            (cond (test tRUE)))
 ")
 
 (mset cond
@@ -115,11 +115,11 @@
             (set 'i (+ i 1)))
 ")
 
-(defmacro if (test tRUE fALSE)
-"if <cond> <exp-than> <exp-else>
-    -Traditional C-like if/else.
+(defmacro if (test tRUE)
+"if <cond> <exp-if-true>
+    -Traditional C-like if.
 "
-    (cond (test tRUE) ('t fALSE)))
+    (cond (test tRUE)))
 
 ; ==============================
 ; We can use representative object to check type!
@@ -154,78 +154,66 @@
 ; ===========================
 (defun caar (e)
 "caar\n"
-    (if (or (atom e) (atom (car e)))
-        '()
-        (car (car e))))
+    (cond ((or (atom e) (atom (car e))) '())
+        ('t (car (car e)))))
 
 (defun cadr (e)
 "cadr\n"
-    (if (or (atom e) (atom (cdr e)))
-        '()
-        (car (cdr e))))
+    (cond ((or (atom e) (atom (cdr e))) '())
+        ('t (car (cdr e)))))
 
 (defun cdar (e)
 "cdar\n"
-    (if (or (atom e) (atom (car e)))
-        '()
-        (cdr (car e))))
+    (cond ((or (atom e) (atom (car e))) '())
+        ('t (cdr (car e)))))
 
 (defun cddr (e)
 "cddr\n"
-    (if (or (atom e) (atom (cdr e)))
-        '()
-        (cdr (cdr e))))
+    (cond ((or (atom e) (atom (cdr e))) '())
+        ('t (cdr (cdr e)))))
 
 ; ===========================
 ; = cxxxr (8 funcs)
 ; ===========================
 (defun caaar (e)
 "caaar\n"
-    (if (atom (caar e))
-        '()
-        (car (caar e))))
+    (cond ((atom (caar e)) '())
+        ('t (car (caar e)))))
 
 (defun caadr (e)
 "caadr\n"
-    (if (atom (cadr e))
-        '()
-        (car (cadr e))))
+    (cond ((atom (cadr e)) '())
+        ('t (car (cadr e)))))
 
 (defun cadar (e)
 "cadar\n"
-    (if (atom (cdar e))
-        '()
-        (car (cdar e))))
+    (cond ((atom (cdar e)) '())
+        ('t (car (cdar e)))))
 
 (defun caddr (e)
 "caddr\n"
-    (if (atom (cddr e))
-        '()
-        (car (cddr e))))
+    (cond ((atom (cddr e)) '())
+        ('t (car (cddr e)))))
 
 (defun cdaar (e)
 "cdaar\n"
-    (if (atom (caar e))
-        '()
-        (cdr (caar e))))
+    (cond ((atom (caar e)) '())
+        ('t (cdr (caar e)))))
 
 (defun cdadr (e)
 "cdadr\n"
-    (if (atom (cadr e))
-        '()
-        (cdr (cadr e))))
+    (cond ((atom (cadr e)) '())
+        ('t (cdr (cadr e)))))
 
 (defun cddar (e)
 "cddar\n"
-    (if (atom (cdar e))
-        '()
-        (cdr (cdar e))))
+    (cond ((atom (cdar e)) '())
+        ('t (cdr (cdar e)))))
 
 (defun cdddr (e)
 "cdddr\n"
-    (if (atom (cddr e))
-        '()
-        (cdr (cddr e))))
+    (cond ((atom (cddr e)) '())
+        ('t (cdr (cddr e)))))
 
 ; ===========================
 ; = cxxxxr (16 funcs)
@@ -235,102 +223,86 @@
 ; -----------------
 (defun caaaar (e)
 "caaaar\n"
-    (if (atom (caaar e))
-        '()
-        (car (caaar e))))
+    (cond ((atom (caaar e)) '())
+        ('t (car (caaar e)))))
 
 (defun caaadr (e)
 "caaadr\n"
-    (if (atom (caadr e))
-        '()
-        (car (caadr e))))
+    (cond ((atom (caadr e)) '())
+        ('t (car (caadr e)))))
 
 (defun caadar (e)
 "caadar\n"
-    (if (atom (cadar e))
-        '()
-        (car (cadar e))))
+    (cond ((atom (cadar e)) '())
+        ('t (car (cadar e)))))
 
 (defun caaddr (e)
 "caaddr\n"
-    (if (atom (caddr e))
-        '()
-        (car (caddr e))))
+    (cond ((atom (caddr e)) '())
+        ('t (car (caddr e)))))
 
 (defun cadaar (e)
 "cadaar\n"
-    (if (atom (cdaar e))
-        '()
-        (car (cdaar e))))
+    (cond ((atom (cdaar e)) '())
+        ('t (car (cdaar e)))))
 
 (defun cadadr (e)
 "cadadr\n"
-    (if (atom (cdadr e))
-        '()
-        (car (cdadr e))))
+    (cond ((atom (cdadr e)) '())
+        ('t (car (cdadr e)))))
 
 (defun caddar (e)
 "caddar\n"
-    (if (atom (cddar e))
-        '()
-        (car (cddar e))))
+    (cond ((atom (cddar e)) '())
+        ('t (car (cddar e)))))
 
 (defun cadddr (e)
 "cadddr\n"
-    (if (atom (cdddr e))
-        '()
-        (car (cdddr e))))
+    (cond ((atom (cdddr e)) '())
+        ('t (car (cdddr e)))))
 
 ; -----------------
 ; - cdxxxr
 ; -----------------
 (defun cdaaar (e)
 "cdaaar\n"
-    (if (atom (caaar e))
-        '()
-        (cdr (caaar e))))
+    (cond ((atom (caaar e)) '())
+        ('t (cdr (caaar e)))))
 
 (defun cdaadr (e)
 "cdaadr\n"
-    (if (atom (caadr e))
-        '()
-        (cdr (caadr e))))
+    (cond ((atom (caadr e)) '())
+        ('t (cdr (caadr e)))))
 
 (defun cdadar (e)
 "cdadar\n"
-    (if (atom (cadar e))
-        '()
-        (cdr (cadar e))))
+    (cond ((atom (cadar e)) '())
+        ('t (cdr (cadar e)))))
 
 (defun cdaddr (e)
 "cdaddr\n"
-    (if (atom (caddr e))
-        '()
-        (cdr (caddr e))))
+    (cond ((atom (caddr e)) '())
+        ('t (cdr (caddr e)))))
 
 (defun cddaar (e)
 "cddaar\n"
-    (if (atom (cdaar e))
-        '()
-        (cdr (cdaar e))))
+    (cond ((atom (cdaar e)) '())
+        ('t (cdr (cdaar e)))))
 
 (defun cddadr (e)
 "cddadr\n"
-    (if (atom (cdadr e))
-        '()
-        (cdr (cdadr e))))
+    (cond ((atom (cdadr e)) '())
+        ('t (cdr (cdadr e)))))
 
 (defun cdddar (e)
 "cdddar\n"
-    (if (atom (cddar e))
-        '()
-        (cdr (cddar e))))
+    (cond ((atom (cddar e)) '())
+        ('t (cdr (cddar e)))))
 
 (defun cddddr (e)
 "cddddr\n"
-    (if (atom (cdddr e))
-        '()
-        (cdr (cdddr e))))
+    (cond ((atom (cdddr e)) '())
+        ('t (cdr (cdddr e)))))
 
 ; ===========================
 ; = Define cx...r series - END

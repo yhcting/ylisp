@@ -80,20 +80,21 @@ ylgsym_set_description(const char* sym, const char* description) {
 
 int
 ylgsym_get_description(char* b, unsigned int bsz, const char* sym) {
-    const char*  desc;
-    unsigned int sz;
-    int          ret = 0;
-    _mlock(&_m);
-    desc = ylslu_get_description(_t, sym);
-    sz = (unsigned int)strlen(desc);
-    if(sz >= bsz ) { sz = bsz -1; }
-    if(desc) {
-        memcpy(b, desc, sz);
-        b[sz] = 0; /* add trailing 0 */
-        ret = 1;
-    }
-    _munlock(&_m);
-    return ret;
+        const char*  desc;
+        unsigned int sz;
+        _mlock (&_m);
+        desc = ylslu_get_description (_t, sym);
+        if (desc) {
+                sz = (unsigned int)strlen (desc);
+                if (sz >= bsz ) sz = bsz -1;
+                memcpy (b, desc, sz);
+                b[sz] = 0; /* add trailing 0 */
+                _munlock (&_m);
+                return 0;
+        } else {
+                _munlock (&_m);
+                return -1;
+        }
 }
 
 yle_t*

@@ -151,29 +151,28 @@ YLDEFNF(eval, 1, 1) {
 
 YLDEFNF(help, 1, 9999) {
 #define __MAX_DESC_SZ   4096
-    char  desc[__MAX_DESC_SZ];
-    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
-    while(!yleis_nil(e)) {
-        /* '!!' to make compiler be happy */
-        if(0 < ylgsym_get_description(desc, __MAX_DESC_SZ, ylasym(ylcar(e)).sym)) {
-            int        outty;
-            yle_t*     v;
-            v = ylgsym_get(&outty, ylasym(ylcar(e)).sym);
-            ylprint ("\n======== %s Desc =========\n"
-                     "%s\n"
-                     "-- Value --\n"
-                     "%s : %s\n"
-                     , ylasym(ylcar(e)).sym
-                     , desc
-                     , styis (outty, STymac)? "M": ""
-                     , ylechain_print(ylethread_buf(cxt), v));
-        } else {
-            ylprint ("======== %s =========\n"
-                     "Cannot find symbol\n", ylasym(ylcar(e)).sym);
+        char  desc[__MAX_DESC_SZ];
+        ylnfcheck_parameter (ylais_type_chain (e, ylaif_sym ()));
+        while (!yleis_nil (e)) {
+                if (0 > ylgsym_get_description (desc, __MAX_DESC_SZ, ylasym (ylcar (e)).sym)) {
+                        ylprint ("======== %s =========\n"
+                                 "Cannot find symbol\n", ylasym (ylcar (e)).sym);
+                } else {
+                        int        outty;
+                        yle_t*     v;
+                        v = ylgsym_get (&outty, ylasym (ylcar (e)).sym);
+                        ylprint ("\n======== %s Desc =========\n"
+                                 "%s\n"
+                                 "-- Value --\n"
+                                 "%s : %s\n"
+                                 , ylasym (ylcar (e)).sym
+                                 , desc
+                                 , styis (outty, STymac)? "M": ""
+                                 , ylechain_print (ylethread_buf (cxt), v));
+                }
+                e = ylcdr (e);
         }
-        e = ylcdr(e);
-    }
-    return ylt();
+        return ylt ();
 #undef __MAX_DESC_SZ
 } YLENDNF(help)
 
