@@ -27,7 +27,9 @@
 ; test pcre if possible!
 (cond ((set? 're-match)
         (let ((R '()))
-            (set 'R (re-match '"([0-9]+)([a-z]+)\\s" '"  hahah 12abc123abcd effff" '""))
+            (set 'R (re-match '"([0-9]+)([a-z]+)\\s"
+	                      '"  hahah 12abc123abcd effff"
+			       '""))
             (assert (equal '"123abcd " (car R)))
             (assert (equal '123 (cadr R)))
             (assert (equal 'abcd (caddr R)))
@@ -39,9 +41,11 @@
         (let ((R '()) (subj '"hahaha my name is cho!"))
             (set 'R (re-replace '"name" '"full name" subj '""))
             (assert (equal R '"hahaha my full name is cho!"))
-            (assert (equal '"Abcde abcde ab" (re-replace 'a 'A '"abcde abcde ab" '"")))
+            (assert (equal '"Abcde abcde ab"
+	                   (re-replace 'a 'A '"abcde abcde ab" '"")))
             (assert (equal '"abcde" (re-replace 't 'T '"abcde" '"")))
-            (assert (equal '"Abcde Abcde Ab" (re-replace 'a 'A '"abcde abcde ab" '"g"))))
+            (assert (equal '"Abcde Abcde Ab"
+	                   (re-replace 'a 'A '"abcde abcde ab" '"g"))))
 ))
 
 (assert (equal 'a (char-at 'abcdefg 0)))
@@ -223,7 +227,8 @@
     (wait-ps '__procia_test)
     (assert (equal '"1/a/ha/\n" (to-string (fraw-read (procia-rfd extpia)))))
     (fraw-write (procia-wfd extpia) (to-bin '"procia test\n"))
-    (assert (equal '"procia test\n" (to-string (fraw-read (procia-rfd extpia)))))
+    (assert (equal '"procia test\n"
+                   (to-string (fraw-read (procia-rfd extpia)))))
     (procia-destroy extpia)
     (assert (equal 0 (strlen (sh '"ps -e | grep __procia_test"))))
 

@@ -53,9 +53,9 @@
 
 /* See Main.java */
 enum {
-    _AC_HANDLED       = 0,
-    _AC_MORE_PREFIX   = 1,
-    _AC_COMPLETE      = 2,
+	_AC_HANDLED       = 0,
+	_AC_MORE_PREFIX   = 1,
+	_AC_COMPLETE      = 2,
 };
 
 static int _loglv = YLLogW;
@@ -63,26 +63,26 @@ static int _loglv = YLLogW;
 
 static inline int
 _print(const char* format, ...) {
-    /* print to standard out directly */
-    va_list args;
-    int     ret;
-    va_start (args, format);
-    ret = vprintf(format, args);
-    va_end (args);
-    /* we want to print its string immediately */
-    fflush(stdout);
-    return ret;
+	/* print to standard out directly */
+	va_list args;
+	int     ret;
+	va_start (args, format);
+	ret = vprintf(format, args);
+	va_end (args);
+	/* we want to print its string immediately */
+	fflush(stdout);
+	return ret;
 }
 
 static inline void
 _log(int lv, const char* format, ...) {
-    if(lv >= _loglv) {
-        va_list ap;
-        /* print to standard out directly */
-        va_start(ap, format);
-        vprintf(format, ap);
-        va_end(ap);
-    }
+	if (lv >= _loglv) {
+		va_list ap;
+		/* print to standard out directly */
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+	}
 }
 
 static inline void
@@ -104,20 +104,20 @@ static yldynb_t _dynb = {0, 0, NULL};
 static jboolean JNICALL
 _jni_Main_nativeInterpret
 (JNIEnv* jenv, jobject jobj, jstring jstr) {
-    jboolean       jret = JNI_TRUE;
-    const char*    stream;
+	jboolean       jret = JNI_TRUE;
+	const char*    stream;
 
-    stream = (*jenv)->GetStringUTFChars(jenv, jstr, NULL);
+	stream = (*jenv)->GetStringUTFChars(jenv, jstr, NULL);
 
-    yldynbstr_reset(&_dynb);
-    if( YLOk != ylinterpret((unsigned char*)stream,
-                            (unsigned int)strlen(stream)) ) {
-        jret = JNI_FALSE;
-    }
+	yldynbstr_reset(&_dynb);
+	if (YLOk != ylinterpret((unsigned char*)stream,
+				(unsigned int)strlen(stream)) ) {
+		jret = JNI_FALSE;
+	}
 
-    (*jenv)->ReleaseStringUTFChars(jenv, jstr, stream);
+	(*jenv)->ReleaseStringUTFChars(jenv, jstr, stream);
 
-    return jret;
+	return jret;
 }
 
 /*
@@ -128,23 +128,26 @@ _jni_Main_nativeInterpret
 static jstring JNICALL
 _jni_Main_nativeGetLastNativeMessage
 (JNIEnv* jenv, jobject jobj) {
-    jstring jret;
-    jret = ((*jenv)->NewStringUTF(jenv, (char*)yldynbstr_string(&_dynb)));
-    if(!jret) {
-        _print("Not enough Java memory to get native message!\n"
-               "Native message size : %d\n", yldynbstr_len(&_dynb));
-    }
+	jstring jret;
+	jret = ((*jenv)->NewStringUTF(jenv, (char*)yldynbstr_string(&_dynb)));
+	if (!jret) {
+		_print("Not enough Java memory to get native message!\n"
+		       "Native message size : %d\n", yldynbstr_len(&_dynb));
+	}
 
-    /* shrink */
-    if(yldynbstr_len(&_dynb) > _INIT_OUTBUFSZ) {
-        yldynb_clean(&_dynb);
-        if( 0 > yldynbstr_init(&_dynb, _INIT_OUTBUFSZ) ) {
-            /* fail to alloc page... may be due to external fragmentation?? */
-            assert(0);
-        }
-    }
+	/* shrink */
+	if(yldynbstr_len(&_dynb) > _INIT_OUTBUFSZ) {
+		yldynb_clean(&_dynb);
+		if (0 > yldynbstr_init(&_dynb, _INIT_OUTBUFSZ)) {
+			/*
+			 * fail to alloc page...
+			 * may be due to external fragmentation??
+			 */
+			assert(0);
+		}
+	}
 
-    return jret;
+	return jret;
 }
 
 /*
@@ -155,9 +158,11 @@ _jni_Main_nativeGetLastNativeMessage
 static void JNICALL
 _jni_Main_nativeSetLogLevel
 (JNIEnv* jenv, jobject jobj, jint lv) {
-    if(lv < YLLogV) { lv = YLLogV; }
-    if(lv > YLLogE) { lv = YLLogE; }
-    _loglv = lv;
+	if (lv < YLLogV)
+		lv = YLLogV;
+	if (lv > YLLogE)
+		lv = YLLogE;
+	_loglv = lv;
 }
 
 /*
@@ -168,69 +173,73 @@ _jni_Main_nativeSetLogLevel
 static jint JNICALL
 _jni_Main_nativeAutoComplete
 (JNIEnv* jenv, jobject jobj, jstring jprefix) {
-    int         ret;
-    const char* prefix;
+	int         ret;
+	const char* prefix;
 
-    prefix = (*jenv)->GetStringUTFChars(jenv, jprefix, NULL);
+	prefix = (*jenv)->GetStringUTFChars(jenv, jprefix, NULL);
 
-    yldynbstr_reset(&_dynb);
-    ret = ylsym_auto_complete(prefix, (char*)yldynbstr_ptr(&_dynb), yldynb_freesz(&_dynb));
-    /* we need to assess directly..here... due to limitation of API */
-    _dynb.sz += strlen((char*)yldynbstr_string(&_dynb));
+	yldynbstr_reset(&_dynb);
+	ret = ylsym_auto_complete(prefix,
+				  (char*)yldynbstr_ptr(&_dynb),
+				  yldynb_freesz(&_dynb));
+	/* we need to assess directly..here... due to limitation of API */
+	_dynb.sz += strlen((char*)yldynbstr_string(&_dynb));
 
-    switch(ret) {
+	switch(ret) {
         case 0: {
-            if(yldynbstr_len(&_dynb) > 0) {
-                ret = _AC_MORE_PREFIX;
-            } else {
-                /* we need to retrieve candidates.. */
-                int            num, i;
-                unsigned int   maxlen;
-                char**         pp;
-                num = ylsym_nr_candidates(prefix, &maxlen);
-                assert(num > 1);
-                pp = malloc(sizeof(char*)*num);
-                if(!pp) {
-                    _print("Fail to alloc memory : %d\n", num);
-                    assert(0);
-                }
-                for(i=0; i<num; i++) {
-                    pp[i] = malloc(maxlen+1);
-                    if(!pp[i]) {
-                        _print("Fail to alloc memory : %d\n", maxlen+1);
-                        assert(0);
-                    }
-                }
-                i = ylsym_candidates(prefix, pp, num, maxlen+1);
-                assert(i==num);
-                for(i=0; i<num; i++) {
-                    _print("%s%s\n", prefix, pp[i]);
-                    free(pp[i]);
-                }
-                free(pp);
-                _print("\n");
-                ret = _AC_HANDLED;
-            }
+		if (yldynbstr_len(&_dynb) > 0) {
+			ret = _AC_MORE_PREFIX;
+		} else {
+			/* we need to retrieve candidates.. */
+			int            num, i;
+			unsigned int   maxlen;
+			char**         pp;
+			num = ylsym_nr_candidates(prefix, &maxlen);
+			assert(num > 1);
+			pp = malloc(sizeof(char*)*num);
+			if (!pp) {
+				_print("Fail to alloc memory : %d\n", num);
+				assert(0);
+			}
+			for (i=0; i<num; i++) {
+				pp[i] = malloc(maxlen+1);
+				if (!pp[i]) {
+					_print("Fail to alloc memory : %d\n",
+					       maxlen+1);
+					assert(0);
+				}
+			}
+			i = ylsym_candidates(prefix, pp, num, maxlen+1);
+			assert(i==num);
+			for (i=0; i<num; i++) {
+				_print("%s%s\n", prefix, pp[i]);
+				free(pp[i]);
+			}
+			free(pp);
+			_print("\n");
+			ret = _AC_HANDLED;
+		}
         } break;
 
         case 1: {
-            ret = _AC_COMPLETE;
-            /* nothing to do */
+		ret = _AC_COMPLETE;
+		/* nothing to do */
         } break;
 
         case 2: {
-            ret = _AC_HANDLED;
-            /* nothing to do */
+		ret = _AC_HANDLED;
+		/* nothing to do */
         } break;
 
         default:
-            _print("Internal error to try auto-completion. Out of memory?\n");
-            ret = -1; /* error case */
-    }
+		_print("Internal error to try auto-completion.\n"
+		       "  Out of memory?\n");
+		ret = -1; /* error case */
+	}
 
-    (*jenv)->ReleaseStringUTFChars(jenv, jprefix, prefix);
+	(*jenv)->ReleaseStringUTFChars(jenv, jprefix, prefix);
 
-    return ret;
+	return ret;
 }
 
 /* ===========================================
@@ -240,87 +249,95 @@ _jni_Main_nativeAutoComplete
 static int
 _register_natives(JNIEnv* jenv) {
 
-    /* Natives */
-    const JNINativeMethod jninms[] = {
-        { "nativeInterpret",
-          "(Ljava/lang/String;)Z",
-          (void*)_jni_Main_nativeInterpret },
-        { "nativeGetLastNativeMessage",
-          "()Ljava/lang/String;",
-          (void*)_jni_Main_nativeGetLastNativeMessage },
-        { "nativeSetLogLevel",
-          "(I)V",
-          (void*)_jni_Main_nativeSetLogLevel },
-        { "nativeAutoComplete",
-          "(Ljava/lang/String;)I",
-          (void*)_jni_Main_nativeAutoComplete },
-    };
+	/* Natives */
+	const JNINativeMethod jninms[] = {
+		{ "nativeInterpret",
+		  "(Ljava/lang/String;)Z",
+		  (void*)_jni_Main_nativeInterpret },
+		{ "nativeGetLastNativeMessage",
+		  "()Ljava/lang/String;",
+		  (void*)_jni_Main_nativeGetLastNativeMessage },
+		{ "nativeSetLogLevel",
+		  "(I)V",
+		  (void*)_jni_Main_nativeSetLogLevel },
+		{ "nativeAutoComplete",
+		  "(Ljava/lang/String;)I",
+		  (void*)_jni_Main_nativeAutoComplete },
+	};
 
-    jclass cls = (*jenv)->FindClass(jenv, "Main");
-    if(!cls) { return -1; }
+	jclass cls = (*jenv)->FindClass(jenv, "Main");
+	if (!cls)
+		return -1;
 
-    if( 0 > (*jenv)->RegisterNatives(jenv, cls, jninms,
-                                 sizeof(jninms)/sizeof(jninms[0])) ) {
-        return -1;
-    }
-    return 0;
+	if (0 > (*jenv)->RegisterNatives(jenv, cls, jninms,
+					 sizeof(jninms)/sizeof(jninms[0])))
+		return -1;
+
+	return 0;
 }
 
 
 static JNIEnv*
 _create_jvm(JavaVM** jvm) {
 #define __OPT_CLASSPATH "-Djava.class.path="
-    JNIEnv*             jenv;
-    JavaVMInitArgs      jvmargs;
-    JavaVMOption        jvmopt;
-    char                cp[4096]; /* class path : 4096 is enough size */
-    const char*         cpenv; /* class path env value */
+	JNIEnv*             jenv;
+	JavaVMInitArgs      jvmargs;
+	JavaVMOption        jvmopt;
+	char                cp[4096]; /* class path : 4096 is enough size */
+	const char*         cpenv; /* class path env value */
 
-    memcpy(cp, __OPT_CLASSPATH, sizeof(__OPT_CLASSPATH)-1); /* -1 to remove trailing 0 */
-    cpenv = getenv("CLASSPATH");
-    if(!cpenv) {
-        cpenv = "./yljfe.jar";
-    }
-    strcpy(cp + sizeof(__OPT_CLASSPATH) - 1, cpenv);
+	/* -1 to remove trailing 0 */
+	memcpy(cp, __OPT_CLASSPATH, sizeof(__OPT_CLASSPATH)-1);
+	cpenv = getenv("CLASSPATH");
+	if (!cpenv) {
+		cpenv = "./yljfe.jar";
+	}
+	strcpy(cp + sizeof(__OPT_CLASSPATH) - 1, cpenv);
 
-    jvmopt.optionString = cp;
-    jvmargs.version = JNI_VERSION_1_6;
-    jvmargs.nOptions = 1;
-    jvmargs.options = &jvmopt;
-    jvmargs.ignoreUnrecognized = 0;
+	jvmopt.optionString = cp;
+	jvmargs.version = JNI_VERSION_1_6;
+	jvmargs.nOptions = 1;
+	jvmargs.options = &jvmopt;
+	jvmargs.ignoreUnrecognized = 0;
 
-    if(0 > JNI_CreateJavaVM(jvm, (void**)&jenv, &jvmargs)) {
-        /* error case */
-        return NULL;
-    }
-    return jenv;
+	if (0 > JNI_CreateJavaVM(jvm, (void**)&jenv, &jvmargs)) {
+		/* error case */
+		return NULL;
+	}
+	return jenv;
 #undef __OPT_CLASSPATH
 }
 
 static int
 _start_java(JavaVM* jvm, JNIEnv* jenv, int argc, char* argv[]) {
-    jclass         jcls_main = NULL;
-    jmethodID      jmid_main = NULL;
-    jcls_main = (*jenv)->FindClass(jenv, "Main");
-    if(!jcls_main) { return -1; }
+	jclass         jcls_main = NULL;
+	jmethodID      jmid_main = NULL;
+	int            i;
+	jobjectArray   oa;
+	jcls_main = (*jenv)->FindClass(jenv, "Main");
+	if (!jcls_main)
+		return -1;
 
-    jmid_main = (*jenv)->GetStaticMethodID(jenv, jcls_main, "uimain", "([Ljava/lang/String;)V");
-    if(!jmid_main) { return -1; }
+	jmid_main = (*jenv)->GetStaticMethodID(jenv,
+					       jcls_main,
+					       "uimain",
+					       "([Ljava/lang/String;)V");
+	if (!jmid_main)
+		return -1;
 
-    /* Make Argument String */
-    { /* Just scope */
-        int            i;
-        jobjectArray   oa;
-        oa = (*jenv)->NewObjectArray(jenv, argc,
-                                     (*jenv)->FindClass(jenv, "java/lang/String"),
-                                     (*jenv)->NewGlobalRef(jenv, NULL));
-        for (i=0; i<argc; i++) {
-            (*jenv)->SetObjectArrayElement(jenv, oa, i,
-                                           (*jenv)->NewStringUTF(jenv, argv[i]));
-        }
-        (*jenv)->CallStaticVoidMethod(jenv, jcls_main, jmid_main, oa);
-    }
-    return 0; /* to make compiler be happy */
+	/* Make Argument String */
+	oa = (*jenv)->NewObjectArray(jenv, argc,
+				     (*jenv)->FindClass(jenv,
+							"java/lang/String"),
+				     (*jenv)->NewGlobalRef(jenv, NULL));
+	for (i=0; i<argc; i++) {
+		(*jenv)->SetObjectArrayElement(jenv, oa, i,
+					       (*jenv)->NewStringUTF(jenv,
+								     argv[i]));
+	}
+	(*jenv)->CallStaticVoidMethod(jenv, jcls_main, jmid_main, oa);
+
+	return 0; /* to make compiler be happy */
 }
 
 #ifdef CONFIG_STATIC_CNF
@@ -330,77 +347,77 @@ extern void ylcnf_load_ylext ();
 
 int
 main(int argc, char* argv[]) {
-    /* initialize ylisp */
-    { /* just scope */
-        ylsys_t     sys;
+	/* initialize ylisp */
+	{ /* just scope */
+		ylsys_t     sys;
 
-        sys.print     = &_print;
-        sys.log       = &_log;
-        sys.assert_   = &_assert_;
-        sys.malloc    = &malloc;
-        sys.free      = &free;
-        sys.mode      = YLMode_repl;
-        sys.mpsz      = 1024*1024; /* memory pool size */
-        sys.gctp      = 80;
+		sys.print     = &_print;
+		sys.log       = &_log;
+		sys.assert_   = &_assert_;
+		sys.malloc    = &malloc;
+		sys.free      = &free;
+		sys.mode      = YLMode_repl;
+		sys.mpsz      = 1024*1024; /* memory pool size */
+		sys.gctp      = 80;
 
-        if(YLOk != ylinit(&sys)) {
-            printf("Error: Fail to initialize ylisp\n");
-            return 0;
-        }
+		if (YLOk != ylinit(&sys)) {
+			printf("Error: Fail to initialize ylisp\n");
+			return 0;
+		}
 
 #ifdef CONFIG_STATIC_CNF
-        ylcnf_load_ylbase (NULL);
-        ylcnf_load_ylext (NULL);
+		ylcnf_load_ylbase (NULL);
+		ylcnf_load_ylext (NULL);
 #endif /* CONFIG_STATIC_CNF */
 
-    }
+	}
 
-    /* This should be called after ylinit() */
-    yldynbstr_init(&_dynb, _INIT_OUTBUFSZ);
+	/* This should be called after ylinit() */
+	yldynbstr_init(&_dynb, _INIT_OUTBUFSZ);
 
-    /* run initial scripts if required */
-    if(argc > 1) {
-        unsigned char*   strm;
-        unsigned int     strmsz;
-        int      i;
-        for(i=1; i<argc; i++) {
-            strm = ylutfile_read(&strmsz, argv[i], 0);
-            if(!strm) {
-                printf("Fail to read given script..\n"
-                       "    -> %s\n", argv[i]);
-                return 0;
-            }
-            if(YLOk != ylinterpret(strm, strmsz)) {
-                printf("Fail to interpret given script..\n"
-                       "    -> %s\n", argv[i]);
-                return 0;
-            }
-            free(strm);
-        }
-    }
+	/* run initial scripts if required */
+	if (argc > 1) {
+		unsigned char*   strm;
+		unsigned int     strmsz;
+		int      i;
+		for (i=1; i<argc; i++) {
+			strm = ylutfile_read(&strmsz, argv[i], 0);
+			if (!strm) {
+				printf("Fail to read given script..\n"
+				       "    -> %s\n", argv[i]);
+				return 0;
+			}
+			if (YLOk != ylinterpret(strm, strmsz)) {
+				printf("Fail to interpret given script..\n"
+				       "    -> %s\n", argv[i]);
+				return 0;
+			}
+			free(strm);
+		}
+	}
 
-    /* start java */
-    { /* just scope */
-        JNIEnv*    jenv;
-        JavaVM*    jvm;
+	/* start java */
+	{ /* just scope */
+		JNIEnv*    jenv;
+		JavaVM*    jvm;
 
-        jenv = _create_jvm(&jvm);
-        if(!jenv) {
-            printf("Error: Fail to create JavaVM\n");
-            return 0;
-        }
+		jenv = _create_jvm(&jvm);
+		if (!jenv) {
+			printf("Error: Fail to create JavaVM\n");
+			return 0;
+		}
 
-        if(0 > _register_natives(jenv)) {
-            printf("Error: Fail to register natives\n");
-            return 0;
-        }
+		if (0 > _register_natives(jenv)) {
+			printf("Error: Fail to register natives\n");
+			return 0;
+		}
 
-        if(0 > _start_java(jvm, jenv, 0, NULL)) {
-            printf("Error : Start java\n");
-            return 0;
-        }
+		if (0 > _start_java(jvm, jenv, 0, NULL)) {
+			printf("Error : Start java\n");
+			return 0;
+		}
 
-        (*jvm)->DestroyJavaVM(jvm);
-    }
-    return 0;
+		(*jvm)->DestroyJavaVM(jvm);
+	}
+	return 0;
 }

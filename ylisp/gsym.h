@@ -57,7 +57,8 @@ ylgsym_set_description(const char* sym, const char* description);
 
 /**
  * At the moment of getting description, the other thread may unset that symbol
- *  from global. Than memory of descriptiion will be freed and cannot be referred.
+ *   from global.
+ * Than memory of descriptiion will be freed and cannot be referred.
  * To avoid this, gsym will copy desc to buffer.
  * @return: 0< if @sym is not in global symbol space or unknown error.
  */
@@ -88,22 +89,23 @@ ylgsym_gcmark();
  */
 extern int
 ylgsym_auto_complete(const char* start_with,
-                     char* buf, unsigned int bufsz);
+		     char* buf, unsigned int bufsz);
 
 /**
- * @max_symlen: [out] max symbol length of candidates(based on 'sizeof(char)' - excluding prefix.
+ * @max_symlen: [out] max symbol length of candidates(based on 'sizeof(char)'
+ *                    - excluding prefix.
  * @return: <0 : internal error(not enough internal buffer size)
  */
 extern int
 ylgsym_nr_candidates(const char* start_with,
-                     unsigned int* max_symlen);
+		     unsigned int* max_symlen);
 
 /**
  * @return: <0: error. Otherwise number of candidates found.
  */
 extern int
 ylgsym_candidates(const char* start_with, char** ppbuf,
-                  unsigned int ppbsz,
-                  unsigned int pbsz);
+		  unsigned int ppbsz,
+		  unsigned int pbsz);
 
 #endif /* ___GSYm_h___ */

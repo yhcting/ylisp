@@ -29,7 +29,8 @@
  *    The reasons is,
  *      - These have high possibility to be changed or improved
  *          in future as atom type is extended.
- *        So, importing these directly outside of module may cause future maintenance issue.
+ *        So, importing these directly outside of module may
+ *          cause future maintenance issue.
  **********************************************************/
 
 #ifndef ___YLSFUNc_h___
@@ -47,8 +48,8 @@ yleq(const yle_t* e1, const yle_t* e2);
 /**
  * In this function, GC may be triggered!
  * So, when use this function,
- *  caller SHOULD PRESERVE base blocks that should be protected from GC!
- *  by using 'ylmp_add_bbN(...)'.
+ *   caller SHOULD PRESERVE base blocks that should be protected from GC!
+ *   by using 'ylmp_add_bbN(...)'.
  * This function is SENSITIVE AND DANGEROUS.
  * Take your attention for using this function!
  *
@@ -59,8 +60,10 @@ yleq(const yle_t* e1, const yle_t* e2);
  * So, if return value should be preserved, it is explicitly protected from GC.
  * Here is a example case.
  *    func(yleval(x, a), yleval(y, b)); <= bad example.
- * First arguement - return value of 'yleval(x, a)'- may be GCed at 'yleval(y, b)'!!
- * So, in this case, return value of 'yleval(x, a)' should be protected explicitly!
+ * First arguement - return value of 'yleval(x, a)'
+ *   - may be GCed at 'yleval(y, b)'!!
+ * So, in this case, return value of 'yleval(x, a)'
+ *   should be protected explicitly!
  *
  */
 extern yle_t*
@@ -71,14 +74,18 @@ yleval(yletcxt_t* cxt, yle_t* e, yle_t* a);
  *=================================*/
 static inline yle_t*
 ylcar(const yle_t* e) {
-    if (!yleis_atom (e)) return ylpcar (e);
-    ylinterp_fail (YLErr_eval_undefined, "'car' is available only on pair\n");
+	if (!yleis_atom(e))
+		return ylpcar(e);
+	ylinterp_fail(YLErr_eval_undefined,
+		      "'car' is available only on pair\n");
 }
 
 static inline yle_t*
 ylcdr(const yle_t* e) {
-    if (!yleis_atom (e)) return ylpcdr (e);
-    ylinterp_fail (YLErr_eval_undefined, "'cdr' is available only on pair\n");
+    if (!yleis_atom(e))
+	    return ylpcdr(e);
+    ylinterp_fail(YLErr_eval_undefined,
+		  "'cdr' is available only on pair\n");
 }
 
 #define ylcaar(e) ylcar(ylcar(e))
@@ -116,29 +123,29 @@ ylcdr(const yle_t* e) {
 
 static inline yle_t*
 ylcons(yle_t* car, yle_t* cdr) {
-    return ylpcreate(car, cdr);
+	return ylpcreate(car, cdr);
 }
 
 static inline const yle_t*
 ylatom(const yle_t* e) {
-    /*NIL is ylatom too. */
-    return yleis_atom(e)? ylt(): ylnil();
+	/*NIL is ylatom too. */
+	return yleis_atom(e)? ylt(): ylnil();
 }
 
 
 static inline yle_t*
 yland(const yle_t* e1, const yle_t* e2) {
-    return (!yleis_nil(e1) && !yleis_nil(e2))? ylt(): ylnil();
+	return (!yleis_nil(e1) && !yleis_nil(e2))? ylt(): ylnil();
 }
 
 static inline yle_t*
 ylor(const yle_t* e1, const yle_t* e2) {
-    return (yleis_nil(e1) && yleis_nil(e2))? ylnil(): ylt();
+	return (yleis_nil(e1) && yleis_nil(e2))? ylnil(): ylt();
 }
 
 static inline yle_t*
 ylnot(const yle_t* e1) {
-    return yleis_nil(e1)? ylt(): ylnil();
+	return yleis_nil(e1)? ylt(): ylnil();
 }
 
 
@@ -151,7 +158,7 @@ ylnot(const yle_t* e1) {
  *=================================*/
 static inline yle_t*
 yllist(yle_t* e1, yle_t* e2)  {
-    return ylcons(e1, ylcons(e2, ylnil()));
+	return ylcons(e1, ylcons(e2, ylnil()));
 }
 
 /**
@@ -159,7 +166,7 @@ yllist(yle_t* e1, yle_t* e2)  {
  */
 static inline yle_t*
 ylnull(yle_t* e) {
-    return (yleis_atom(e) && yleis_nil(e))? ylt(): ylnil();
+	return (yleis_atom(e) && yleis_nil(e))? ylt(): ylnil();
 }
 
 /**
@@ -167,7 +174,7 @@ ylnull(yle_t* e) {
  */
 static inline yle_t*
 ylff(yle_t* e) {
-    return yleis_atom(e)? e: ylff(ylcar(e));
+	return yleis_atom(e)? e: ylff(ylcar(e));
 }
 
 /**
@@ -176,31 +183,37 @@ ylff(yle_t* e) {
  */
 static inline yle_t*
 ylsubst(yle_t* x, yle_t* y, yle_t* z) {
-    if(yleis_atom(y)) {
-        if(yleis_atom(z)) {
-            if( yleis_true(yleq(z, y)) ) { return x; }
-            else { return z; }
-        } else {
-            return ylcons(ylsubst(x, y, ylcar(z)), ylsubst(x, y, ylcdr(z)));
-        }
-    }
-    ylinterp_fail (YLErr_eval_undefined, "subst : Should not reach here!\n");
+	if (yleis_atom(y)) {
+		if (yleis_atom(z)) {
+			if (yleis_true(yleq(z, y)))
+				return x;
+			else
+				return z;
+		} else
+			return ylcons(ylsubst(x, y, ylcar(z)),
+				      ylsubst(x, y, ylcdr(z)));
+	}
+	ylinterp_fail(YLErr_eval_undefined,
+		      "subst : Should not reach here!\n");
 }
 
 
-#if 0 /* 'yleq' is applicable to pair, too. So, yleq is just same with ylequal */
+/* 'yleq' is applicable to pair, too. So, yleq is just same with ylequal */
+#if 0
 /**
  * equal [x; y] = [atom [x] && atom [y] && eq[x; y]]
- *                    || [!atom[x] && !atom[y] && equal [car [x]; car [y]] && equal [cdr [x]; cdr [y]]]
+ *                    || [!atom[x]
+ *                        && !atom[y]
+ *                        && equal [car [x]; car [y]]
+ *                        && equal [cdr [x]; cdr [y]]]
  */
 static inline yle_t*
 ylequal(yle_t* x, yle_t* y) {
-    return
-    ylb2e( ( yle2b(ylatom(x)) && yle2b(ylatom(y)) && yle2b(yleq(x,y)) )
-           || ( !yle2b(ylatom(x))
-                && !yle2b(ylatom(y))
-                && yle2b(ylequal(ylcar(x), ylcar(y)))
-                && yle2b(ylequal(ylcdr(x), ylcdr(y))) ) );
+	return ylb2e((yle2b(ylatom(x)) && yle2b(ylatom(y)) && yle2b(yleq(x,y)))
+		     || (!yle2b(ylatom(x))
+			 && !yle2b(ylatom(y))
+			 && yle2b(ylequal(ylcar(x), ylcar(y)))
+			 && yle2b(ylequal(ylcdr(x), ylcdr(y))) ));
 
 }
 #endif
@@ -210,7 +223,7 @@ ylequal(yle_t* x, yle_t* y) {
  */
 static inline yle_t*
 ylappend(yle_t* x, yle_t* y) {
-    return (yleis_nil(x))? y: ylcons(ylcar(x), ylappend(ylcdr(x), y));
+	return (yleis_nil(x))? y: ylcons(ylcar(x), ylappend(ylcdr(x), y));
 }
 
 /**
@@ -218,51 +231,59 @@ ylappend(yle_t* x, yle_t* y) {
  */
 static inline yle_t*
 ylamong(yle_t* x, yle_t* y) {
-    return ylb2e( !yle2b(ylnull(y)) && ( yle2b(yleq(x, ylcar(y))) || yle2b(ylamong(x, ylcdr(y))) ) );
+	return ylb2e(!yle2b(ylnull(y))
+		     && (yle2b(yleq(x, ylcar(y)))
+			 || yle2b(ylamong(x, ylcdr(y))) ));
 }
 
 /**
  * pair [x; y] = [null [x] && null [y] -> NIL;
- *               !atom [x] && !atom [y] -> cons [list [car [x]; car[y]]; pair [cdr [x]; cdr [y]]]
+ *               !atom [x] && !atom [y] -> cons [list [car [x]; car[y]];
+ *                                               pair [cdr [x]; cdr [y]]]
  */
 static inline yle_t*
 ylpair(yle_t* x, yle_t* y) {
-    if( yleis_nil(x) && yleis_nil(y) ) {
-        return ylnil();
-    } else if( !yleis_atom(x) && !yleis_atom(y) ) {
-        return ylcons(yllist(ylcar(x), ylcar(y)), ylpair(ylcdr(x), ylcdr(y)));
-    } else {
-        ylinterp_fail (YLErr_eval_undefined, "Fail to map parameter!\n");
-    }
+	if (yleis_nil(x) && yleis_nil(y))
+		return ylnil();
+	else if (!yleis_atom(x) && !yleis_atom(y))
+		return ylcons(yllist(ylcar(x), ylcar(y)),
+			      ylpair(ylcdr(x), ylcdr(y)));
+	else
+		ylinterp_fail(YLErr_eval_undefined,
+			      "Fail to map parameter!\n");
 }
 
 
 /**
  * : __sub2 / sublis
- * x is assumed to have the form of a list of pairs ((u1 v1) ... (uN vN)), where u's are atomic.
+ * x is assumed to have the form of a list of pairs ((u1 v1) ... (uN vN)),
+ *   where u's are atomic.
  */
 
 /**
- * sub2 [x; z] = [null [x] -> z; eq [caar [x]; z] -> cadar [x]; T -> sub2 [cdr [x]; z]]
+ * sub2 [x; z] = [null [x] -> z;
+ *               eq [caar [x]; z] -> cadar [x];
+ *               T -> sub2 [cdr [x]; z]]
  */
 static inline yle_t*
 __ylsub2(yle_t* x, yle_t* z) {
-    if( yleis_nil(x) ) {
-        return z;
-    } else if( yleis_true(yleq(ylcaar(x), z)) ) {
-        return ylcadar(x);
-    } else {
-        return __ylsub2(ylcdr(x), z);
-    }
+	if (yleis_nil(x))
+		return z;
+	else if (yleis_true(yleq(ylcaar(x), z)))
+		return ylcadar(x);
+	else
+		return __ylsub2(ylcdr(x), z);
 }
 
 /**
- * sublis [x; y] = [atom [y] -> sub2 [x; y]; T -> cons [sublis [x; car [y]]; sublis [x; cdr [y]]]
+ * sublis [x; y] = [atom [y] -> sub2 [x; y];
+ *                 T -> cons [sublis [x; car [y]]; sublis [x; cdr [y]]]
  */
 static inline yle_t*
 ylsublis(yle_t* x, yle_t* y) {
-    return yleis_atom(y)? __ylsub2(x, y):
-                ylcons(ylsublis(x, ylcar(y)), ylsublis(x, ylcdr(y)));
+	return yleis_atom(y)?
+		__ylsub2(x, y):
+		ylcons(ylsublis(x, ylcar(y)), ylsublis(x, ylcdr(y)));
 }
 
 /*
@@ -270,17 +291,18 @@ ylsublis(yle_t* x, yle_t* y) {
  */
 static inline yle_t*
 ylevlis(yletcxt_t* cxt, yle_t* m, yle_t* a) {
-    if(yleis_nil(m)) { return ylnil(); }
-    else {
-        yle_t* r; /* return value */
-        yle_t* p = yleval(cxt, ylcar(m), a);
-        /* p should be preserved from GC */
-        ylmp_add_bb1(p);
-        r = ylcons(p, ylevlis(cxt, ylcdr(m), a));
-        /* Now p is not base block anymore */
-        ylmp_rm_bb1(p);
-        return r;
-    }
+	if (yleis_nil(m))
+		return ylnil();
+	else {
+		yle_t* r; /* return value */
+		yle_t* p = yleval(cxt, ylcar(m), a);
+		/* p should be preserved from GC */
+		ylmp_add_bb1(p);
+		r = ylcons(p, ylevlis(cxt, ylcdr(m), a));
+		/* Now p is not base block anymore */
+		ylmp_rm_bb1(p);
+		return r;
+	}
 }
 
 

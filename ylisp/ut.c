@@ -31,86 +31,111 @@
 
 void*
 ylutfile_fread(unsigned int* outsz, void* f, int btext) {
-    unsigned int    osz;
-    unsigned char*  buf = NULL;
-    FILE*           fh = (FILE*)f;
-    unsigned int    sz;
+	unsigned int    osz = YLErr_io;
+	unsigned char*  buf = NULL;
+	FILE*           fh = (FILE*)f;
+	unsigned int    sz;
 
-    /* do not check error.. very rare to fail!! */
-    if (0 > fseek(fh, 0, SEEK_END)) { osz = YLErr_io; goto bail; }
-    sz = ftell(fh);
-    if (0 > sz) { *outsz = YLErr_io; goto bail;  }
-    if (0 > fseek(fh, 0, SEEK_SET)) { osz = YLErr_io; goto bail; }
+	/* do not check error.. very rare to fail!! */
+	if (0 > fseek(fh, 0, SEEK_END)) {
+		osz = YLErr_io;
+		goto bail;
+	}
+	sz = ftell(fh);
+	if (0 > sz) {
+		osz = YLErr_io;
+		goto bail;
+	}
+	if (0 > fseek(fh, 0, SEEK_SET)) {
+		osz = YLErr_io;
+		goto bail;
+	}
 
-    /* handle special case - empty file */
-    if (0 == sz) {
-        buf = (btext)? (unsigned char*)ylmalloc(1): NULL;
-    } else {
-        buf = ylmalloc((unsigned int)sz+((btext)? 1: 0)); /* +1 for trailing 0 */
-        if (!buf) { osz = YLErr_out_of_memory; goto bail; }
-        if (1 != fread(buf, sz, 1, fh)) { osz = YLErr_io; goto bail; }
-    }
+	/* handle special case - empty file */
+	if (0 == sz)
+		buf = (btext)? (unsigned char*)ylmalloc(1): NULL;
+	else {
+		/* +1 for trailing 0 */
+		buf = ylmalloc((unsigned int)sz + ((btext)? 1: 0));
+		if (!buf) {
+			osz = YLErr_out_of_memory;
+			goto bail;
+		}
+		if (1 != fread(buf, sz, 1, fh)) {
+			osz = YLErr_io;
+			goto bail;
+		}
+	}
 
-    if (btext) {
-        osz = sz+1;
-        buf[sz] = 0; /* add trailing 0 */
-    } else {
-        osz = sz;
-    }
+	if (btext) {
+		osz = sz+1;
+		buf[sz] = 0; /* add trailing 0 */
+	} else
+		osz = sz;
 
-    /* check case (reading empty file) */
-    if (!buf) { osz = YLOk; }
-    if (outsz) { *outsz = osz; }
+	/* check case (reading empty file) */
+	if (!buf)
+		osz = YLOk;
+	if (outsz)
+		*outsz = osz;
 
-    return buf;
+	return buf;
 
  bail:
-    if (buf) { ylfree(buf); }
-    return NULL;
+        if (outsz)
+                *outsz = osz;
+	if (buf)
+		ylfree(buf);
+	return NULL;
 
 }
 
 void*
 ylutfile_read(unsigned int* outsz, const char* fpath, int btext) {
-    FILE*     fh;
-    void*     ret;
-    ylassert(outsz && fpath);
+	FILE*     fh;
+	void*     ret;
+	ylassert(outsz && fpath);
 
-    fh = fopen(fpath, "rb");
-    if (!fh) {
-        if (outsz) { *outsz = YLErr_io; }
-        return NULL;
-    }
-    ret = ylutfile_fread(outsz, fh, btext);
-    fclose(fh);
-    return ret;
+	fh = fopen(fpath, "rb");
+	if (!fh) {
+		if (outsz)
+			*outsz = YLErr_io;
+		return NULL;
+	}
+	ret = ylutfile_fread(outsz, fh, btext);
+	fclose(fh);
+	return ret;
 }
 
 
 int
 yldynbstr_append(yldynb_t* b, const char* format, ...) {
-    va_list       args;
-    int           cw = 0, cwsv; /* charactera written */
+	va_list       args;
+	int           cw = 0, cwsv; /* charactera written */
 
-    va_start (args, format);
-    do {
-        cwsv = cw;
-        cw = vsnprintf ((char*)yldynbstr_ptr(b), yldynb_freesz(b), format, args);
-        ylassert(cw >= 0);
-        if ( cw >= yldynb_freesz(b) ) {
-            if ( 0 > yldynb_expand(b) ) {
-                cw = cwsv;
-                break;
-            }
-        } else { break; }
-    } while (1);
-    /*
-     * 'cw' doesn't counts trailing 0.
-     * But, 'b->sz' already counts 1 for tailing 0 at 'ylutstr_init'.
-     * So, just adding 'cw' is OK!
-     */
-    b->sz += cw;
-    va_end (args);
+	va_start (args, format);
+	do {
+		cwsv = cw;
+		cw = vsnprintf((char*)yldynbstr_ptr(b),
+			       yldynb_freesz(b),
+			       format,
+			       args);
+		ylassert(cw >= 0);
+		if ( cw >= yldynb_freesz(b) ) {
+			if ( 0 > yldynb_expand(b) ) {
+				cw = cwsv;
+				break;
+			}
+		} else
+			break;
+	} while (1);
+	/*
+	 * 'cw' doesn't counts trailing 0.
+	 * But, 'b->sz' already counts 1 for tailing 0 at 'ylutstr_init'.
+	 * So, just adding 'cw' is OK!
+	 */
+	b->sz += cw;
+	va_end (args);
 
-    return cw;
+	return cw;
 }

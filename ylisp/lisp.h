@@ -32,33 +32,33 @@
  * For debugging
  */
 #ifdef CONFIG_DBG_EVAL
-#   define dbg_eval(x)     do{ x } while(0)
+#       define dbg_eval(x)     do { x } while (0)
 #else
-#   define dbg_eval(x)
+#       define dbg_eval(x)
 #endif
 
 #ifdef CONFIG_DBG_MT
-#   define dbg_mt(x)     do{ x } while(0)
+#       define dbg_mt(x)     do { x } while (0)
 #else
-#   define dbg_mt(x)
+#       define dbg_mt(x)
 #endif
 
 #ifdef CONFIG_DBG_MEM
-#   define dbg_mem(x)      do{ x } while(0)
+#       define dbg_mem(x)      do { x } while (0)
 #else
-#   define dbg_mem(x)
+#       define dbg_mem(x)
 #endif
 
 #ifdef CONFIG_DBG_GEN
-#   define dbg_gen(x)      do{ x } while(0)
+#       define dbg_gen(x)      do { x } while (0)
 #else
-#   define dbg_gen(x)
+#       define dbg_gen(x)
 #endif
 
 #ifdef CONFIG_DBG_MUTEX
-#   define dbg_mutex(x)  do{ x } while(0)
+#       define dbg_mutex(x)  do { x } while (0)
 #else
-#   define dbg_mutex(x)
+#       define dbg_mutex(x)
 #endif
 
 #include "ylisp.h"
@@ -83,8 +83,8 @@
  * ST : Symbol Type
  */
 enum {
-    STymac        = 0x01, /* macro symbol */
-    STyper_thread = 0x02, /* perthread symbol - 0 for global */
+	STymac        = 0x01, /* macro symbol */
+	STyper_thread = 0x02, /* perthread symbol - 0 for global */
 };
 
 /* -- symbol -- */
@@ -111,23 +111,27 @@ enum {
  *    Thread may be killed during safe state.
  *    But, in this safe state, thread may open process resources.
  *    If thread is killed during this, opened process resources are leaked!
- *    To handle this exception case, thread should keep it's process resource list.
- *    And, if thread fails unexpectedly, this opened resource list source be closed!
+ *    To handle this exception case,
+ *      thread should keep it's process resource list.
+ *    And, if thread fails unexpectedly,
+ *      this opened resource list source be closed!
  */
-struct _sEtcxt {
-    yllist_link_t          lk;       /**< link for linked list */
-    pthread_t              base_id;  /**< base(owner) thread id */
-    pthread_mutex_t        m;        /**< mutex for ethread internal use */
-    unsigned int           sig;      /**< signal bits */
-    unsigned int           state;    /**< thread state */
-    ylstk_t*               thdstk;   /**< evaluation thread stack [pthraed_t] */
-    ylstk_t*               evalstk;  /**< evaluation stack [yle_t*] - for debugging */
-    yllist_link_t          pres;     /**< process resource list */
-    slut_t*                slut;     /**< per-thread Symbol LookUp Table */
-    yldynb_t               dynb;
+struct _etcxt {
+	yllist_link_t          lk;       /**< link for linked list */
+	pthread_t              base_id;  /**< base(owner) thread id */
+	pthread_mutex_t        m;        /**< mutex for ethread internal use */
+	unsigned int           sig;      /**< signal bits */
+	unsigned int           state;    /**< thread state */
+	ylstk_t*               thdstk;   /**< evaluation thread stack
+					    [pthraed_t] */
+	ylstk_t*               evalstk;  /**< evaluation stack [yle_t*]
+					    - for debugging */
+	yllist_link_t          pres;     /**< process resource list */
+	slut_t*                slut;     /**< per-thread Symbol LookUp Table */
+	yldynb_t               dynb;
 
-    const unsigned char*   stream;   /**< target stream interpreted */
-    unsigned int           streamsz; /**< stream size */
+	const unsigned char*   stream;   /**< target stream interpreted */
+	unsigned int           streamsz; /**< stream size */
 }; /* Evaluation Thread ConteXT */
 
 extern ylerr_t ylnfunc_init();
@@ -160,13 +164,13 @@ yleval_id();
  * (This struct is totally dependent on internal code!)
  */
 struct __interpthd_arg {
-    yletcxt_t*           cxt;
-    const unsigned char* s;
-    unsigned int         sz;
-    int                 *line;
-    ylstk_t             *ststk, *pestk;
-    unsigned char*       b; /* buffer for parsing syntax */
-    unsigned int         bsz; /* buffer size */
+	yletcxt_t*           cxt;
+	const unsigned char* s;
+	unsigned int         sz;
+	int                 *line;
+	ylstk_t             *ststk, *pestk;
+	unsigned char*       b; /* buffer for parsing syntax */
+	unsigned int         bsz; /* buffer size */
 };
 
 
@@ -185,10 +189,14 @@ ylinterp_automata(void* arg);
  * (To know whether interpreting started by user request or by batch script)
  */
 extern ylerr_t
-ylinterpret_internal(yletcxt_t* cxt, const unsigned char* stream, unsigned int streamsz);
+ylinterpret_internal(yletcxt_t* cxt,
+		     const unsigned char* stream,
+		     unsigned int streamsz);
 
 extern ylerr_t
-ylinterpret_async(pthread_t* thd, const unsigned char* stream, unsigned int streamsz);
+ylinterpret_async(pthread_t* thd,
+		  const unsigned char* stream,
+		  unsigned int streamsz);
 
 extern ylerr_t
 ylinit_thread_context(yletcxt_t* cxt);
@@ -200,60 +208,62 @@ extern pthread_mutexattr_t* ylmutexattr();
 
 static inline int
 __mtrylock(pthread_mutex_t* m) {
-    int r;
-    r = pthread_mutex_trylock(m);
-    if(!r) { return 1; }
-    else if(EBUSY == r) { return 0; }
-    else {
-        yllogE ("ERROR TRYLOCK Mutex [%s]\n", strerror(r));
-        ylassert(0);
-        return 0; /* to make compiler be happy */
-    }
+	int r;
+	r = pthread_mutex_trylock(m);
+	if (!r)
+		return 1;
+	else if (EBUSY == r)
+		return 0;
+	else {
+		yllogE("ERROR TRYLOCK Mutex [%s]\n", strerror(r));
+		ylassert(0);
+		return 0; /* to make compiler be happy */
+	}
 }
 
 
 static inline void
 __mlock(pthread_mutex_t* m) {
-    int r;
-    r = pthread_mutex_lock(m);
-    if(r) {
-        yllogE ("ERROR LOCK Mutex [%s]\n", strerror(r));
-        ylassert(0);
-    }
+	int r;
+	r = pthread_mutex_lock(m);
+	if (r) {
+		yllogE("ERROR LOCK Mutex [%s]\n", strerror(r));
+		ylassert(0);
+	}
 }
 
 static inline void
 __munlock(pthread_mutex_t* m) {
-   int r;
-    r = pthread_mutex_unlock(m);
-    if(r) {
-        yllogE ("ERROR UNLOCK Mutex [%s]\n", strerror(r));
-        ylassert(0);
-    }
+	int r;
+	r = pthread_mutex_unlock(m);
+	if (r) {
+		yllogE("ERROR UNLOCK Mutex [%s]\n", strerror(r));
+		ylassert(0);
+	}
 }
 
 #ifdef CONFIG_DBG_MUTEX
 
 #define _mlock(m)                                                       \
-    do {                                                                \
-        yllogD ("+MLock: %p [%s][%d] ... ", m, __FILE__, __LINE__);     \
-        __mlock(m);                                                     \
-        yllogD ("OK\n");                                                \
-    } while(0)
+	do {								\
+		yllogD("+MLock: %p [%s][%d] ... ", m, __FILE__, __LINE__); \
+		__mlock(m);						\
+		yllogD("OK\n");					\
+    } while (0)
 
 #define _munlock(m)                                                     \
-    do {                                                                \
-        yllogD ("+MUnlock: %p [%s][%d]\n", m, __FILE__, __LINE__);      \
-        __munlock(m);                                                   \
-    } while(0)
+	do {								\
+		yllogD("+MUnlock: %p [%s][%d]\n", m, __FILE__, __LINE__); \
+		__munlock(m);						\
+	} while (0)
 
 #define _mtrylock(m)                                                    \
-    do {                                                                \
-        int r;                                                          \
-        yllogD ("+MTrylock: %p [%s][%d] ... ", m, __FILE__, __LINE__);  \
-        r = __mtrylock(m);                                              \
-        yllogD ("%s\n", r? "OK\n": "Fail\n");                           \
-    } while(0)
+	do {								\
+		int r;							\
+		yllogD("+MTrylock: %p [%s][%d] ... ", m, __FILE__, __LINE__); \
+		r = __mtrylock(m);					\
+		yllogD("%s\n", r? "OK\n": "Fail\n");			\
+	} while (0)
 
 #else /* CONFIG_DBG_MUTEX */
 
@@ -282,15 +292,22 @@ __munlock(pthread_mutex_t* m) {
 /**
  * @a is a list of the form ((u1 v1) ... (uN vN))
  * < additional constraints : @x is atomic >
- * if @x is one of @u's, it changes the value of @u. If not, it changes global lookup map.
+ * if @x is one of @u's, it changes the value of @u.
+ * If not, it changes global lookup map.
  *
  * @x: atomic symbol
  * @y: any S-expression
  * @a: map yllist
- * @desc: descrption for this symbol. Can be NULL(means "Do not change description").
+ * @desc: descrption for this symbol.
+ *        Can be NULL(means "Do not change description").
  * @return: new value
  */
 extern yle_t*
-ylset (yletcxt_t* cxt, yle_t* s, yle_t* val, yle_t* a, const char* desc, int ty);
+ylset(yletcxt_t* cxt,
+      yle_t* s,
+      yle_t* val,
+      yle_t* a,
+      const char* desc,
+      int ty);
 
 #endif /* ___LISp_h___ */

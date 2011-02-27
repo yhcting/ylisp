@@ -26,7 +26,8 @@ AC_SEARCH_LIBS([pthread_create],   [pthread],
     [AC_DEFINE([HAVE_LIBPTHREAD], [1],    [libpthread supported?])],
     [AC_MSG_ERROR(['libpthread' not foud.])])
 
-#### Check dynamically loaded libraries - AC_SEARCH_LIBS should NOT be used for this. 
+#### Check dynamically loaded libraries
+####   - AC_SEARCH_LIBS should NOT be used for this.
 AC_CHECK_FILE([/usr/lib/libm.so],
     [AC_DEFINE([HAVE_LIBM],       [1],    [/usr/lib/libm.so exists?])]
     [have_m=true],
@@ -38,11 +39,14 @@ AC_CHECK_FILE([/usr/local/lib/libpcre.so],
     [AC_MSG_NOTICE([POSIX regex is used for regular expression.])])
 AM_CONDITIONAL([COND_PCRE], [test "x${have_pcre}" = xtrue])
 AC_CHECK_FILE([/usr/lib/coreutils/libstdbuf.so],
-    [AC_DEFINE([HAVE_LIBSTDBUF],  [1],    [/usr/lib/coreutils/libstdbuf.so exists?])],
+    [AC_DEFINE([HAVE_LIBSTDBUF],
+               [1],
+	       [/usr/lib/coreutils/libstdbuf.so exists?])],
     [AC_MSG_NOTICE(['procia_xxxx' ext. functions aren't available.])])
 
 # Checks for header files.
-AC_CHECK_HEADERS([fcntl.h limits.h malloc.h memory.h stddef.h stdlib.h string.h sys/time.h unistd.h],
+AC_CHECK_HEADERS([fcntl.h limits.h malloc.h memory.h \
+		  stddef.h stdlib.h string.h sys/time.h unistd.h],
     [],
     [AC_MSG_ERROR([sorry, can't do anything without these headers...])],
     [])
@@ -59,7 +63,9 @@ AC_SUBST([JAVAINC])
 AC_CHECK_FILE([${JAVAINC}jni.h], [have_jni_h=true])
 AC_CHECK_PROG([have_javac], [javac], [true])
 AC_SEARCH_LIBS([JNI_CreateJavaVM], [jvm],  [have_jvm=true])
-AM_CONDITIONAL([COND_JAVA], [test "x${have_jni_h}" = xtrue -a "x${have_javac}" = xtrue -a "x${have_jvm}" = xtrue])
+AM_CONDITIONAL([COND_JAVA],
+	       [test "x${have_jni_h}" = xtrue -a \
+	          "x${have_javac}" = xtrue -a "x${have_jvm}" = xtrue])
 AM_COND_IF([COND_JAVA], [], [AC_MSG_NOTICE(['yljfe' is NOT available.])])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -92,9 +98,11 @@ fi
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_FUNC_STRTOD
-AC_CHECK_FUNCS([memmove memset dup2 getcwd putenv regcomp select setenv strerror],
+AC_CHECK_FUNCS([memmove memset dup2 getcwd putenv regcomp select \
+		setenv strerror],
     [],
-    [AC_MSG_ERROR([sorry, these function is required. But portability will be improved later!])])
+    [AC_MSG_ERROR([sorry, these function is required. \
+    		   But portability will be improved later!])])
 
 AC_ARG_WITH(debug,
 [  --with-debug[[=<opt>]]
@@ -113,17 +121,31 @@ AC_ARG_WITH(debug,
         v)
             AC_DEFINE([CONFIG_LOG],        [1], [log is enabled?])
             AC_DEFINE([CONFIG_ASSERT],     [1], [assert is enabled?])
-            AC_DEFINE([CONFIG_DBG_GEN],    [1], [general debugging msg is enabled?])
-            AC_DEFINE([CONFIG_DBG_EVAL],   [1], [debugging for eval. is enabled?])
+            AC_DEFINE([CONFIG_DBG_GEN],
+	              [1],
+		      [general debugging msg is enabled?])
+            AC_DEFINE([CONFIG_DBG_EVAL],
+	              [1],
+		      [debugging for eval. is enabled?])
             ;;
         f)
             AC_DEFINE([CONFIG_LOG],        [1], [log is enabled?])
             AC_DEFINE([CONFIG_ASSERT],     [1], [assert is enabled?])
-            AC_DEFINE([CONFIG_DBG_GEN],    [1], [general debugging msg is enabled?])
-            AC_DEFINE([CONFIG_DBG_EVAL],   [1], [debugging for eval. is enabled?])
-            AC_DEFINE([CONFIG_DBG_MT],     [1], [debugging for multithread is enabled?])
-            AC_DEFINE([CONFIG_DBG_MEM],    [1], [debugging for memory is enabled?])
-            AC_DEFINE([CONFIG_DBG_MUTEX],  [1], [debugging for mutex is enabled?])
+            AC_DEFINE([CONFIG_DBG_GEN],
+	              [1],
+		      [general debugging msg is enabled?])
+            AC_DEFINE([CONFIG_DBG_EVAL],
+	              [1],
+		      [debugging for eval. is enabled?])
+            AC_DEFINE([CONFIG_DBG_MT],
+	              [1],
+		      [debugging for multithread is enabled?])
+            AC_DEFINE([CONFIG_DBG_MEM],
+	              [1],
+		      [debugging for memory is enabled?])
+            AC_DEFINE([CONFIG_DBG_MUTEX],
+	              [1],
+		      [debugging for mutex is enabled?])
             ;;
     esac
 ],
@@ -134,7 +156,9 @@ AC_ARG_WITH(static,
         make ylbase and ylbase as an static linkable libraries.
         load-cnf and unload cnf is not available.
         ylr, test and yljfe is generated as static-linked-executable.],
-[AC_DEFINE([CONFIG_STATIC_CNF],  [1],  [plug-in 'cnf' is not used. static executable is generated.])]
+[AC_DEFINE([CONFIG_STATIC_CNF],
+	   [1],
+	   [plug-in 'cnf' is not used. static executable is generated.])]
 [config_static=true],
 [])
 AM_CONDITIONAL([COND_STATIC], [test "x$config_static" = xtrue])

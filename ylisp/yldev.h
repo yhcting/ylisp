@@ -40,7 +40,7 @@
  *
  * Most functions listed here, are used in 'inteval_lock'!
  * And, functiond that affects only local state(stack frame),
- *  it can be used out of 'inteval_lock'.
+ *   it can be used out of 'inteval_lock'.
  * But, it is easy to assume that all functions should be in the 'lock'.!
  *
  * NOTE!
@@ -77,7 +77,8 @@
 #define YLEPair            0
 #define YLEAtom            0x80000000  /**< 0 means ylpair */
 #define YLEGCMark          0x40000000  /**< Mark used only for GC */
-#define YLEMark            0x20000000  /**< Bit for Mark. This is used for several purpose! */
+#define YLEMark            0x20000000  /**< Bit for Mark.
+					    This is for several purpose! */
 
 /*===================================
  *
@@ -85,8 +86,8 @@
  *
  *===================================*/
 
-struct sYle;
-typedef struct _sEtcxt yletcxt_t;
+struct yle;
+typedef struct _etcxt yletcxt_t;
 /* -------------------------
  * Structures for atom data type
  * -------------------------*/
@@ -100,110 +101,125 @@ typedef struct _sEtcxt yletcxt_t;
  *    clone : [IMPORTANT]
  *        'clone' is ONLY USED for 'mlambda' and 'mset'.
  *        So, custom atom that doesn't allow/suport cloning,
- *            SHOULD NOT be used at mlambda and mset!.
+ *          SHOULD NOT be used at mlambda and mset!.
  *        Using atom which have NULL-clone-value at 'mlambda' or 'mset',
- *            cause 'ylinterpret_undefined' and interpreting is stopped with error.
+ *          cause 'ylinterpret_undefined'
+ *          and interpreting is stopped with error.
  *
  *    eq :
- *        if NULL, yleq S-function always returns 'nil' - FALSE - with warning log.
+ *        if NULL, yleq S-function always returns 'nil'
+ *         - FALSE - with warning log.
  *
  *    to_string :
- *        if NULL, yleprint always returns special string - "!X!" - with warning log.
+ *        if NULL, yleprint always returns special string
+ *         - "!X!" - with warning log.
  *
  *    clean :
  *        if NULL, yleclean does nothing except for warning log.
  */
 typedef struct {
-    /*
-     * @return : 1 if equal. Otherwise 0
-     */
-    int           (*eq)(const struct sYle*, const struct sYle*);
-    /*
-     * Deep copier
-     * Values  will be shallow-copied before calling this function.
-     * So, 'copy' SHOULD DO DEEP COPY if needed.
-     * This can be NULL.(Nothing to deep-copy.
-     * @map :
-     *    map of [orignal block - cloned block]
-     *    Usually Trie is used as a data structure. (Hash is also good choice)
-     * @return : <0 if error.
-     *
-     * !!! NOT USED : RESERVED FOR FUTURE !!!
-     */
-    int           (*copy)(void*/*map*/, struct sYle*, const struct sYle*);
-    /*
-     * @sz : exclude space for trailing 0.
-     *       That is this is one-byte-smaller than real-buffer-size.
-     *       It's caller's responsibility to pass ''sz' less than 1 byte of real one.
-     *       So, implementation of 'to_string' don't need to add trailing 0 to complete C-style string.
-     * @return :
-     *    bytes written to buffer if success. -1 if fails (ex. Not enough buffer size)
-     *
-     */
-    int           (*to_string)(const struct sYle*, char*/*buf*/, unsigned int/*sz*/);
-    /*
-     * To visit referenced element of given atom.
-     * (This may used to implement special atom type - ex. array, struture, class etc. if required)
-     * return : 0: stop by user, 1: complete visiting.
-     */
-    int           (*visit)(struct sYle*, void* user,
-                           /* 1: keep visiting / 0:stop visiting */
-                           int(*)(void*/*user*/,
-                                  struct sYle*/*referred element*/));
-    void          (*clean)(struct sYle*);
+	/*
+	 * @return : 1 if equal. Otherwise 0
+	 */
+	int           (*eq)(const struct yle*, const struct yle*);
+	/*
+	 * Deep copier
+	 * Values  will be shallow-copied before calling this function.
+	 * So, 'copy' SHOULD DO DEEP COPY if needed.
+	 * This can be NULL.(Nothing to deep-copy.
+	 * @map :
+	 *    map of [orignal block - cloned block]
+	 *    Usually Trie is used as a data structure.
+	 *    (Hash is also good choice)
+	 * @return : <0 if error.
+	 *
+	 * !!! NOT USED : RESERVED FOR FUTURE !!!
+	 */
+	int           (*copy)(void*/*map*/, struct yle*, const struct yle*);
+	/*
+	 * @sz : exclude space for trailing 0.
+	 *       That is this is one-byte-smaller than real-buffer-size.
+	 *       It's caller's responsibility to pass ''sz'
+	 *         less than 1 byte of real one.
+	 *       So, implementation of 'to_string' don't need to add trailing 0
+	 *         to complete C-style string.
+	 * @return :
+	 *    bytes written to buffer if success.
+	 *     -1 if fails (ex. Not enough buffer size)
+	 *
+	 */
+	int           (*to_string)(const struct yle*,
+				   char*/*buf*/,
+				   unsigned int/*sz*/);
+	/*
+	 * To visit referenced element of given atom.
+	 * (This may used to implement special atom type
+	 *  - ex. array, struture, class etc. if required)
+	 * return : 0: stop by user, 1: complete visiting.
+	 */
+	int           (*visit)(struct yle*, void* user,
+			       /* 1: keep visiting / 0:stop visiting */
+			       int(*)(void*/*user*/,
+				      struct yle*/*referred element*/));
+	void          (*clean)(struct yle*);
 } ylatomif_t; /* atom inteface */
 
 /* nfunc : Native FUNCtion */
-typedef struct sYle* (*ylnfunc_t)(yletcxt_t*, struct sYle*, struct sYle*);
+typedef struct yle* (*ylnfunc_t)(yletcxt_t*, struct yle*, struct yle*);
 
-typedef struct sYle {
-    int               t; /**< type */
-    union {
-        struct {
-            /*
-             * Interfaces to handle atom.
-             * This value also can be "ID" of each atom type.
-             * (Interface SHOULD BE DIFFERENT if atom TYPE is DIFFERENT.)
-             */
-            const ylatomif_t*    aif;
+typedef struct yle {
+	int               t; /**< type */
+	union {
+		struct {
+			/*
+			 * Interfaces to handle atom.
+			 * This value also can be "ID" of each atom type.
+			 * (Interface SHOULD BE DIFFERENT
+			 *    if atom TYPE is DIFFERENT.)
+			 */
+			const ylatomif_t*    aif;
 
-            /*
-             * atom data
-             */
-            union {
-                struct {
-                    int            ty; /**< symbol type - interenally used */
-                    char*          sym;
-                } sym; /**< for YLASymbol */
+			/*
+			 * atom data
+			 */
+			union {
+				struct {
+					/**< symbol type - interenally used */
+					int            ty;
+					char*          sym;
+				} sym; /**< for YLASymbol */
 
-                struct {
-                    const char*    name;  /**< human readable function name */
-                    ylnfunc_t      f;
-                } nfunc; /**< for YLANfunc/YLASfunc */
+				struct {
+					/**< human readable function name */
+					const char*    name;
+					ylnfunc_t      f;
+				} nfunc; /**< for YLANfunc/YLASfunc */
 
-                double     dbl;
+				double     dbl;
 
-                struct {
-                    unsigned int    sz;  /**< data size */
-                    unsigned char*  d;   /**< data */
-                } bin; /**< for YLABinary */
+				struct {
+					unsigned int    sz;  /**< data size */
+					unsigned char*  d;   /**< data */
+				} bin; /**< for YLABinary */
 
-                void*      cd; /**< any data for custom atom(YLACustom) - Custom Data*/
-            } u;
-        } a; /**< atom */
+				/**< any data for custom atom(YLACustom)*/
+				void*      cd; /* Custom Data */
+			} u;
+		} a; /**< atom */
 
-        struct {
-            struct sYle  *car, *cdr;
-        } p; /**< pair */
-    } u;
+		struct {
+			struct yle *car, *cdr;
+		} p; /**< pair */
+	} u;
 
-    /*
-     * members for debugging SHOULD BE put at the END of STRUCTURE!.
-     * If not, whever debug configuration is changed, we should re-compile all other plug-in modules!!!
-     */
+	/*
+	 * members for debugging SHOULD BE put at the END of STRUCTURE!.
+	 * If not, whever debug configuration is changed,
+	 *   we should re-compile all other plug-in modules!!!
+	 */
 #ifdef CONFIG_DBG_MEM
-    /**< evaluation id that take this block from the pool. */
-    unsigned int      evid;
+	/**< evaluation id that take this block from the pool. */
+	unsigned int      evid;
 #endif /* CONFIG_DBG_MEM */
 } yle_t;
 
@@ -218,31 +234,31 @@ typedef struct sYle {
 /* type casting integer to pointer */
 #define itoptr(x) ((void*)(intptr_t)(x))
 
-#define not_used(e) do { (e)=(e); } while(0)
+#define not_used(e) do { (e)=(e); } while (0)
 
-#define ylunroll16( expr, count, cond)              \
-    switch( (count) & 0xf ) {                       \
-        case 0: while (cond){                       \
-            expr;                                   \
-        case 15: expr;                              \
-        case 14: expr;                              \
-        case 13: expr;                              \
-        case 12: expr;                              \
-        case 11: expr;                              \
-        case 10: expr;                              \
-        case 9: expr;                               \
-        case 8: expr;                               \
-        case 7: expr;                               \
-        case 6: expr;                               \
-        case 5: expr;                               \
-        case 4: expr;                               \
-        case 3: expr;                               \
-        case 2: expr;                               \
-        case 1: expr;                               \
-        }                                           \
-    }
+#define ylunroll16( expr, count, cond)		\
+	switch( (count) & 0xf ) {		\
+        case 0: while (cond){			\
+			expr;			\
+		case 15: expr;			\
+		case 14: expr;			\
+		case 13: expr;			\
+		case 12: expr;			\
+		case 11: expr;			\
+		case 10: expr;			\
+		case 9: expr;			\
+		case 8: expr;			\
+		case 7: expr;			\
+		case 6: expr;			\
+		case 5: expr;			\
+		case 4: expr;			\
+		case 3: expr;			\
+		case 2: expr;			\
+		case 1: expr;			\
+		}				\
+	}
 
-#define yleset_type(e, ty)      do{ (e)->t = (ty); } while(0)
+#define yleset_type(e, ty)      do { (e)->t = (ty); } while (0)
 #define yletype(e)              ((e)->t)
 #define yleis_atom(e)           ((e)->t & YLEAtom)
 
@@ -274,25 +290,26 @@ typedef struct sYle {
 #define yleis_gcmark(e)         (!!((e)->t & YLEGCMark))
 
 /*
- * Variable number of argument in macro, is not used for the compatibility reason.
+ * Variable number of argument in macro,
+ *  is not used for the compatibility reason.
  * (GCC supports this. But some others don't)
  */
 #define ylmalloc(x)     ylsysv()->malloc(x)
 #define ylfree(x)       ylsysv()->free(x)
 
 #ifdef CONFIG_ASSERT
-#   define ylassert(x)  do { ylsysv()->assert_(!!(x)); } while(0)
+#       define ylassert(x)  do { ylsysv()->assert_(!!(x)); } while (0)
 #else /* CONFIG_ASSERT */
-#   define ylassert(x)  do {} while (0)
+#       define ylassert(x)  do {} while (0)
 #endif /* CONFIG_ASSERT */
 
 #ifdef CONFIG_LOG
-#   define yllog(lv, x...)  do { ylsysv()->log (lv, x); } while(0)
+#       define yllog(lv, x...)  do { ylsysv()->log (lv, x); } while (0)
 #else /* CONFIG_LOG */
-#   define yllog(lv, x...)  do {} while (0)
+#       define yllog(lv, x...)  do {} while (0)
 #endif /* CONFIG_LOG */
 
-#define ylprint(x...)   do { ylsysv()->print (x); } while(0)
+#define ylprint(x...)   do { ylsysv()->print (x); } while (0)
 #define ylmode()        (ylsysv()->mode)
 #define ylmpsz()        (ylsysv()->mpsz)
 #define ylgctp()        (ylsysv()->gctp)
@@ -342,12 +359,12 @@ extern void ylinterpret_undefined(long reason) __attribute__ ((noreturn));
 /* ------------------------------
  * Macros for Log -- START
  * ------------------------------*/
-#define yllogV(x...) yllog (YLLogV, x)
-#define yllogD(x...) yllog (YLLogD, x)
-#define yllogI(x...) yllog (YLLogI, x)
-#define yllogW(x...) yllog (YLLogW, x)
-#define yllogE(x...) yllog (YLLogE, x)
-#define yllogF(x...) yllog (YLLogF, x)
+#define yllogV(x...) yllog(YLLogV, x)
+#define yllogD(x...) yllog(YLLogD, x)
+#define yllogI(x...) yllog(YLLogI, x)
+#define yllogW(x...) yllog(YLLogW, x)
+#define yllogE(x...) yllog(YLLogE, x)
+#define yllogF(x...) yllog(YLLogF, x)
 
 
 /* ------------------------------
@@ -356,12 +373,40 @@ extern void ylinterpret_undefined(long reason) __attribute__ ((noreturn));
  *    This log macros automatically add 'nfname' as a prefix of log!
  * ------------------------------*/
 
-#define ylnflogV(x...)  do { yllog (YLLogV, "<!%s!> ", __nFNAME); yllog (YLLogV, x); } while (0)
-#define ylnflogD(x...)  do { yllog (YLLogD, "<!%s!> ", __nFNAME); yllog (YLLogD, x); } while (0)
-#define ylnflogI(x...)  do { yllog (YLLogI, "<!%s!> ", __nFNAME); yllog (YLLogI, x); } while (0)
-#define ylnflogW(x...)  do { yllog (YLLogW, "<!%s!> ", __nFNAME); yllog (YLLogW, x); } while (0)
-#define ylnflogE(x...)  do { yllog (YLLogE, "<!%s!> ", __nFNAME); yllog (YLLogE, x); } while (0)
-#define ylnflogF(x...)  do { yllog (YLLogF, "<!%s!> ", __nFNAME); yllog (YLLogF, x); } while (0)
+#define ylnflogV(x...)					\
+	do { yllog(YLLogV, "<!%s!> ", __nFNAME);	\
+		yllog(YLLogV, x);			\
+	} while (0)
+
+#define ylnflogD(x...)					\
+	do {						\
+		yllog(YLLogD, "<!%s!> ", __nFNAME);	\
+		yllog(YLLogD, x);			\
+	} while (0)
+
+#define ylnflogI(x...)					\
+	do {						\
+		yllog(YLLogI, "<!%s!> ", __nFNAME);	\
+		yllog(YLLogI, x);			\
+	} while (0)
+
+#define ylnflogW(x...)					\
+	do {						\
+		yllog(YLLogW, "<!%s!> ", __nFNAME);	\
+		yllog(YLLogW, x);			\
+	} while (0)
+
+#define ylnflogE(x...)					\
+	do {						\
+		yllog(YLLogE, "<!%s!> ", __nFNAME);	\
+		yllog(YLLogE, x);			\
+	} while (0)
+
+#define ylnflogF(x...)					\
+	do {						\
+		yllog(YLLogF, "<!%s!> ", __nFNAME);	\
+		yllog(YLLogF, x);			\
+	} while (0)
 
 
 /* ------------------------------
@@ -369,17 +414,16 @@ extern void ylinterpret_undefined(long reason) __attribute__ ((noreturn));
  * ------------------------------*/
 
 #define ylinterp_fail(reason, msg...)           \
-    do {                                        \
-        yllogE (msg);                           \
-        ylinterpret_undefined(reason);          \
-    } while (0)
+	do {					\
+		yllogE (msg);			\
+		ylinterpret_undefined(reason);	\
+	} while (0)
 
 #define ylnfinterp_fail(reason, msg...)         \
-    do {                                        \
-        ylnflogE (msg);                         \
-        ylinterpret_undefined(reason);          \
-    } while (0)
-    
+	do {					\
+		ylnflogE (msg);			\
+		ylinterpret_undefined(reason);	\
+	} while (0)
 
 
 
@@ -398,26 +442,24 @@ extern void ylinterpret_undefined(long reason) __attribute__ ((noreturn));
  *     <0 means variable number.
  */
 #define YLDEFNF(n, minp, maxp)                                          \
-    YLDECLNF(n) {                                                       \
-    int             pcsz; /* Parameter Chain SiZe */                    \
-    const char*     __nFNAME __attribute__ ((unused)) = #n ;            \
-    { /* jusg scope */                                                  \
-        pcsz = ylelist_size(e);                                         \
-        if((minp) > pcsz || pcsz > (maxp)) {                            \
-            ylnflogE ("invalid number of parameter\n");                 \
-            ylinterpret_undefined(YLErr_func_invalid_param);            \
-        }                                                               \
-    }                                                                   \
-    do
+	YLDECLNF(n) {							\
+	int             pcsz; /* Parameter Chain SiZe */		\
+	const char*     __nFNAME __attribute__ ((unused)) = #n ;	\
+	pcsz = ylelist_size(e);						\
+	if ((minp) > pcsz || pcsz > (maxp)) {				\
+		ylnflogE("invalid number of parameter\n");		\
+		ylinterpret_undefined(YLErr_func_invalid_param);	\
+	}								\
+	do
 
 /* This should be ylpair with YLDEFNF */
-#define YLENDNF(n) while(0); }
+#define YLENDNF(n) while (0); }
 
-#define ylnfcheck_parameter(cond)                               \
-    if(!(cond)) {                                               \
-        ylnflogE ("invalid parameter type\n");                  \
-        ylinterpret_undefined(YLErr_func_invalid_param);        \
-    }
+#define ylnfcheck_parameter(cond)					\
+	if (!(cond)) {							\
+		ylnflogE("invalid parameter type\n");			\
+		ylinterpret_undefined(YLErr_func_invalid_param);        \
+	}
 
 
 #define ylelist_foreach(e)       for(;!yleis_nil(e);(e)=ylpcdr(e))
@@ -445,8 +487,8 @@ ylethread_buf(yletcxt_t* cxt);
  * -------------------------------*/
 extern ylerr_t
 ylregister_nfunc(unsigned int version,
-                 const char* sym, ylnfunc_t nfunc,
-                 const ylatomif_t* aif, const char* desc);
+		 const char* sym, ylnfunc_t nfunc,
+		 const ylatomif_t* aif, const char* desc);
 
 extern void
 ylunregister_nfunc(const char* sym);
@@ -468,18 +510,56 @@ ylmp_block();
 extern void
 ylmp_add_bb(yle_t* e);
 
-#define ylmp_add_bb1(e0)                     do{ ylmp_add_bb(e0); } while(0)
-#define ylmp_add_bb2(e0, e1)                 do{ ylmp_add_bb1(e0); ylmp_add_bb1(e1); } while(0)
-#define ylmp_add_bb3(e0, e1, e2)             do{ ylmp_add_bb1(e0); ylmp_add_bb2(e1, e2); } while(0)
-#define ylmp_add_bb4(e0, e1, e2, e3)         do{ ylmp_add_bb1(e0); ylmp_add_bb3(e1, e2, e3); } while(0)
-#define ylmp_add_bb5(e0, e1, e2, e3, e4)     do{ ylmp_add_bb1(e0); ylmp_add_bb4(e1, e2, e3, e4); } while(0)
-#define ylmp_add_bb6(e0, e1, e2, e3, e4, e5) do{ ylmp_add_bb1(e0); ylmp_add_bb5(e1, e2, e3, e4, e5); } while(0)
-#define ylmp_add_bb7(e0, e1, e2, e3, e4, e5, e6)                          \
-    do{ ylmp_add_bb1(e0); ylmp_add_bb6(e1, e2, e3, e4, e5, e6); } while(0)
-#define ylmp_add_bb8(e0, e1, e2, e3, e4, e5, e6, e7)                      \
-    do{ ylmp_add_bb1(e0); ylmp_add_bb7(e1, e2, e3, e4, e5, e6, e7); } while(0)
-#define ylmp_add_bb9(e0, e1, e2, e3, e4, e5, e6, e7, e8)                  \
-    do{ ylmp_add_bb1(e0); ylmp_add_bb8(e1, e2, e3, e4, e5, e6, e7, e8); } while(0)
+#define ylmp_add_bb1(e0)			\
+	do { ylmp_add_bb(e0); } while (0)
+
+#define ylmp_add_bb2(e0, e1)			\
+	do {					\
+		ylmp_add_bb1(e0);		\
+		ylmp_add_bb1(e1);		\
+	} while (0)
+
+#define ylmp_add_bb3(e0, e1, e2)		\
+	do {					\
+		ylmp_add_bb1(e0);		\
+		ylmp_add_bb2(e1, e2);		\
+	} while (0)
+
+#define ylmp_add_bb4(e0, e1, e2, e3)		\
+	do {					\
+		ylmp_add_bb1(e0);		\
+		ylmp_add_bb3(e1, e2, e3);	\
+	} while (0)
+
+#define ylmp_add_bb5(e0, e1, e2, e3, e4)	\
+	do {					\
+		ylmp_add_bb1(e0);		\
+		ylmp_add_bb4(e1, e2, e3, e4);	\
+	} while (0)
+
+#define ylmp_add_bb6(e0, e1, e2, e3, e4, e5)		\
+	do {						\
+		ylmp_add_bb1(e0);			\
+		ylmp_add_bb5(e1, e2, e3, e4, e5);	\
+	} while (0)
+
+#define ylmp_add_bb7(e0, e1, e2, e3, e4, e5, e6)	\
+	do {						\
+		ylmp_add_bb1(e0);			\
+		ylmp_add_bb6(e1, e2, e3, e4, e5, e6);	\
+	} while (0)
+
+#define ylmp_add_bb8(e0, e1, e2, e3, e4, e5, e6, e7)		\
+	do {							\
+		ylmp_add_bb1(e0);				\
+		ylmp_add_bb7(e1, e2, e3, e4, e5, e6, e7);	\
+	} while (0)
+
+#define ylmp_add_bb9(e0, e1, e2, e3, e4, e5, e6, e7, e8)	\
+	do {							\
+		ylmp_add_bb1(e0);				\
+		ylmp_add_bb8(e1, e2, e3, e4, e5, e6, e7, e8);	\
+	} while (0)
 
 /*
  * pop base block
@@ -487,18 +567,56 @@ ylmp_add_bb(yle_t* e);
 extern void
 ylmp_rm_bb(yle_t* e);
 
-#define ylmp_rm_bb1(e0)                     do{ ylmp_rm_bb(e0); } while(0)
-#define ylmp_rm_bb2(e0, e1)                 do{ ylmp_rm_bb1(e0); ylmp_rm_bb1(e1); } while(0)
-#define ylmp_rm_bb3(e0, e1, e2)             do{ ylmp_rm_bb1(e0); ylmp_rm_bb2(e1, e2); } while(0)
-#define ylmp_rm_bb4(e0, e1, e2, e3)         do{ ylmp_rm_bb1(e0); ylmp_rm_bb3(e1, e2, e3); } while(0)
-#define ylmp_rm_bb5(e0, e1, e2, e3, e4)     do{ ylmp_rm_bb1(e0); ylmp_rm_bb4(e1, e2, e3, e4); } while(0)
-#define ylmp_rm_bb6(e0, e1, e2, e3, e4, e5) do{ ylmp_rm_bb1(e0); ylmp_rm_bb5(e1, e2, e3, e4, e5); } while(0)
-#define ylmp_rm_bb7(e0, e1, e2, e3, e4, e5, e6)                          \
-    do{ ylmp_rm_bb1(e0); ylmp_rm_bb6(e1, e2, e3, e4, e5, e6); } while(0)
-#define ylmp_rm_bb8(e0, e1, e2, e3, e4, e5, e6, e7)                      \
-    do{ ylmp_rm_bb1(e0); ylmp_rm_bb7(e1, e2, e3, e4, e5, e6, e7); } while(0)
-#define ylmp_rm_bb9(e0, e1, e2, e3, e4, e5, e6, e7, e8)                  \
-    do{ ylmp_rm_bb1(e0); ylmp_rm_bb8(e1, e2, e3, e4, e5, e6, e7, e8); } while(0)
+#define ylmp_rm_bb1(e0)				\
+	do { ylmp_rm_bb(e0); } while (0)
+
+#define ylmp_rm_bb2(e0, e1)			\
+	do {					\
+		ylmp_rm_bb1(e0);		\
+		ylmp_rm_bb1(e1);		\
+	} while (0)
+
+#define ylmp_rm_bb3(e0, e1, e2)			\
+	do {					\
+		ylmp_rm_bb1(e0);		\
+		ylmp_rm_bb2(e1, e2);		\
+	} while (0)
+
+#define ylmp_rm_bb4(e0, e1, e2, e3)		\
+        do {					\
+		ylmp_rm_bb1(e0);		\
+		ylmp_rm_bb3(e1, e2, e3);	\
+	} while (0)
+
+#define ylmp_rm_bb5(e0, e1, e2, e3, e4)		\
+	do {					\
+		ylmp_rm_bb1(e0);		\
+		ylmp_rm_bb4(e1, e2, e3, e4);	\
+	} while (0)
+
+#define ylmp_rm_bb6(e0, e1, e2, e3, e4, e5)		\
+	do {						\
+		ylmp_rm_bb1(e0);			\
+		ylmp_rm_bb5(e1, e2, e3, e4, e5);	\
+	} while (0)
+
+#define ylmp_rm_bb7(e0, e1, e2, e3, e4, e5, e6)		\
+	do {						\
+		ylmp_rm_bb1(e0);			\
+		ylmp_rm_bb6(e1, e2, e3, e4, e5, e6);	\
+	} while (0)
+
+#define ylmp_rm_bb8(e0, e1, e2, e3, e4, e5, e6, e7)		\
+	do {							\
+		ylmp_rm_bb1(e0);				\
+		ylmp_rm_bb7(e1, e2, e3, e4, e5, e6, e7);	\
+	} while (0)
+
+#define ylmp_rm_bb9(e0, e1, e2, e3, e4, e5, e6, e7, e8)		\
+	do {							\
+		ylmp_rm_bb1(e0);				\
+		ylmp_rm_bb8(e1, e2, e3, e4, e5, e6, e7, e8);	\
+	} while (0)
 
 /*
  * clean base block set
@@ -517,7 +635,8 @@ ylmp_clean_bb();
  * (Usually, inside CNF)
  * And, this thread can be bottle-neck to trigger GC.
  * To avoid this, thread may notify "I'm safe to GC from now on" manually!
- * Interrupt evaluation (including GC) only can be triggerred at only this point.
+ * Interrupt evaluation (including GC) only can be triggerred
+ *   at only this point.
  * (Where 'ylmt_notify_safe' is called.)
  */
 extern void
@@ -539,7 +658,7 @@ ylmt_add_pres(yletcxt_t* cxt, void* pres, void(*ccb)(void*));
 
 /*
  * Recently added 'pres' has priority if there are more than one item
- *  that have same 'pres' value..
+ *   that have same 'pres' value..
  * This function doesn't close 'pres'. It just unregister 'pres' value!.
  * Closing 'pres' is caller's responsibility.
  */
@@ -574,51 +693,53 @@ ylechain_print(struct yldynb* dynb, const yle_t* e);
 /*
  * visit full node. return value is resolve til now.
  */
-#define _DEF_VISIT_FUNC(fTYPE, nAME, pREeXP, cOND, eXP)                 \
-    fTYPE int                                                           \
-    nAME(void* user, yle_t* e) {                                        \
-        pREeXP;                                                         \
-        if(cOND) {                                                      \
-            eXP;                                                        \
-            if(yleis_atom(e)) {                                         \
-                if(ylaif(e)->visit) { ylaif(e)->visit(e, user, &nAME); } \
-            } else {                                                    \
-                ylassert( (ylpcar(e) && ylpcdr(e)) || (!ylpcar(e) && !ylpcdr(e))); \
-                if(ylpcar(e)) {                                         \
-                    nAME(user, ylpcar(e));                              \
-                    nAME(user, ylpcdr(e));                              \
-                }                                                       \
-            }                                                           \
-        }                                                               \
-        return 0;                                                       \
-    }
+#define _DEF_VISIT_FUNC(fTYPE, nAME, pREeXP, cOND, eXP)			\
+	fTYPE int							\
+	nAME(void* user, yle_t* e) {					\
+		pREeXP;							\
+		if (cOND) {						\
+			eXP;						\
+			if (yleis_atom(e)) {				\
+				if (ylaif(e)->visit)			\
+					ylaif(e)->visit(e, user, &nAME); \
+			} else {					\
+				ylassert((ylpcar(e) && ylpcdr(e))	\
+					 || (!ylpcar(e) && !ylpcdr(e))); \
+				if (ylpcar(e)) {			\
+					nAME(user, ylpcar(e));		\
+					nAME(user, ylpcdr(e));		\
+				}					\
+			}						\
+		}							\
+		return 0;						\
+	}
 
 /* --------------------------------
  * Element - Pair
  * --------------------------------*/
 static inline void
 ylpsetcar(yle_t* e, yle_t* exp) {
-    ylpcar(e) = exp;
+	ylpcar(e) = exp;
 }
 
 static inline void
 ylpsetcdr(yle_t* e, yle_t* exp) {
-    ylpcdr(e) = exp;
+	ylpcdr(e) = exp;
 }
 
 
 static inline void
 ylpassign(yle_t* e, yle_t* car, yle_t* cdr) {
-    yleset_type(e, YLEPair);
-    ylpsetcar(e, car);
-    ylpsetcdr(e, cdr);
+	yleset_type(e, YLEPair);
+	ylpsetcar(e, car);
+	ylpsetcdr(e, cdr);
 }
 
 static inline yle_t*
 ylpcreate(yle_t* car, yle_t* cdr) {
-    yle_t* e = ylmp_block();
-    ylpassign(e, car, cdr);
-    return e;
+	yle_t* e = ylmp_block();
+	ylpassign(e, car, cdr);
+	return e;
 }
 
 
@@ -630,12 +751,12 @@ ylpcreate(yle_t* car, yle_t* cdr) {
  */
 static inline int
 ylais_type(const yle_t* e, const ylatomif_t* aif) {
-    return (yleis_atom(e) && ylaif(e) == aif );
+	return (yleis_atom(e) && ylaif(e) == aif );
 }
 
 static inline int
 ylais_type2(const yle_t* e, const ylatomif_t* aif0, const ylatomif_t* aif1) {
-    return (yleis_atom(e) && (ylaif(e) == aif0 || ylaif(e) == aif1) );
+	return (yleis_atom(e) && (ylaif(e) == aif0 || ylaif(e) == aif1) );
 }
 
 /**
@@ -643,27 +764,29 @@ ylais_type2(const yle_t* e, const ylatomif_t* aif0, const ylatomif_t* aif1) {
  */
 static inline int
 yleis_pair_chain(yle_t* e) {
-    ylelist_foreach(e) {
-        if(yleis_atom(ylpcar(e))) { return 0; }
-    }
-    return 1;
+	ylelist_foreach(e)
+		if (yleis_atom(ylpcar(e)))
+			return 0;
+	return 1;
 }
 
 static inline int
 ylais_type_chain(yle_t* e, const ylatomif_t* aif) {
-    ylelist_foreach(e) {
-        if(!ylais_type(ylpcar(e), aif)) { return 0; }
-    }
+    ylelist_foreach(e)
+        if (!ylais_type(ylpcar(e), aif))
+		return 0;
+
     return 1;
 }
 
 static inline int
 ylais_type_chain2(yle_t* e,
-                  const ylatomif_t* aif0, const ylatomif_t* aif1) {
-    ylelist_foreach(e) {
-        if(!ylais_type2(ylpcar(e), aif0, aif1)) { return 0; }
-    }
-    return 1;
+		  const ylatomif_t* aif0, const ylatomif_t* aif1) {
+	ylelist_foreach(e)
+		if (!ylais_type2(ylpcar(e), aif0, aif1))
+			return 0;
+
+	return 1;
 }
 
 /* --------------------------------
@@ -674,17 +797,17 @@ ylais_type_chain2(yle_t* e,
  */
 static inline void
 ylaassign_sym(yle_t* e, char* sym) {
-    yleset_type(e, YLEAtom);
-    ylaif(e) = ylaif_sym();
-    ylasym(e).sym = sym;
-    ylasym(e).ty = 0; /* 0 is default */
+	yleset_type(e, YLEAtom);
+	ylaif(e) = ylaif_sym();
+	ylasym(e).sym = sym;
+	ylasym(e).ty = 0; /* 0 is default */
 }
 
 static inline yle_t*
 ylacreate_sym(char* sym) {
-    yle_t* e = ylmp_block();
-    ylaassign_sym(e, sym);
-    return e;
+	yle_t* e = ylmp_block();
+	ylaassign_sym(e, sym);
+	return e;
 }
 
 /* --------------------------------
@@ -692,32 +815,32 @@ ylacreate_sym(char* sym) {
  * --------------------------------*/
 static inline void
 ylaassign_nfunc(yle_t* e, ylnfunc_t f, const char* name) {
-    yleset_type(e, YLEAtom);
-    ylaif(e) = ylaif_nfunc();
-    ylanfunc(e).f = f;
-    ylanfunc(e).name = name;
+	yleset_type(e, YLEAtom);
+	ylaif(e) = ylaif_nfunc();
+	ylanfunc(e).f = f;
+	ylanfunc(e).name = name;
 }
 
 static inline void
 ylaassign_sfunc(yle_t* e, ylnfunc_t f, const char* name) {
-    yleset_type(e, YLEAtom);
-    ylaif(e) = ylaif_sfunc();
-    ylanfunc(e).f = f;
-    ylanfunc(e).name = name;
+	yleset_type(e, YLEAtom);
+	ylaif(e) = ylaif_sfunc();
+	ylanfunc(e).f = f;
+	ylanfunc(e).name = name;
 }
 
 static inline yle_t*
 ylacreate_nfunc(ylnfunc_t f, const char* name) {
-    yle_t* e = ylmp_block();
-    ylaassign_nfunc(e, f, name);
-    return e;
+	yle_t* e = ylmp_block();
+	ylaassign_nfunc(e, f, name);
+	return e;
 }
 
 static inline yle_t*
 ylacreate_sfunc(ylnfunc_t f, const char* name) {
-    yle_t* e = ylmp_block();
-    ylaassign_sfunc(e, f, name);
-    return e;
+	yle_t* e = ylmp_block();
+	ylaassign_sfunc(e, f, name);
+	return e;
 }
 
 
@@ -726,16 +849,16 @@ ylacreate_sfunc(ylnfunc_t f, const char* name) {
  * --------------------------------*/
 static inline void
 ylaassign_dbl(yle_t* e, double d) {
-    yleset_type(e, YLEAtom);
-    ylaif(e) = ylaif_dbl();
-    yladbl(e) = d;
+	yleset_type(e, YLEAtom);
+	ylaif(e) = ylaif_dbl();
+	yladbl(e) = d;
 }
 
 static inline yle_t*
 ylacreate_dbl(double d) {
-    yle_t* e = ylmp_block();
-    ylaassign_dbl(e, d);
-    return e;
+	yle_t* e = ylmp_block();
+	ylaassign_dbl(e, d);
+	return e;
 }
 
 /* --------------------------------
@@ -743,17 +866,17 @@ ylacreate_dbl(double d) {
  * --------------------------------*/
 static inline void
 ylaassign_bin(yle_t* e, unsigned char* data, unsigned int len) {
-    yleset_type(e, YLEAtom);
-    ylaif(e) = ylaif_bin();
-    ylabin(e).d = data;
-    ylabin(e).sz = len;
+	yleset_type(e, YLEAtom);
+	ylaif(e) = ylaif_bin();
+	ylabin(e).d = data;
+	ylabin(e).sz = len;
 }
 
 static inline yle_t*
 ylacreate_bin(unsigned char* data, unsigned int len) {
-    yle_t* e = ylmp_block();
-    ylaassign_bin(e, data, len);
-    return e;
+	yle_t* e = ylmp_block();
+	ylaassign_bin(e, data, len);
+	return e;
 }
 
 /* --------------------------------
@@ -761,15 +884,15 @@ ylacreate_bin(unsigned char* data, unsigned int len) {
  * --------------------------------*/
 static inline void
 ylaassign_cust(yle_t* e, const ylatomif_t* aif, void* data) {
-    yleset_type(e, YLEAtom);
-    ylaif(e) = aif;
-    ylacd(e) = data;
+	yleset_type(e, YLEAtom);
+	ylaif(e) = aif;
+	ylacd(e) = data;
 }
 
 static inline yle_t*
 ylacreate_cust(const ylatomif_t* aif, void* data) {
-    yle_t* e = ylmp_block();
-    ylaassign_cust(e, aif, data);
-    return e;
+	yle_t* e = ylmp_block();
+	ylaassign_cust(e, aif, data);
+	return e;
 }
 #endif /* ___YLDEv_h___ */

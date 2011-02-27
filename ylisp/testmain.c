@@ -36,81 +36,83 @@
 #ifdef CONFIG_DBG_MEM
 #define _MAX_BLKS    128*1024
 static struct {
-    void*    caller;
-    void*    addr;
+	void*    caller;
+	void*    addr;
 } _mdbg[_MAX_BLKS];
 #endif /* CONFIG_DBG_MEM */
 
 static int _mblk = 0;
 
 static const char* _exp =
-    "(interpret-file '../test/test.yl)\n"
-    /*
-    "'xxxx\n"
-    "(set 'x '(a b c))\n"
-    "'(a b c)\n"
-    "'(a (b c))\n"
-    "(quote (a b c))\n"
-    "(quote (a (b c)))\n"
-    */
-    ;
+	"(interpret-file '../test/test.yl)\n"
+	/*
+	  "'xxxx\n"
+	  "(set 'x '(a b c))\n"
+	  "'(a b c)\n"
+	  "'(a (b c))\n"
+	  "(quote (a b c))\n"
+	  "(quote (a (b c)))\n"
+	*/
+	;
 
 static void*
 _malloc(size_t size) {
-    void* addr = malloc(size);
+	void* addr = malloc(size);
 #ifdef CONFIG_DBG_MEM
-    do {
-        register void* ra; /* return address */
+	do {
+		register void* ra; /* return address */
 #ifdef __LP64__
-        /*
-          asm ("movq 8(%%rbp), %0;"
-          :"=r"(ra));
-        */
-        ra = NULL;
+		/*
+		  asm ("movq 8(%%rbp), %0;"
+		  :"=r"(ra));
+		*/
+		ra = NULL;
 #else /* __LP64__ */
 #   ifdef __i386__
-        asm ("movl 4(%%ebp), %0;"
-             :"=r"(ra));
+		asm ("movl 4(%%ebp), %0;"
+		     :"=r"(ra));
 #   endif /* __i386__ */
 #endif /* __LP64__ */
-        _mdbg[_mblk].caller = ra;
-        _mdbg[_mblk].addr = addr;
-    } while(0);
+		_mdbg[_mblk].caller = ra;
+		_mdbg[_mblk].addr = addr;
+	} while (0);
 #endif/* CONFIG_DBG_MEM */
-    _mblk++;
-    return addr;
+	_mblk++;
+	return addr;
 }
 
 static void
 _free(void* p) {
 #ifdef CONFIG_DBG_MEM
-    do {
-        register int i;
-        for(i=0; i<_mblk; i++) {
-            if(_mdbg[i].addr == p) {
-                memmove(&_mdbg[i], &_mdbg[i+1], (_mblk-i-1)*sizeof(_mdbg[i]));
-                break;
-            }
-        }
-    } while(0);
+	do {
+		register int i;
+		for (i=0; i<_mblk; i++) {
+			if (_mdbg[i].addr == p) {
+				memmove(&_mdbg[i],
+					&_mdbg[i+1],
+					(_mblk-i-1)*sizeof(_mdbg[i]));
+				break;
+			}
+		}
+	} while(0);
 #endif /* CONFIG_DBG_MEM */
-    _mblk--;
-    free(p);
+	_mblk--;
+	free(p);
 }
 
 int
 get_mblk_size() {
-    return _mblk;
+	return _mblk;
 }
 
 static void
 _log(int lv, const char* format, ...) {
-    if(lv >= _LOGLV) {
-        va_list ap;
-        va_start(ap, format);
-        vprintf(format, ap);
-        va_end(ap);
-    }
+	if (lv >= _LOGLV) {
+		va_list ap;
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+	}
 }
 
 static void
@@ -119,41 +121,41 @@ _assert_(int a) { assert(a); }
 
 int
 main(int argc, char* argv[]) {
-    ylsys_t          sys;
+	ylsys_t          sys;
 
-    /* ylset system parameter */
-    sys.log     = &_log;
-    sys.print   = &printf;
-    sys.assert_ = &_assert_;
-    sys.malloc  = &_malloc;
-    sys.free    = &_free;
-    sys.mode    = YLMode_batch;
-    sys.mpsz    = 64*1024;
-    sys.gctp    = 80;
+	/* ylset system parameter */
+	sys.log     = &_log;
+	sys.print   = &printf;
+	sys.assert_ = &_assert_;
+	sys.malloc  = &_malloc;
+	sys.free    = &_free;
+	sys.mode    = YLMode_batch;
+	sys.mpsz    = 64*1024;
+	sys.gctp    = 80;
 
-    ylinit(&sys);
+	ylinit(&sys);
 
-    if(YLOk != ylinterpret((unsigned char*)_exp, (unsigned int)strlen(_exp))) {
-        printf("Fail to interpret...\n");
-        return 0;
-    }
+	if (YLOk != ylinterpret((unsigned char*)_exp,
+				(unsigned int)strlen(_exp))) {
+		printf("Fail to interpret...\n");
+		return 0;
+	}
 
-    yldeinit();
-    printf("MBLK : %d\n", get_mblk_size());
+	yldeinit();
+	printf("MBLK : %d\n", get_mblk_size());
 
 #ifdef CONFIG_DBG_MEM
-    if(get_mblk_size()) {
-        register int i;
-        printf("======= Leak!! Callers ========\n");
-        for(i=0; i<get_mblk_size(); i++) {
-            printf("%p\n", _mdbg[i].caller);
-        }
-        assert(0); /* fail! memleak at somewhere! */
-    }
+	if (get_mblk_size()) {
+		register int i;
+		printf("======= Leak!! Callers ========\n");
+		for (i=0; i<get_mblk_size(); i++)
+			printf("%p\n", _mdbg[i].caller);
+		assert(0); /* fail! memleak at somewhere! */
+	}
 #else /* CONFIG_DBG_MEM */
-    assert(0 == get_mblk_size());
+	assert(0 == get_mblk_size());
 #endif /* CONFIG_DBG_MEM */
 
-    printf("End of Test\n");
-    return 0;
+	printf("End of Test\n");
+	return 0;
 }

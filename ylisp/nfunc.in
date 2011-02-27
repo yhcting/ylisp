@@ -21,7 +21,8 @@
 
 
 /****************************************************
- * 'lambda', 'mlambda', 'label' and 'flabel' here are dummy to use 'Auto Completion' and 'help'.
+ * 'lambda', 'mlambda', 'label' and 'flabel' are dummy
+ *   to use 'Auto Completion' and 'help'.
  * Function '__dummy' is never used.
  * (For details, see 'sfunc.c')
  ****************************************************/
@@ -66,7 +67,8 @@ NFUNC(apply,                  "apply",                   ylaif_sfunc(),
 NFUNC(eq,                     "eq",                      ylaif_nfunc(),
     "eq <exp1> <exp2>: [t/nil]\n"
     "    -Compare memory address of two expression.\n"
-    "    @return: t if memory address of two objects are same. nil otherwise.\n")
+    "    @return: t if memory address of two objects are same.\n"
+    "             nil otherwise.\n")
 
 NFUNC(equal,                  "equal",                   ylaif_nfunc(),
     "equal <exp1> <exp2>: [t/nil]\n"
@@ -80,7 +82,8 @@ NFUNC(equal,                  "equal",                   ylaif_nfunc(),
 
 NFUNC(set,                    "set",                     ylaif_nfunc(),
     "set <symbol> <exp> (<desc>)\n"
-    "    -After evaluating this expression, evaluating <symbol> returns <exp>.\n"
+    "    -After evaluating this expression,\n"
+    "       evaluating <symbol> returns <exp>.\n"
     "     see 'mset' for more descrption.\n"
     "     *ex\n"
     "         (set 'a '(x y)); (a) => ('(x y))\n")
@@ -90,12 +93,15 @@ NFUNC(tset,                   "tset",                    ylaif_nfunc(),
 
 NFUNC(f_mset,                 "f-mset",                  ylaif_nfunc(),
     "f-mset <symbol> <exp> (<desc>)\n"
-    "    -Set macro. Syntax is same with 'set'. But this is for setting macro\n"
+    "    -Set macro. Syntax is same with 'set'.\n"
+    "     But this is for setting macro\n"
     "     Evaluating <symbol> is same with evaluating <exp>.\n"
     "     'mset' circular expression may crash interpreter when it used!\n"
     "    *NOTE :\n"
-    "        If there is local symbol with same name, local symbol always has priority!\n"
-    "        That is, local symbol will be changed and global symbol is preserved.\n"
+    "        If there is local symbol with same name,\n"
+    "          local symbol always has priority!\n"
+    "        That is, local symbol will be changed\n"
+    "          and global symbol is preserved.\n"
     "    @symbol[Symbol]: symbol name.\n"
     "    @exp:            lisp expression.\n"
     "    @desc[Symbol]:\n"
@@ -122,7 +128,8 @@ NFUNC(tunset,                 "tunset",                  ylaif_nfunc(),
 
 NFUNC(is_set,                 "set?",                    ylaif_nfunc(),
     "set? <symbol> : [t/nil]\n"
-    "    -check whether specified <symbol> is set in global symbol space or not.\n"
+    "    -check whether specified <symbol> is set in global symbol space\n"
+    "       or not.\n"
     "    @return: t if exists. Otherwise nil\n")
 
 NFUNC(is_tset,                "tset?",                   ylaif_nfunc(),

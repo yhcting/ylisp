@@ -33,39 +33,39 @@
 
 /* DYNmaic Buffer */
 typedef struct yldynb {
-    unsigned int    limit;
-    unsigned int    sz;
-    unsigned char*  b;
+	unsigned int    limit;
+	unsigned int    sz;
+	unsigned char*  b;
 } yldynb_t;
 
 static inline unsigned int
 yldynb_limit(const yldynb_t* b) {
-    return b->limit;
+	return b->limit;
 }
 
 static inline unsigned int
 yldynb_freesz(const yldynb_t* b) {
-    return b->limit - b->sz;
+	return b->limit - b->sz;
 }
 
 static inline unsigned int
 yldynb_sz(const yldynb_t* b) {
-    return b->sz;
+	return b->sz;
 }
 
 static inline void
-yldynb_setsz (yldynb_t* b, unsigned int sz) {
+yldynb_setsz(yldynb_t* b, unsigned int sz) {
         b->sz = sz;
 }
 
 static inline unsigned char*
 yldynb_buf(const yldynb_t* b) {
-    return b->b;
+	return b->b;
 }
 
 static inline unsigned char*
 yldynb_ptr(const yldynb_t* b) {
-    return b->b + b->sz;
+	return b->b + b->sz;
 }
 
 /*
@@ -73,22 +73,28 @@ yldynb_ptr(const yldynb_t* b) {
  */
 static inline int
 yldynb_init(yldynb_t* b, unsigned int init_limit) {
-    b->sz = 0;
-    b->b = (unsigned char*)ylmalloc(init_limit);
-    if(b->b) { b->limit = init_limit; return 0; }
-    else { b->limit = 0; return -1; }
+	b->sz = 0;
+	b->b = (unsigned char*)ylmalloc(init_limit);
+	if (b->b) {
+		b->limit = init_limit;
+		return 0;
+	} else {
+		b->limit = 0;
+		return -1;
+	}
 }
 
 static inline void
 yldynb_reset(yldynb_t* b) {
-    b->sz = 0;
+	b->sz = 0;
 }
 
 static inline void
 yldynb_clean(yldynb_t* b) {
-    if(b->b) { ylfree(b->b); }
-    b->b = NULL;
-    b->limit = b->sz = 0;
+	if (b->b)
+		ylfree(b->b);
+	b->b = NULL;
+	b->limit = b->sz = 0;
 }
 
 /*
@@ -98,48 +104,48 @@ yldynb_clean(yldynb_t* b) {
  */
 static inline int
 yldynb_expand(yldynb_t* b) {
-    unsigned char* tmp = (unsigned char*)ylmalloc(b->limit*2);
-    if(tmp) {
-        memcpy(tmp, b->b, b->sz);
-        ylfree(b->b);
-        b->b = tmp;
-        b->limit *= 2;
-        return 0;
-    } else {
-        return -1;
-    }
+	unsigned char* tmp = (unsigned char*)ylmalloc(b->limit*2);
+	if (tmp) {
+		memcpy(tmp, b->b, b->sz);
+		ylfree(b->b);
+		b->b = tmp;
+		b->limit *= 2;
+		return 0;
+	} else
+		return -1;
 }
 
 static inline int
 yldynb_secure(yldynb_t* b, unsigned int sz_required) {
-    while( sz_required > yldynb_freesz(b)
-           && !yldynb_expand(b) ) {}
-    return sz_required <= yldynb_freesz(b);
+	while (sz_required > yldynb_freesz(b)
+	       && !yldynb_expand(b) ) {}
+	return sz_required <= yldynb_freesz(b);
 }
 
 
 static inline int
 yldynb_shrink(yldynb_t* b, unsigned int sz_to) {
-    if( b->limit > sz_to  && b->sz < sz_to ) {
-        unsigned char* tmp = (unsigned char*)ylmalloc(sz_to);
-        if(tmp) {
-            ylassert(b->b);
-            memcpy(tmp, b->b, b->sz);
-            ylfree(b->b);
-            b->b = tmp;
-            b->limit = sz_to;
-            return 0;
-        }
-    }
-    return -1;
+	if (b->limit > sz_to  && b->sz < sz_to ) {
+		unsigned char* tmp = (unsigned char*)ylmalloc(sz_to);
+		if (tmp) {
+			ylassert(b->b);
+			memcpy(tmp, b->b, b->sz);
+			ylfree(b->b);
+			b->b = tmp;
+			b->limit = sz_to;
+			return 0;
+		}
+	}
+	return -1;
 }
 
 static inline int
 yldynb_append(yldynb_t* b, const unsigned char* d, unsigned int dsz) {
-    if( 0 > yldynb_secure(b, dsz) ) { return -1; }
-    memcpy(yldynb_ptr(b), d, dsz);
-    b->sz += dsz;
-    return 0;
+	if (0 > yldynb_secure(b, dsz) )
+		return -1;
+	memcpy(yldynb_ptr(b), d, dsz);
+	b->sz += dsz;
+	return 0;
 }
 
 
@@ -154,32 +160,32 @@ yldynb_append(yldynb_t* b, const unsigned char* d, unsigned int dsz) {
  */
 static inline unsigned int
 yldynbstr_len(const yldynb_t* b) {
-    return b->sz - 1; /* '-1' to exclude trailing 0 */
+	return b->sz - 1; /* '-1' to exclude trailing 0 */
 }
 
 static inline unsigned char*
 yldynbstr_ptr(const yldynb_t* b) {
-    return b->b + yldynbstr_len(b);
+	return b->b + yldynbstr_len(b);
 }
 
 static inline unsigned char*
 yldynbstr_string(const yldynb_t* b) {
-    return b->b;
+	return b->b;
 }
 
 static inline void
 yldynbstr_reset(yldynb_t* b) {
-    *b->b = 0; /* add trailing 0 */
-    b->sz = 1;
+	*b->b = 0; /* add trailing 0 */
+	b->sz = 1;
 }
 
 static inline int
 yldynbstr_init(yldynb_t* b, unsigned int init_limit) {
-    if(0 <= yldynb_init(b, init_limit+1)) {
-        yldynbstr_reset(b);
-        return 0;
-    }
-    return -1;
+	if (0 <= yldynb_init(b, init_limit+1)) {
+		yldynbstr_reset(b);
+		return 0;
+	}
+	return -1;
 }
 
 /*

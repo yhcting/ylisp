@@ -1,343 +1,392 @@
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import java.util.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Event;
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.util.LinkedList;
 
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JFrame;
+import javax.swing.JScrollPane;
+import javax.swing.KeyStroke;
 
 public class Main extends JFrame implements SockListener {
-    private static boolean         _REMOTE             = false;
+	private static boolean _REMOTE = false;
 
-    private static final int       _FRAME_WIDTH        = 640;
-    private static final int       _FRAME_HEIGHT       = 256;
+	private static final int _FRAME_WIDTH = 640;
+	private static final int _FRAME_HEIGHT = 256;
 
-    // AC : Auto Complete - See native code.
-    private static final int       _AC_HANDLED         = 0; // already handled at the natives.
-    private static final int       _AC_MORE_PREFIX     = 1; // there is more possible-common-prefix
-    private static final int       _AC_COMPLETE        = 2; // only one candidate exists and is found.
+	// AC : Auto Complete - See native code.
+	// already handled at the natives.
+	private static final int _AC_HANDLED = 0;
 
-    private static final int       _HISTORY_SIZE      = 100;
+	// there is more possible-common-prefix
+	private static final int _AC_MORE_PREFIX = 1;
 
-    // These log level value should match native ylisp's implementation.
-    private static enum _LogLv {
-        Verbose     (0),
-        Develop     (1),
-        Infomation  (2),
-        Warn        (3),
-        Error       (4);
+	// only one candidate exists and is found.
+	private static final int _AC_COMPLETE = 2;
 
-        private int     _v;
+	private static final int _HISTORY_SIZE = 100;
 
-        _LogLv(int v) { _v = v; }
-        int    v()   { return _v; }
+	// These log level value should match native ylisp's implementation.
+	private static enum _LogLv {
+		Verbose(0), Develop(1), Infomation(2), Warn(3), Error(4);
 
-        static String getName(int v) {
-            for(_LogLv log : _LogLv.values()) {
-                if(log.v() == v) { return log.name(); }
-            }
-            return "Unknown";
-        }
+		private int _v;
 
-    }
+		_LogLv(int v) {
+			_v = v;
+		}
 
-    private YLJEditArea         _edit;
-    private LinkedList<String>  _history = new LinkedList<String>();
-    private int                 _hi = -1;  // history index
-    private int                 _loglv = _LogLv.Warn.v(); // default is log ouput - refer native code's implementation
-    private String              _bufferText;
+		int v() {
+			return _v;
+		}
 
-    // to support remote interpreter daemon
-    private Sock                _sock;
+		static String getName(int v) {
+			for (_LogLv log : _LogLv.values()) {
+				if (log.v() == v)
+					return log.name();
+			}
+			return "Unknown";
+		}
 
-    // for asynchronous request, response sequence.
-    private String              _resp_msg = "";
-    private Object              _resp_lock = new Object();
-    private int                 _resp_result = 0;
+	}
 
-    // ============================= To support remote server ==============================
-    private static final String _CMD_DELIMITER       = ":";
+	private final YLJEditArea _edit;
+	private final LinkedList<String> _history = new LinkedList<String>();
+	private int _hi = -1; // history index
+	private int _loglv = _LogLv.Warn.v(); // default is log ouput - refer
+	// native code's implementation
+	private String _bufferText;
 
-    // command string - this should sync. with server side.
-    private static final String _CMD_PRINT           = "PRINT";
-    private static final String _CMD_LOG             = "LOG";
-    private static final String _CMD_AUTOCOMP_PRINT  = "AUTOCOMP_PRINT";
-    private static final String _CMD_AUTOCOMP_MORE   = "AUTOCOMP_MORE";
-    private static final String _CMD_AUTOCOMP_COMP   = "AUTOCOMP_COMP";
+	// to support remote interpreter daemon
+	private Sock _sock;
 
-    public boolean onSocketRead (String msg) {
-        int i = msg.indexOf(_CMD_DELIMITER);
-        String cmd = msg.substring(0, i);
-        String data = msg.substring(i+1);
-        if (cmd.equals(_CMD_PRINT)) {
-                System.out.print(data);
-        } else if (cmd.equals(_CMD_LOG)) {
-                System.out.print(data);
-        } else if (cmd.equals(_CMD_AUTOCOMP_PRINT)) {
-                synchronized (_resp_lock) {
-                        _resp_result = _AC_HANDLED;
-                        _resp_msg = "";
-                        System.out.print(data);
-                        _resp_lock.notifyAll();
-                }
-        } else if (cmd.equals(_CMD_AUTOCOMP_MORE)) {
-                synchronized (_resp_lock) {
-                        _resp_result = _AC_MORE_PREFIX;
-                        _resp_msg = data;
-                        _resp_lock.notifyAll();
-                }
-        } else if (cmd.equals(_CMD_AUTOCOMP_COMP)) {
-                synchronized (_resp_lock) {
-                        _resp_result = _AC_COMPLETE;
-                        _resp_msg = data;
-                        _resp_lock.notifyAll();
-                }
-        } else {
-                ; // TODO : implement here
-        }
+	// for asynchronous request, response sequence.
+	private String _resp_msg = "";
+	private final Object _resp_lock = new Object();
+	private int _resp_result = 0;
 
-        return true;
-    }
+	// =================== To support remote server =====================
+	private static final String _CMD_DELIMITER = ":";
 
-    private boolean _interpret (String str) {
-            if (!_REMOTE) return nativeInterpret(str);
-            return _sock.send("INTERP" + _CMD_DELIMITER + str);
-    }
+	// command string - this should sync. with server side.
+	private static final String _CMD_PRINT = "PRINT";
+	private static final String _CMD_LOG = "LOG";
+	private static final String _CMD_AUTOCOMP_PRINT = "AUTOCOMP_PRINT";
+	private static final String _CMD_AUTOCOMP_MORE = "AUTOCOMP_MORE";
+	private static final String _CMD_AUTOCOMP_COMP = "AUTOCOMP_COMP";
 
-    private boolean _forceStop () {
-        if (!_REMOTE) return nativeForceStop();
-        // Not implemented yet!
-        return true;
-    }
+	public boolean onSocketRead(String msg) {
+		int i = msg.indexOf(_CMD_DELIMITER);
+		String cmd = msg.substring(0, i);
+		String data = msg.substring(i + 1);
+		if (cmd.equals(_CMD_PRINT)) {
+			System.out.print(data);
+		} else if (cmd.equals(_CMD_LOG)) {
+			System.out.print(data);
+		} else if (cmd.equals(_CMD_AUTOCOMP_PRINT)) {
+			synchronized (_resp_lock) {
+				_resp_result = _AC_HANDLED;
+				_resp_msg = "";
+				System.out.print(data);
+				_resp_lock.notifyAll();
+			}
+		} else if (cmd.equals(_CMD_AUTOCOMP_MORE)) {
+			synchronized (_resp_lock) {
+				_resp_result = _AC_MORE_PREFIX;
+				_resp_msg = data;
+				_resp_lock.notifyAll();
+			}
+		} else if (cmd.equals(_CMD_AUTOCOMP_COMP)) {
+			synchronized (_resp_lock) {
+				_resp_result = _AC_COMPLETE;
+				_resp_msg = data;
+				_resp_lock.notifyAll();
+			}
+		} else {
+			; // TODO : implement here
+		}
 
-    private void    _setLogLevel (int lv) {
-        if (!_REMOTE) nativeSetLogLevel(lv);
-        // Not implemented yet!
-    }
+		return true;
+	}
 
-    private int     _autoComplete (String[] more, String prefix) {
-            int      r = _AC_HANDLED;
-            if (!_REMOTE) {
-                     r = nativeAutoComplete(prefix);
-                     if (_AC_HANDLED != r) more[0] = nativeGetLastNativeMessage();
-            } else {
-                    if (!_sock.send("AUTOCOMP" + _CMD_DELIMITER + prefix)) {
-                            System.out.println("Fail to send through socket");
-                            return _AC_HANDLED;
-                    }
-                    synchronized (_resp_lock) {
-                            try {
-                                    _resp_lock.wait();
-                                    r = _resp_result;
-                            } catch (InterruptedException e) {
-                                    System.out.println("Thread waiting interrupted!");
-                                    r = _AC_HANDLED; // interrupted
-                            }
-                    }
-                    if (_AC_HANDLED != r) more[0] = _resp_msg;
-            }
-            return r;
-    }
+	private boolean _interpret(String str) {
+		if (!_REMOTE)
+			return nativeInterpret(str);
+		return _sock.send("INTERP" + _CMD_DELIMITER + str);
+	}
 
-    // ============================= ACTIONS START ==============================
-    private class InterpretAction extends AbstractAction {
-        public void actionPerformed(ActionEvent ev) {
-            new Thread( new Runnable() {
-                public void run() {
-                    String ins = "";
-                    System.out.print("\n====================== Interpret =====================\n" +
-                            _edit.getText() + "\n" +
-                            "----------------------------\n\n");
-                    addToHistory(_edit.getText());
-                    _hi = -1;
-                    ins = _edit.getText();
-                    _edit.setText(""); // clean
-                    _interpret(ins);
-                }
-            }).start();
-        }
-    }
+	private boolean _forceStop() {
+		if (!_REMOTE)
+			return nativeForceStop();
+		// Not implemented yet!
+		return true;
+	}
 
-    private class InceaseLogLevelAction extends AbstractAction {
-        public void actionPerformed(ActionEvent ev) {
-            if(_loglv > _LogLv.Verbose.v()) {
-                _loglv--;
-                _setLogLevel(_loglv);
-                System.out.print(">>> Current Log Level : " + _LogLv.getName(_loglv) + "\n");
-            }
-        }
-    }
+	private void _setLogLevel(int lv) {
+		if (!_REMOTE)
+			nativeSetLogLevel(lv);
+		// Not implemented yet!
+	}
 
-    private class DecreaseLogLevelAction extends AbstractAction {
-        public void actionPerformed(ActionEvent ev) {
-            if(_loglv < _LogLv.Error.v()) {
-                _loglv++;
-                _setLogLevel(_loglv);
-                System.out.print(">>> Current Log Level : " + _LogLv.getName(_loglv) + "\n");
-            }
-        }
-    }
+	private int _autoComplete(String[] more, String prefix) {
+		int r = _AC_HANDLED;
+		if (!_REMOTE) {
+			r = nativeAutoComplete(prefix);
+			if (_AC_HANDLED != r)
+				more[0] = nativeGetLastNativeMessage();
+		} else {
+			if (!_sock.send("AUTOCOMP" + _CMD_DELIMITER + prefix)) {
+				System.out.println("Fail to send through socket");
+				return _AC_HANDLED;
+			}
+			synchronized (_resp_lock) {
+				try {
+					_resp_lock.wait();
+					r = _resp_result;
+				} catch (InterruptedException e) {
+					System.out.println("Thread waiting interrupted!");
+					r = _AC_HANDLED; // interrupted
+				}
+			}
+			if (_AC_HANDLED != r)
+				more[0] = _resp_msg;
+		}
+		return r;
+	}
 
-    private class NextCommandAction extends AbstractAction {
-        public void actionPerformed(ActionEvent ev) {
-            if(_hi > 0) {
-                _hi--;
-                _edit.setText((String)_history.get(_hi));
-            } else {
-                _hi = -1;
-                _edit.setText("");
-            }
-        }
-    }
+	// ===================== ACTIONS START ============================
+	private class InterpretAction extends AbstractAction {
+		public void actionPerformed(ActionEvent ev) {
+			new Thread(new Runnable() {
+				public void run() {
+					String ins = "";
+					System.out.print("\n====================== Interpret =====================\n"
+				                 	+ _edit.getText() + "\n"
+							+ "----------------------------\n\n");
+					addToHistory(_edit.getText());
+					_hi = -1;
+					ins = _edit.getText();
+					_edit.setText(""); // clean
+					_interpret(ins);
+				}
+			}).start();
+		}
+	}
 
-    private class PrevCommandAction extends AbstractAction {
-        public void actionPerformed(ActionEvent ev) {
-            if(_hi < _history.size()-1) {
-                _hi++;
-                _edit.setText((String)_history.get(_hi));
-            } else {
-                _hi = _history.size();
-                _edit.setText("");
-            }
-        }
-    }
+	private class InceaseLogLevelAction extends AbstractAction {
+		public void actionPerformed(ActionEvent ev) {
+			if (_loglv > _LogLv.Verbose.v()) {
+				_loglv--;
+				_setLogLevel(_loglv);
+				System.out.print(">>> Current Log Level : " + _LogLv.getName(_loglv) + "\n");
+			}
+		}
+	}
 
-    private class AutoCompleteAction extends AbstractAction {
-        public void actionPerformed(ActionEvent ev) {
-            int    maxi, i, j;
-            char[] delimiters = {' ', '\n', '\'', '\"', '(', ')', '\t'};
-            String orig = _edit.getText();
-            int    caretpos = _edit.getCaretPosition();
-            String pre   = orig.substring(0, caretpos);
-            String post  = orig.substring(caretpos);
+	private class DecreaseLogLevelAction extends AbstractAction {
+		public void actionPerformed(ActionEvent ev) {
+			if (_loglv < _LogLv.Error.v()) {
+				_loglv++;
+				_setLogLevel(_loglv);
+				System.out.print(">>> Current Log Level : " + _LogLv.getName(_loglv) + "\n");
+			}
+		}
+	}
 
-            maxi = -1;
-            for(i=0; i<delimiters.length; i++) {
-                j = pre.lastIndexOf(delimiters[i]);
-                if(maxi<(j+1)) { maxi = j+1; }
-            }
+	private class NextCommandAction extends AbstractAction {
+		public void actionPerformed(ActionEvent ev) {
+			if (_hi > 0) {
+				_hi--;
+				_edit.setText(_history.get(_hi));
+			} else {
+				_hi = -1;
+				_edit.setText("");
+			}
+		}
+	}
 
-            { // Just Scope
-                int    r;
-                String more;
-                {
-                        String[] out = new String[1];
-                        if(0 <= maxi) {
-                                // Normal case
-                                r = _autoComplete(out, pre.substring(maxi));
-                        } else {
-                                // In case of first word
-                                r = _autoComplete(out, pre.substring(0));
-                        }
-                        more = out[0];
-                }
-                switch(r) {
-                    case _AC_MORE_PREFIX: {
-                        _edit.setText(pre + more + post);
-                        _edit.setCaretPosition(caretpos + more.length());
-                    } break;
+	private class PrevCommandAction extends AbstractAction {
+		public void actionPerformed(ActionEvent ev) {
+			if (_hi < _history.size() - 1) {
+				_hi++;
+				_edit.setText(_history.get(_hi));
+			} else {
+				_hi = _history.size();
+				_edit.setText("");
+			}
+		}
+	}
 
-                    case _AC_COMPLETE: {
-                        more = more + " ";
-                        _edit.setText(pre + more + post);
-                        _edit.setCaretPosition(caretpos + more.length());
-                    } break;
+	private class AutoCompleteAction extends AbstractAction {
+		public void actionPerformed(ActionEvent ev) {
+			int maxi, i, j;
+			char[] delimiters = {	' ',
+						'\n',
+						'\'',
+						'\"',
+						'(',
+						')',
+						'\t' };
+			String orig = _edit.getText();
+			int caretpos = _edit.getCaretPosition();
+			String pre = orig.substring(0, caretpos);
+			String post = orig.substring(caretpos);
 
-                    default: // error case
-                        ; // nothing to do
-                }
-            } // Just Scope
-        }
-    }
+			maxi = -1;
+			for (i = 0; i < delimiters.length; i++) {
+				j = pre.lastIndexOf(delimiters[i]);
+				if (maxi < (j + 1))
+					maxi = j + 1;
+			}
 
-    private class ChangeBufferAction extends AbstractAction {
-        public void actionPerformed(ActionEvent ev) {
-            String tmp = _edit.getText();
-            _edit.setText(_bufferText);
-            _bufferText = tmp;
-        }
-    }
+			int r;
+			String more;
+			{ // Just scope
+				String[] out = new String[1];
+				if (0 <= maxi)
+					// Normal case
+					r = _autoComplete(out,
+					                  pre.substring(maxi));
+				else
+					// In case of first word
+					r = _autoComplete(out, pre.substring(0));
+				more = out[0];
+			}
 
-    // ============================= ACTIONS END ==============================
+			switch (r) {
+			case _AC_MORE_PREFIX: {
+				_edit.setText(pre + more + post);
+				_edit.setCaretPosition(caretpos + more.length());
+			}
+				break;
 
-    public Main(String[] args) {
-        // Setup UI Frame
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+			case _AC_COMPLETE: {
+				more = more + " ";
+				_edit.setText(pre + more + post);
+				_edit.setCaretPosition(caretpos + more.length());
+			}
+				break;
 
-        _edit = new YLJEditArea();
-        _edit.setFont(new Font("monospaced", Font.PLAIN, 14));
-        _edit.setTabSize(4);
-        _edit.setLineWrap(true);
-        JScrollPane editPane = new JScrollPane(_edit);
+			default: // error case
+				; // nothing to do
+			}
+		}
+	}
 
-        getContentPane().add(editPane, BorderLayout.CENTER);
-        setPreferredSize(new Dimension(_FRAME_WIDTH, _FRAME_HEIGHT));
-        addBindings();
+	private class ChangeBufferAction extends AbstractAction {
+		public void actionPerformed(ActionEvent ev) {
+			String tmp = _edit.getText();
+			_edit.setText(_bufferText);
+			_bufferText = tmp;
+		}
+	}
 
-        pack();
-        setVisible(true);
+	// ===================== ACTIONS END =======================
 
-        // setup socket
-        if (_REMOTE) {
-            _sock = new Sock();
-            try {
-                _sock.init(this, args[0], Integer.parseInt(args[1]));
-            } catch (NumberFormatException e) {
-                System.out.print(e.getMessage());
-                System.exit(0);
-            }
-        }
-    }
+	public Main(String[] args) {
+		// Setup UI Frame
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-    private void addToHistory(String cmd) {
-        _history.addFirst(cmd);
-        if(_history.size() > _HISTORY_SIZE) {
-            _history.removeLast();
-        }
-    }
+		_edit = new YLJEditArea();
+		_edit.setFont(new Font("monospaced", Font.PLAIN, 14));
+		_edit.setTabSize(4);
+		_edit.setLineWrap(true);
+		JScrollPane editPane = new JScrollPane(_edit);
 
-    //Add a couple of emacs key bindings for navigation.
-    private void addBindings() {
-        InputMap  inputMap = _edit.getInputMap();
-        ActionMap actionMap = _edit.getActionMap();
+		getContentPane().add(editPane, BorderLayout.CENTER);
+		setPreferredSize(new Dimension(_FRAME_WIDTH, _FRAME_HEIGHT));
+		addBindings();
 
-        //Ctrl-r to start interpret.
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, Event.CTRL_MASK), "interpret");
-        actionMap.put("interpret", new InterpretAction());
+		pack();
+		setVisible(true);
 
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, Event.CTRL_MASK), "Increase log level");
-        actionMap.put("Increase log level", new InceaseLogLevelAction());
+		// setup socket
+		if (_REMOTE) {
+			_sock = new Sock();
+			try {
+				_sock.init(this,
+					   args[0],
+					   Integer.parseInt(args[1]));
+			} catch (NumberFormatException e) {
+				System.out.print(e.getMessage());
+				System.exit(0);
+			}
+		}
+	}
 
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, Event.CTRL_MASK), "Decrease log level");
-        actionMap.put("Decrease log level", new DecreaseLogLevelAction());
+	private void addToHistory(String cmd) {
+		_history.addFirst(cmd);
+		if (_history.size() > _HISTORY_SIZE)
+			_history.removeLast();
+	}
 
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_P, Event.CTRL_MASK), "Previous command");
-        actionMap.put("Previous command", new PrevCommandAction());
+	// Add a couple of emacs key bindings for navigation.
+	private void addBindings() {
+		InputMap inputMap = _edit.getInputMap();
+		ActionMap actionMap = _edit.getActionMap();
 
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_N, Event.CTRL_MASK), "Next command");
-        actionMap.put("Next command", new NextCommandAction());
+		// Ctrl-r to start interpret.
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R,
+						    Event.CTRL_MASK),
+			     "interpret");
+		actionMap.put("interpret", new InterpretAction());
 
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, Event.CTRL_MASK), "Auto Completion");
-        actionMap.put("Auto Completion", new AutoCompleteAction());
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET,
+						    Event.CTRL_MASK),
+			     "Increase log level");
+		actionMap.put("Increase log level", new InceaseLogLevelAction());
 
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_B, Event.CTRL_MASK), "Change Buffer");
-        actionMap.put("Change Buffer", new ChangeBufferAction());
-    }
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET,
+						    Event.CTRL_MASK),
+			     "Decrease log level");
+		actionMap.put(	"Decrease log level",
+				new DecreaseLogLevelAction());
 
+		inputMap.put(	KeyStroke.getKeyStroke(	KeyEvent.VK_P,
+							Event.CTRL_MASK),
+				"Previous command");
+		actionMap.put("Previous command", new PrevCommandAction());
 
-    private native boolean nativeInterpret(String str);
-    // interrupt current interpreting.
-    private native boolean nativeForceStop();
-    private native String  nativeGetLastNativeMessage();
-    private native void    nativeSetLogLevel(int lv);
-    // <0 : error.
-    private native int     nativeAutoComplete(String prefix);
+		inputMap.put(	KeyStroke.getKeyStroke(	KeyEvent.VK_N,
+							Event.CTRL_MASK),
+				"Next command");
+		actionMap.put("Next command", new NextCommandAction());
 
-    public static void main(String[] args) {
-        // remote client mode
-        _REMOTE = true;
-        uimain (args);
-    }
+		inputMap.put(	KeyStroke.getKeyStroke(	KeyEvent.VK_F,
+							Event.CTRL_MASK),
+				"Auto Completion");
+		actionMap.put("Auto Completion", new AutoCompleteAction());
 
-    public static void uimain (String[] args) {
-        new Main(args);
-    }
+		inputMap.put(	KeyStroke.getKeyStroke(	KeyEvent.VK_B,
+							Event.CTRL_MASK),
+				"Change Buffer");
+		actionMap.put("Change Buffer", new ChangeBufferAction());
+	}
+
+	private native boolean nativeInterpret(String str);
+
+	// interrupt current interpreting.
+	private native boolean nativeForceStop();
+
+	private native String nativeGetLastNativeMessage();
+
+	private native void nativeSetLogLevel(int lv);
+
+	// <0 : error.
+	private native int nativeAutoComplete(String prefix);
+
+	public static void main(String[] args) {
+		// remote client mode
+		_REMOTE = true;
+		uimain(args);
+	}
+
+	public static void uimain(String[] args) {
+		new Main(args);
+	}
 }

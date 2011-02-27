@@ -26,7 +26,9 @@
      NOTE!: Passed list itself is changed! - sorted.
     @cmp func [Symbol]:   function used to compare.
                           function should be like '(<func> e1 e2)'.
-                          This should return 'not nil' if 1st parameter is greater than 2nd parameter, otherwise nil.
+                          This should return 'not nil'
+                            if 1st parameter is greater than 2nd parameter,
+                             otherwise nil.
     @list exp [list]:     list expression.
 "
     (let ( (etmp '()) (I L) (J '()) )
@@ -108,9 +110,17 @@
                 (cond ((not (null S))
                     (progn
                         (f-mset (concat st '. (car S) '*)
-                            (list 'mlambda '(inst) (list 'map* 'inst (list 'car (list 'quote S)))))
+                            (list 'mlambda
+                                  '(inst)
+                                   (list 'map*
+                                         'inst
+                                          (list 'car (list 'quote S)))))
                         (f-mset (concat st '. (car S) '+)
-                           (list 'mlambda '(inst val) (list 'map+ 'inst (list 'car (list 'quote S)) 'val)))
+                           (list 'mlambda
+                                 '(inst val)
+                                  (list 'map+
+                                        'inst
+                                         (list 'car (list 'quote S)) 'val)))
                         (rf st (cdr S))))))
             (f-mset (concat 'make- 'name)
                 '(lambda () (make-trie-map (pr-from-list '() 'SLOTS ''()))))
@@ -139,9 +149,20 @@
 ;                (cond ((not (null S))
 ;                    (progn
 ;                        (f-mset (concat st '. (car S) '*)
-;                            (list 'mlambda '(inst) (list 'pr* 'inst (list 'car (list 'quote S)))))
+;                            (list 'mlambda
+;                                  '(inst)
+;                                   (list 'pr*
+;                                         'inst
+;                                          (list 'car (list 'quote S)))))
 ;                        (f-mset (concat st '. (car S) '+)
-;                            (list 'mlambda '(inst val) (list 'set ''inst (list 'pr+ 'inst (list 'car (list 'quote S)) 'val))))
+;                            (list 'mlambda
+;                                  '(inst val)
+;                                   (list 'set
+;                                         ''inst
+;                                          (list 'pr+
+;                                                'inst
+;                                                 (list 'car (list 'quote S))
+;                                                  'val))))
 ;                        (rf st (cdr S))))))
 ;            (f-mset (concat 'make- 'name)
 ;                '(lambda () (pr-from-list '() 'SLOTS ''())))

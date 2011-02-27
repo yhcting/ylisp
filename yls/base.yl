@@ -346,7 +346,8 @@
 ; among [x; y] = NOT null [y] AND [equal [x; car [y]] OR among [x; cdr [y]]]
 (defun among (x e)
 "among <value> <exp> : [t/nil]
-    -predicate is true if the <value> occurs among the elements of the list <exp>
+    -predicate is true if the <value> occurs among the elements
+       of the list <exp>
     @value [exp]:  value
     @exp [list]:   list expression
 "
@@ -355,10 +356,13 @@
                        (equal x (car e)))
                   (among x (cdr e))))))
 
-; pair [x; y] = [null [x] AND null [y] -> NIL; NOT atom [x] AND NOT atom [y] -> cons [list [car [x]; car [y]]; pair [cdr [x]; cdr [y]]]
+; pair [x; y] = [null [x] AND null [y] -> NIL;
+;                NOT atom [x] AND NOT atom [y]
+;                  -> cons [list [car [x]; car [y]]; pair [cdr [x]; cdr [y]]]
 (defun pair (x y)
 "pair <exp1> <exp2>
-    -gives the list of pairs of corresponding elements of the lists <exp1> and <exp2>
+    -gives the list of pairs of corresponding elements of
+       the lists <exp1> and <exp2>
      pair [(A, B, C); (X, (Y, Z), U)] = ((A, X), (B, (Y, Z)), (C, U))
 "
     (cond ((and (null x) (null y)) '())
@@ -410,7 +414,8 @@
 "
     (let ( (list-reverse-aux '()) )
         (defun list-reverse-aux (L A) ""
-            (cond ((null L) A) ('t (list-reverse-aux (rest L) (cons (first L) A)))))
+            (cond ((null L) A)
+                  ('t (list-reverse-aux (rest L) (cons (first L) A)))))
         (list-reverse-aux L '())))
 
 (defun member (e L)
@@ -443,7 +448,6 @@
     (cond
         ( (atom E) E)
         ('t (cons (lclone (car E)) (lclone (cdr E))))))
-
 
 ; alias...
 (defun = (x y)

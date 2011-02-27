@@ -15,7 +15,7 @@
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
- *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *    along with this program.	If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
 #ifndef ___SYMLOOKUp_h___
@@ -90,23 +90,24 @@ ylslu_gcmark(slut_t* t);
  */
 extern int
 ylslu_auto_complete(slut_t* t, const char* start_with,
-                    char* buf, unsigned int bufsz);
+		    char* buf, unsigned int bufsz);
 
 /**
- * @max_symlen: [out] max symbol length of candidates(based on 'sizeof(char)' - excluding prefix.
+ * @max_symlen: [out] max symbol length of candidates(based on 'sizeof(char)'
+ *		       - excluding prefix.
  * @return: <0 : internal error(not enough internal buffer size)
  */
 extern int
 ylslu_nr_candidates(slut_t* t, const char* start_with,
-                    unsigned int* max_symlen);
+		    unsigned int* max_symlen);
 
 /**
  * @return: <0: error. Otherwise number of candidates found.
  */
 extern int
 ylslu_candidates(slut_t* t, const char* start_with, char** ppbuf,
-                 unsigned int ppbsz,
-                 unsigned int pbsz);
+		 unsigned int ppbsz,
+		 unsigned int pbsz);
 
 
 #endif /* ___SYMLOOKUp_h___ */

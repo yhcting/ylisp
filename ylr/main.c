@@ -38,12 +38,12 @@
 
 static void
 _log(int lv, const char* format, ...) {
-    if(lv >= _LOGLV) {
-        va_list ap;
-        va_start(ap, format);
-        vprintf(format, ap);
-        va_end(ap);
-    }
+	if (lv >= _LOGLV) {
+		va_list ap;
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+	}
 }
 
 static void
@@ -56,43 +56,43 @@ extern void ylcnf_load_ylext ();
 
 int
 main(int argc, char* argv[]) {
-    ylsys_t        sys;
-    int            i;
-    void*          d = NULL;
-    unsigned int   dsz;
+	ylsys_t        sys;
+	int            i;
+	void*          d = NULL;
+	unsigned int   dsz;
 
-    /* set system parameter */
-    sys.print   = &printf;
-    sys.log     = &_log;
-    sys.assert_ = &_assert_;
-    sys.malloc  = &malloc;
-    sys.free    = &free;
-    sys.mode    = YLMode_repl;
-    sys.mpsz    = 1024*1024;
-    sys.gctp    = 80;
+	/* set system parameter */
+	sys.print   = &printf;
+	sys.log     = &_log;
+	sys.assert_ = &_assert_;
+	sys.malloc  = &malloc;
+	sys.free    = &free;
+	sys.mode    = YLMode_repl;
+	sys.mpsz    = 1024*1024;
+	sys.gctp    = 80;
 
-    if (YLOk != ylinit(&sys)) {
-        printf("Fail to initialize ylisp\n");
-        exit(1);
-    }
+	if (YLOk != ylinit(&sys)) {
+		printf("Fail to initialize ylisp\n");
+		exit(1);
+	}
 
 #ifdef CONFIG_STATIC_CNF
-    ylcnf_load_ylbase (NULL);
-    ylcnf_load_ylext (NULL);
+	ylcnf_load_ylbase (NULL);
+	ylcnf_load_ylext (NULL);
 #endif /* CONFIG_STATIC_CNF */
 
-    for (i=1; i<argc; i++) {
-        d = ylutfile_read(&dsz, argv[i], 1);
-        if (!d && YLOk != dsz) {
-            printf("Fail to read file : %s\n", argv[i]);
-            exit(1);
-        }
-        if (YLOk != ylinterpret(d, dsz)) {
-            printf("Fail to interpret!\n"
-                   "    file : %s\n", argv[i]);
-            exit(1);
-        }
-        free(d);
-    }
-    return 0;
+	for (i=1; i<argc; i++) {
+		d = ylutfile_read(&dsz, argv[i], 1);
+		if (!d && YLOk != dsz) {
+			printf("Fail to read file : %s\n", argv[i]);
+			exit(1);
+		}
+		if (YLOk != ylinterpret(d, dsz)) {
+			printf("Fail to interpret!\n"
+			       "    file : %s\n", argv[i]);
+			exit(1);
+		}
+		free(d);
+	}
+	return 0;
 }

@@ -29,7 +29,7 @@
 #ifndef ___YLTRIe_h___
 #define ___YLTRIe_h___
 
-typedef struct _sTrie yltrie_t;
+typedef struct _trie yltrie_t;
 
 /*
  * @fcb : callback to free trie value.
@@ -91,26 +91,33 @@ yltrie_getref(yltrie_t*, const unsigned char* key, unsigned int sz);
  *   -1 : fail. (ex. @from is invalid prefix of symbol.)
  */
 extern int
-yltrie_walk(yltrie_t*, void* user, const unsigned char* from, unsigned int fromsz,
-            /* return : b_keepgoing => return 1 for keep going, 0 for stop and don't do anymore*/
-            int (*cb) (void*/*user*/,
-                       const unsigned char*/*key*/, unsigned int/*sz*/,
-                       void*/*value*/));
+yltrie_walk(yltrie_t*,
+	    void* user,
+	    const unsigned char* from,
+	    unsigned int fromsz,
+	    /* return : 1 for keep going, 0 for stop and don't do anymore*/
+	    int (*cb)(void*/*user*/,
+		      const unsigned char*/*key*/, unsigned int/*sz*/,
+		      void*/*value*/));
 
 extern int
-yltrie_full_walk (yltrie_t* t, void* user,
-                  /* return : b_keepgoing => return 1 for keep going, 0 for stop and don't do anymore*/
-                  int (*cb) (void*/*user*/,
-                             const unsigned char*/*key*/, unsigned int/*sz*/,
-                             void*/*value*/));
+yltrie_full_walk(yltrie_t* t, void* user,
+		 /*
+		  * return : 1 for keep going,
+		  *          0 for stop and don't do anymore
+		  */
+		 int (*cb)(void*/*user*/,
+			   const unsigned char*/*key*/, unsigned int/*sz*/,
+			   void*/*value*/));
 
 /**
- * @cmp    : compare function of trie data. this should return 1 if value is same, otherwise 0.
+ * @cmp    : compare function of trie data.
+ *           this should return 1 if value is same, otherwise 0.
  * @return : 1 if same, otherwise 0.
  */
 extern int
 yltrie_equal(const yltrie_t* t0, const yltrie_t* t1,
-             int(*cmp)(const void*, const void*));
+	     int(*cmp)(const void*, const void*));
 
 /**
  * clone trie.
@@ -118,26 +125,26 @@ yltrie_equal(const yltrie_t* t0, const yltrie_t* t1,
  */
 extern yltrie_t*
 yltrie_clone(const yltrie_t* t, void* user,
-             void*(*clonev)(void*/*user*/, const void*/*src*/));
+	     void*(*clonev)(void*/*user*/, const void*/*src*/));
 
 
 /**
  * copy trie.
- * @dst    : old data will be freed before copying.
+ * @dst	   : old data will be freed before copying.
  * @clonev : return cloned value - copy callback for trie value.
- *           This can be NULL for shallow copy.
+ *	     This can be NULL for shallow copy.
  */
 extern int
 yltrie_copy(yltrie_t* dst, const yltrie_t* src, void* user,
-            void*(*clonev)(void*/*user*/, const void*/*src*/));
+	    void*(*clonev)(void*/*user*/, const void*/*src*/));
 
 /*
  * return value of auto complete
  */
 enum {
-    YLTRIEBranch   = 0,
-    YLTRIELeaf,
-    YLTRIEFail,
+	YLTRIEBranch   = 0,
+	YLTRIELeaf,
+	YLTRIEFail,
 };
 
 /**
@@ -148,8 +155,8 @@ enum {
  */
 extern int
 yltrie_auto_complete(yltrie_t* t,
-                     const unsigned char* start_with, unsigned int sz,
-                     unsigned char* buf, unsigned int bufsz);
+		     const unsigned char* start_with, unsigned int sz,
+		     unsigned char* buf, unsigned int bufsz);
 
 
 #endif /* ___YLTRIe_h___ */

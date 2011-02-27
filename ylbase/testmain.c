@@ -34,77 +34,78 @@
 static unsigned int _mblk = 0;
 
 static const char* _exp =
-    "(interpret-file '../yls/base.yl)\n"
-    "(interpret-file '../test/test_base.yl)\n"
-    ;
+	"(interpret-file '../yls/base.yl)\n"
+	"(interpret-file '../test/test_base.yl)\n"
+	;
 
 
 static inline void*
 _malloc(size_t size) {
-    _mblk++;
-    return malloc(size);
+	_mblk++;
+	return malloc(size);
 }
 
 static inline void
 _free(void* p) {
-    assert(_mblk > 0);
-    _mblk--;
-    free(p);
+	assert(_mblk > 0);
+	_mblk--;
+	free(p);
 }
 
 static inline int
 _get_mblk_size() {
-    return _mblk;
+	return _mblk;
 }
 
 static inline void
 _log(int lv, const char* format, ...) {
-    if(lv >= _LOGLV) {
-        va_list ap;
-        va_start(ap, format);
-        vprintf(format, ap);
-        va_end(ap);
-    }
+	if (lv >= _LOGLV) {
+		va_list ap;
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+	}
 }
 
 static inline void
 _assert_(int a) {
-    assert(a);
+	assert(a);
 }
 
 #define NFUNC(n, s, type, desc) extern YLDECLNF(n);
-#   include "nfunc.in"
+#       include "nfunc.in"
 #undef NFUNC
 
 int
 main(int argc, char* argv[]) {
-    ylsys_t   sys;
+	ylsys_t   sys;
 
-    /* set system parameter */
-    sys.print   = &printf;
-    sys.log     = &_log;
-    sys.assert_ = &_assert_;
-    sys.malloc  = &_malloc;
-    sys.free    = &_free;
-    sys.mode    = YLMode_batch;
-    sys.mpsz    = 4*1024;
-    sys.gctp    = 80;
+	/* set system parameter */
+	sys.print   = &printf;
+	sys.log     = &_log;
+	sys.assert_ = &_assert_;
+	sys.malloc  = &_malloc;
+	sys.free    = &_free;
+	sys.mode    = YLMode_batch;
+	sys.mpsz    = 4*1024;
+	sys.gctp    = 80;
 
-    ylinit(&sys);
+	ylinit(&sys);
 
-#define NFUNC(n, s, type, desc)  \
-    if(YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, desc)) { return 0; }
-#   include "nfunc.in"
+#define NFUNC(n, s, type, desc)						\
+	if (YLOk != ylregister_nfunc(YLDEV_VERSION ,s, YLNFN(n), type, desc)) \
+		return 0;
+#       include "nfunc.in"
 #undef NFUNC
 
-    if(YLOk != ylinterpret((unsigned char*)_exp, (unsigned int)strlen(_exp))) {
-        return 0;
-    }
+	if (YLOk != ylinterpret((unsigned char*)_exp,
+				(unsigned int)strlen(_exp)))
+		return 0;
 
-    yldeinit();
-    assert(0 == _get_mblk_size());
+	yldeinit();
+	assert(0 == _get_mblk_size());
 
-    printf("---------------------------\n"
-           "Test Success\n");
-    return 0;
+	printf("---------------------------\n"
+	       "Test Success\n");
+	return 0;
 }

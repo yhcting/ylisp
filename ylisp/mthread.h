@@ -15,7 +15,7 @@
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
- *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *    along with this program.	If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
 /********************************
@@ -34,21 +34,21 @@
 
 /* ETST : Evaluation Thread STate */
 enum {
-    ETST_SAFE = 0x00000001,
+	ETST_SAFE = 0x00000001,
 };
 
-#define etst_set(cxt, m)    do { ((cxt)->state) |= (m); } while(0)
-#define etst_clear(cxt, m)  do { ((cxt)->state) &= ~(m); } while(0)
+#define etst_set(cxt, m)    do { ((cxt)->state) |= (m); } while (0)
+#define etst_clear(cxt, m)  do { ((cxt)->state) &= ~(m); } while (0)
 #define etst_isset(cxt, m)  (!!((cxt)->state & (m)))
 
 
 /* ETSIG : Evaluation Thread SIGnals */
 enum {
-    ETSIG_KILL = 0x00000001,
+	ETSIG_KILL = 0x00000001,
 };
 
-#define etsig_set(cxt, m)    do { ((cxt)->sig) |= (m); } while(0)
-#define etsig_clear(cxt, m)  do { ((cxt)->sig) &= ~(m); } while(0)
+#define etsig_set(cxt, m)    do { ((cxt)->sig) |= (m); } while (0)
+#define etsig_clear(cxt, m)  do { ((cxt)->sig) &= ~(m); } while (0)
 #define etsig_isset(cxt, m)  (!!((cxt)->sig & (m)))
 
 
@@ -62,16 +62,16 @@ enum {
  *
  * @cxt: (last) evaluation thread entered int safe state.
  * @mtx: mutex that keeps thread in safe mode.
- *       'pthread_cond_t' MUST be used with @mtx !!
- *       (HEY! BECAREFUL to use this MUTEX!)
+ *	 'pthread_cond_t' MUST be used with @mtx !!
+ *	 (HEY! BECAREFUL to use this MUTEX!)
  */
 typedef struct {
-    void(*    pre_add)      (const yletcxt_t*);
-    void(*    post_add)     (const yletcxt_t*);
-    void(*    pre_rm)       (const yletcxt_t*);
-    void(*    post_rm)      (const yletcxt_t*);
-    void(*    thd_safe)     (const yletcxt_t* cxt, pthread_mutex_t* mtx);
-    void(*    all_safe)     (pthread_mutex_t* mtx);
+	void(*	  pre_add)	(const yletcxt_t*);
+	void(*	  post_add)	(const yletcxt_t*);
+	void(*	  pre_rm)	(const yletcxt_t*);
+	void(*	  post_rm)	(const yletcxt_t*);
+	void(*	  thd_safe)	(const yletcxt_t* cxt, pthread_mutex_t* mtx);
+	void(*	  all_safe)	(pthread_mutex_t* mtx);
 } ylmtlsn_t; /* ylmt LiSteN InterFace */
 
 
@@ -123,15 +123,15 @@ ylmt_kill(yletcxt_t* cxt, pthread_t tid);
  */
 extern void
 ylmt_walk(yletcxt_t* cxt, void* user,
-           /* return 1 to keep going, 0 to stop */
-          int(*cb)(void*, yletcxt_t* cxt));
+	   /* return 1 to keep going, 0 to stop */
+	  int(*cb)(void*, yletcxt_t* cxt));
 
 /*
  * locked version.
  */
 extern void
 ylmt_walk_locked(yletcxt_t* cxt, void* user,
-                 /* return 1 to keep going, 0 to stop */
-                 int(*cb)(void*, yletcxt_t* cxt));
+		 /* return 1 to keep going, 0 to stop */
+		 int(*cb)(void*, yletcxt_t* cxt));
 
 #endif /* ___ETHREAd_h___ */

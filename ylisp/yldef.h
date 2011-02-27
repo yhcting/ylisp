@@ -28,23 +28,24 @@
 #define ___DEf_h___
 
 #ifndef NULL
-#   define NULL ((void*)0)
+#       define NULL ((void*)0)
 #endif
 
 #ifndef TRUE
-#   define TRUE 1
+#       define TRUE 1
 #endif
 
 #ifndef FALSE
-#   define FALSE 0
+#       define FALSE 0
 #endif
 
 #ifndef offset_of
-#   define offset_of(type, member) ((unsigned long) &((type*)0)->member)
+#       define offset_of(type, member) ((unsigned long) &((type*)0)->member)
 #endif
 
 #ifndef container_of
-#   define container_of(ptr, type, member) ((type*)(((char*)(ptr)) - offset_of(type, member)))
+#       define container_of(ptr, type, member)			\
+	((type*)(((char*)(ptr)) - offset_of(type, member)))
 #endif
 
 #endif /* ___DEf_h___ */

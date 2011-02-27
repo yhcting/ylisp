@@ -64,27 +64,29 @@ ylmp_post_rm_thread(yletcxt_t* thd);
  *     Case 1 : it's type is PAIR but it's car and cdr is NOT NULL.
  *     Case 2 : it's type is ATOM but it's 'atomif' value is invalid.
  *
- * To avoid these two error-state, we need to clean block into expected state after/before using block.
+ * To avoid these two error-state,
+ *   we need to clean block into expected state after/before using block.
  * NOTE! : Reference count is NOT handled at 'ylmp_clean_block'.
  *
  * Appendix :
  *     Case 1 (detail)
  *     This cleaned block may be used as a pair. That is a point!.
  *     When the block is used as pair later,
- *      if car/cdr value is not initialised as NULL,
- *      'ylpassign()' may try to unref car/cdr which has invalid initial value.
+ *       if car/cdr value is not initialised as NULL,
+ *       'ylpassign()' may try to unref car/cdr
+ *       which has invalid initial value.
  *     (See, ylpassign->ylpsetcar/ylpsetcdr)
  *     => To set into NULL, we SHOULD NOT use ylpsetcar()/ylpsetcdr().
  *        Set directly.
  */
 static inline void
 ylmp_clean_block(yle_t* e) {
-    /*
-     * Clean-block's value is like this.!
-     */
-    yleset_type(e, YLEPair);
-    dbg_mt( ylanfunc(e).f = (void*)0xdeaddead; );
-    ylpcar(e) = ylpcdr(e) = NULL;
+	/*
+	 * Clean-block's value is like this.!
+	 */
+	yleset_type(e, YLEPair);
+	dbg_mt( ylanfunc(e).f = (void*)0xdeaddead; );
+	ylpcar(e) = ylpcdr(e) = NULL;
 }
 
 #endif /* ___MEMPOOl_h___ */

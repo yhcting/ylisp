@@ -146,24 +146,28 @@ NFUNC(end_with,           "end-with",           ylaif_nfunc(),
 
 NFUNC(start_with,         "start-with",         ylaif_nfunc(),
     "start-with <string> <prefix> (<from index>): [t/nil]\n"
-    "    -Tests if this <string> starts with the specified <prefix> beginning a specified <from index>.\n"
+    "    -Tests if this <string> starts with the specified <prefix>\n"
+    "       beginning a specified <from index>.\n"
     "    @from index [Double] :\n")
 
 NFUNC(index_of,           "index-of",           ylaif_nfunc(),
     "index-of <string> <str> (<from index>): [Double/nil]\n"
-    "    -Returns the index within <string> of the first occurrence of the <str>, starting the search forward at the <from index>\n"
+    "    -Returns the index within <string> of the first occurrence of\n"
+    "       the <str>, starting the search forward at the <from index>\n"
     "    @return [Double]     : nil if fail to search. Otherwise index.\n"
     "    @from index [Double] :\n");
 
 NFUNC(last_index_of,       "last-index-of",     ylaif_nfunc(),
     "last-index-of <string> <str> (<from index>): [Double/nil]\n"
-    "    -Returns the index within <string> of the last occurrence of the <str>, starting the search backward from the <from index>\n"
+    "    -Returns the index within <string> of the last occurrence of\n"
+    "       the <str>, starting the search backward from the <from index>\n"
     "    @from index [Double] :\n"
     "    @return: nil if fails\n")
 
 NFUNC(replace,             "replace",           ylaif_nfunc(),
     "replace <string> <old> <new>: [Symbol]\n"
-    "    -Returns a new string resulting from replacing all occurrences of <old> in <string> with <new>.\n"
+    "    -Returns a new string resulting from replacing all occurrences\n"
+    "       of <old> in <string> with <new>.\n"
     "     If fails to match, original string is returned.\n")
 
 NFUNC(substring,           "substring",         ylaif_nfunc(),
@@ -175,11 +179,13 @@ NFUNC(substring,           "substring",         ylaif_nfunc(),
 
 NFUNC(to_lower_case,       "to-lower-case",     ylaif_nfunc(),
     "to-lower-case <string>: [Symbol]\n"
-    "    -Converts all of the characters in this string to lower case - assume ASCII\n");
+    "    -Converts all of the characters in this string to lower case\n"
+    "       - assume ASCII\n");
 
 NFUNC(to_upper_case,       "to-upper-case",     ylaif_nfunc(),
     "to-upper-case <string>: [Symbol]\n"
-    "    -Converts all of the characters in this string to upper case - assume ASCII\n");
+    "    -Converts all of the characters in this string to upper case\n"
+    "       - assume ASCII\n");
 
 NFUNC(trim,                "trim",              ylaif_nfunc(),
     "trim <string>: [Symbol]\n"
@@ -191,7 +197,8 @@ NFUNC(trim,                "trim",              ylaif_nfunc(),
 NFUNC(re_match,            "re-match",          ylaif_nfunc(),
     "re-match <pattern> <subject> <option> : <list exp>\n"
     "    -match with regular expression.\n"
-    "     Regular expression can be 'pcre - Perl Compatible REgular expression' or POSIX's one.\n"
+    "     Regular expression can be 'pcre\n"
+    "       - Perl Compatible REgular expression' or POSIX's one.\n"
     "     This depends on libylext.so's compile configuaration!\n"
     "     And returns matched string.\n"
     "    @pattern [Symbol]: Pattern format\n"
@@ -199,7 +206,9 @@ NFUNC(re_match,            "re-match",          ylaif_nfunc(),
     "    @option [Symbol]:  Match option 'i', 'm', 's' are supported\n"
     "    @return : list of matched string. nil for unmatch\n"
     "    *ex\n"
-    "        (set 'r (re-match '\"\\\\s+(\\\\w+)\\\\s+\" '\"yyy haha  hehe\" '\"\"))\n"
+    "        (set 'r (re-match '\"\\\\s+(\\\\w+)\\\\s+\"\n"
+    "                          '\"yyy haha  hehe\"\n"
+    "                          '\"\"))\n"
     "        (print (car r)); ' haha  ' is printed.\n"
     "        (print (cadr r));'haha' is printed.\n")
 
@@ -242,12 +251,14 @@ NFUNC(to_bin,              "to-bin",            ylaif_nfunc(),
     "    @exp [Symbol, Doublie] :\n"
     "    @size :\n"
     "        [if] (Symbol == @exp) This is ignored.\n"
-    "        [else] Double value is changed into integer which byte-size is @size.\n"
+    "        [else] Double value is changed into integer\n"
+    "                 which byte-size is @size.\n"
     "               [if] (@size == 1) @exp changes into [unsigned byte].\n"
     "               [if] (@size == 2) @exp changes into [unsigned 2byte].\n"
     "               [if] (@size == 4) @exp changes into [unsigned 4byte].\n"
     "               (@size can be 3 too. Just memcpy is used!)\n"
-    "               if @exp cannot be changed into same-valued-integer, --> error.\n"
+    "               if @exp cannot be changed into same-valued-integer,\n"
+    "                 --> error.\n"
     "               : Test Expression : (double)((long)@exp) == @exp.\n")
 
 NFUNC(bin_to_num,          "bin-to-num",        ylaif_nfunc(),
@@ -272,12 +283,14 @@ NFUNC(usleep,              "usleep",            ylaif_nfunc(),
 
 NFUNC(getenv,              "getenv",            ylaif_nfunc(),
     "getenv <variable> : [Symbol/nil]\n"
-    "    -get value of environment variable. If there is no matching variable, it returns nil\n"
+    "    -get value of environment variable.\n"
+    "     If there is no matching variable, it returns nil\n"
     "    @variable [Symbol]:\n")
 
 NFUNC(setenv,              "setenv",            ylaif_nfunc(),
     "getenv <variable> <value> : [t/nil]\n"
-    "    -set environment variable. If there is no matching variable, it returns nil\n"
+    "    -set environment variable.\n"
+    "     If there is no matching variable, it returns nil\n"
     "    @variable, value [Symbol]:\n")
 
 NFUNC(getpid,              "getpid",            ylaif_nfunc(),
@@ -313,7 +326,8 @@ NFUNC(fread,               "fread",             ylaif_nfunc(),
     "fread <file path> : [Symbol/nil]\n"
     "    -read text file.\n"
     "    @file path[Symbol]:  file path\n"
-    "    @return:             symbol atom if success. Otherwise nil is returned!\n"
+    "    @return:             symbol atom if success.\n"
+    "                         Otherwise nil is returned!\n"
     "    *ex\n"
     "        (fread 'test.txt) => <content of file>\n")
 
@@ -321,7 +335,8 @@ NFUNC(freadb,              "freadb",            ylaif_nfunc(),
     "freadb <file path> : [Binary/nil] - not tested yet\n"
     "    -read binary file.\n"
     "    @file path[Symbol]:  file path\n"
-    "    @return:             binary atom if success. Otherwise nil is returned!\n"
+    "    @return:             binary atom if success.\n"
+    "                         Otherwise nil is returned!\n"
     "    *ex\n"
     "        (freadb 'test.bin) => <content of file>\n")
 
@@ -339,7 +354,8 @@ NFUNC(readdir,             "readdir",           ylaif_nfunc(),
     "readdir <dir path> : [list/nil]\n"
     "    -read directory.\n"
     "    @dir path [Symbol]: dir path\n"
-    "    @return:            list of file names. nil if fails or there is no file in it.\n"
+    "    @return:            list of file names.\n"
+    "                        nil if fails or there is no file in it.\n"
     "    *ex\n"
     "        (readdir '/usr) => <file names in the directory>\n")
 
@@ -362,14 +378,16 @@ NFUNC(procia_create,       "procia-create",     ylaif_nfunc(),
 NFUNC(procia_destroy,      "procia-destroy",    ylaif_nfunc(),
     "procia-destroy <custom data> : [t/nil]\n"
     "    -destroy created custom data return by 'procia-create', manually.\n"
-    "     Without calling this, <custom data> will be alive until being GCed.\n"
+    "     Without calling this,\n"
+    "       <custom data> will be alive until being GCed.\n"
     "     destroying includes killing child process and removing pipe\n")
 
 NFUNC(procia_wfd,          "procia-wfd",        ylaif_nfunc(),
     "procia-wfd <custom>: <fraw-xxx custom>\n"
     "    -Get write file descriptor.\n"
-    "     Data can be sent to process as an standard input by using 'fdwrite'\n")
- 
+    "     Data can be sent to process as an standard input\n"
+    "       by using 'fdwrite'\n")
+
 NFUNC(procia_rfd,          "procia-rfd",        ylaif_nfunc(),
     "procia-rfd <custom>: <fraw-xxx custom>\n"
     "    -Get read file descriptor.\n"
@@ -422,7 +440,8 @@ NFUNC(fraw_select,         "fraw-select",       ylaif_nfunc(),
     "    @except fds <list>:\n"
     "    @time [Double] : milliseconds\n"
     "    @return\n"
-    "        Ok : available fds : ( (<read fds>) (<write fds>) (<except fds>) )\n"
+    "        Ok : available fds :\n"
+    "             ( (<read fds>) (<write fds>) (<except fds>) )\n"
     "        timeout : nil\n")
 
 
@@ -439,7 +458,8 @@ NFUNC(make_trie_map,       "make-trie-map",     ylaif_nfunc(),
 NFUNC(make_hash_map,       "make-hash-map",     ylaif_nfunc(),
     "See help of 'make-trie-map'\n"
     "NOTE : deep comparison in equal between hash-map isn't supported.\n"
-    "       Only shallow comparison - compare object address - is supported.\n")
+    "       Only shallow comparison - compare object address -\n"
+    "         is supported.\n")
 
 NFUNC(map_insert,          "map+",              ylaif_nfunc(),
     "map+ <instance> <slot> (<value>)\n"
@@ -456,7 +476,8 @@ NFUNC(map_del,             "map-",              ylaif_nfunc(),
     "map- <instance> <slot>\n"
     "    @instance : returned value from st_create\n"
     "    @slot     : slot name.\n"
-    "    @return   : t if success. nil if there is no slot whose name is <slot>\n"
+    "    @return   : t if success.\n"
+    "                nil if there is no slot whose name is <slot>\n"
     "    *ex\n"
     "        (trie- me 'age)\n")
 
@@ -490,8 +511,9 @@ NFUNC(arr_set,             "arr+",              ylaif_nfunc(),
     "arr+ <arr> <value> <dim0> <dim1> ...\n"
     "    -access array of given dimension - row major\n"
     "     Array itself can be element of array.\n"
-    "     But, recursive array reference - one of element or sub array's element of array A,\n"
-    "      is array A itself - may lead to deadlock or crash.\n"
+    "     But, recursive array reference\n"
+    "       - one of element or sub array's element of array A,\n"
+    "           is array A itself - may lead to deadlock or crash.\n"
     "     So, be careful not to be recursive\n"
     "    @value :\n"
     "    @dimN [Double] : \n"

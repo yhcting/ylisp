@@ -15,7 +15,7 @@
  *    (<http://www.gnu.org/licenses/lgpl.html>) for more details.
  *
  *    You should have received a copy of the GNU General Public License
- *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *    along with this program.	If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
 
@@ -30,142 +30,145 @@
 #include <stddef.h>
 
 typedef enum {
-    YLOk,
-    YLErr_unknown,
+	YLOk,
+	YLErr_unknown,
 
-    /* fail to initialization */
-    YLErr_init,
+	/* fail to initialization */
+	YLErr_init,
 
-    YLErr_out_of_memory,
+	YLErr_out_of_memory,
 
-    YLErr_invalid_param,
+	YLErr_invalid_param,
 
-    YLErr_unexpected_cyclic_reference,
+	YLErr_unexpected_cyclic_reference,
 
-    YLErr_internal,
+	YLErr_internal,
 
-    YLErr_io, /* io error */
+	YLErr_io, /* io error */
 
-    YLErr_killed,
+	YLErr_killed,
 
-    YLErr_under_interpreting,
+	YLErr_under_interpreting,
 
-    YLErr_cnf_register,
+	YLErr_cnf_register,
 
-    YLErr_syntax_unknown,
+	YLErr_syntax_unknown,
 
-    YLErr_syntax_escape,
+	YLErr_syntax_escape,
 
-    YLErr_syntax_parenthesis,
+	YLErr_syntax_parenthesis,
 
-    YLErr_syntax_single_quote,
+	YLErr_syntax_single_quote,
 
-    /*
-     * single quoted symbol/yllist SHOULD NOT be evaluated.
-     */
-    YLErr_eval_squoted,
+	/*
+	 * single quoted symbol/yllist SHOULD NOT be evaluated.
+	 */
+	YLErr_eval_squoted,
 
-    /*
-     * LErr_eval_xxx :
-     *    from starting evaluation to before doing functional operation
-     */
-    /* evaluated number is out of range */
-    YLErr_eval_range,
+	/*
+	 * LErr_eval_xxx :
+	 *    from starting evaluation to before doing functional operation
+	 */
+	/* evaluated number is out of range */
+	YLErr_eval_range,
 
-    /* ylinterpret_undefined symbol */
-    YLErr_eval_undefined,
+	/* ylinterpret_undefined symbol */
+	YLErr_eval_undefined,
 
-    /* first element of yllist should be function */
-    YLErr_eval_function_expected,
+	/* first element of yllist should be function */
+	YLErr_eval_function_expected,
 
-    /* assert false! */
-    YLErr_eval_assert,
+	/* assert false! */
+	YLErr_eval_assert,
 
-    /*
-     * LErr_func_xxx :
-     *    error inside function. - function specific.
-     */
-    YLErr_func_invalid_param,
+	/*
+	 * LErr_func_xxx :
+	 *    error inside function. - function specific.
+	 */
+	YLErr_func_invalid_param,
 
-    /* fail to execute native function */
-    YLErr_func_fail,
+	/* fail to execute native function */
+	YLErr_func_fail,
 } ylerr_t;
 
 /**
  * Log level
  */
 enum {
-    YLLogV = 0,  /**< verbose */
-    YLLogD,      /**< devleop */
-    YLLogI,      /**< information */
-    YLLogW,      /**< warning */
-    YLLogE,      /**< error - interpreting error */
-    YLLogF,      /**< fatal - running interpreter is impossible */
-    YLLogLV_NUM
+	YLLogV = 0,  /**< verbose */
+	YLLogD,	     /**< devleop */
+	YLLogI,	     /**< information */
+	YLLogW,	     /**< warning */
+	YLLogE,	     /**< error - interpreting error */
+	YLLogF,	     /**< fatal - running interpreter is impossible */
+	YLLogLV_NUM
 };
 
 enum {
-    /*
-     * Opposite of YLMode_repl
-     */
-    YLMode_batch,
+	/*
+	 * Opposite of YLMode_repl
+	 */
+	YLMode_batch,
 
-    /*
-     * Evaulation result for user input is always printed.
-     * Exception.
-     *    'interpret-file' and 'interpret' print result of each sub inputs.
-     */
-    YLMode_repl,
+	/*
+	 * Evaulation result for user input is always printed.
+	 * Exception.
+	 *    'interpret-file' and 'interpret' print result of each sub inputs.
+	 */
+	YLMode_repl,
 };
 
 /**
  * All members are mendatory!
  */
 typedef struct {
-    /* function for logging */
-    void       (*log)(int loglv, const char* format, ...);
+	/* function for logging */
+	void	   (*log)(int loglv, const char* format, ...);
 
-    /* function for print output - printf like */
-    int        (*print)(const char* format, ...);
+	/* function for print output - printf like */
+	int	   (*print)(const char* format, ...);
 
-    /*
-     * assert. "assert(0)" means, "module meent unrecoverable error!"
-     * 'assert' is defined at standard header as an macro.
-     * So, to avoid symbol conflicting, '_' is added at the end.
-     */
-    void       (*assert_)(int);
+	/*
+	 * assert. "assert(0)" means, "module meent unrecoverable error!"
+	 * 'assert' is defined at standard header as an macro.
+	 * So, to avoid symbol conflicting, '_' is added at the end.
+	 */
+	void	   (*assert_)(int);
 
-    /* memory allocation - to get centralized control about memory statistic */
-    void*      (*malloc)(size_t);
+	/*
+	 *memory allocation
+	 * - to get centralized control about memory statistic
+	 */
+	void*	   (*malloc)(size_t);
 
-    /* memory free */
-    void       (*free)(void*);
+	/* memory free */
+	void	   (*free)(void*);
 
-    /* YLMode_batch/repl */
-    int          mode;
+	/* YLMode_batch/repl */
+	int	     mode;
 
-    /* interpreter memory pool size*/
-    unsigned int mpsz;
+	/* interpreter memory pool size*/
+	unsigned int mpsz;
 
-    /*
-     * GC Trigger point. Percent.
-     * '80' means "GC triggered when memory pool is used over 80%
-     */
-    int          gctp; /* Garbage Collection Trigger Pointer */
-} ylsys_t; /* system parameter  */
+	/*
+	 * GC Trigger point. Percent.
+	 * '80' means "GC triggered when memory pool is used over 80%
+	 */
+	int	     gctp; /* Garbage Collection Trigger Pointer */
+} ylsys_t; /* system parameter	*/
 
 /**
  * Set 'sysv' as default value.
  *
  * ===== default value =====
- * log     : print to stdout for warning and error.
+ * log	   : print to stdout for warning and error.
  * print   : stdout
  * assert  : assert
  * malloc  : malloc
- * free    : free
- * mode    : YLMode_batch
- * mpsz    : 1MByte
- * gctp    : 80
+ * free	   : free
+ * mode	   : YLMode_batch
+ * mpsz	   : 1MByte
+ * gctp	   : 80
  *
  * @return : < 0 for error.
  */
@@ -202,9 +205,10 @@ ylreadv_ptr (const char* sym, void** out);
 
 /**
  * @return : bytes copied (includes trailing NULL).
- *           If buffer size is not enough, returned value is same with buffer size
- *            and trailing 0 is not added.
- *           <0 for errors. (ex. symbol is not valid one).
+ *	     If buffer size is not enough,
+ *	       returned value is same with buffer size
+ *	       and trailing 0 is not added.
+ *	     <0 for errors. (ex. symbol is not valid one).
  */
 extern ylerr_t
 ylreadv_str (const char* sym, char* buf, unsigned int bsz);
@@ -231,7 +235,8 @@ extern int
 ylsym_auto_complete(const char* start_with, char* buf, unsigned int bufsz);
 
 /**
- * @max_symlen: [out] max symbol length of candidates(based on 'sizeof(char)' - excluding prefix.
+ * @max_symlen: [out] max symbol length of candidates(based on 'sizeof(char)'
+ *		       - excluding prefix.
  * @return: <0 : internal error.
  */
 extern int
@@ -242,8 +247,10 @@ ylsym_nr_candidates(const char* start_with, unsigned int* max_symlen);
  */
 extern int
 ylsym_candidates(const char* start_with,
-                 char** ppbuf,       /* in/out */
-                 unsigned int ppbsz, /* size of ppbuf - regarding 'ppbuf[i]' */
-                 unsigned int pbsz); /* size of pbuf - regarding 'ppbuf[0][x]' */
+		 char** ppbuf,	     /* in/out */
+		 /* size of ppbuf - regarding 'ppbuf[i]' */
+		 unsigned int ppbsz,
+		 /* size of pbuf - regarding 'ppbuf[0][x]' */
+		 unsigned int pbsz);
 
 #endif /* ___YLISp_h___ */

@@ -28,29 +28,34 @@
 #include <memory.h>
 
 #ifdef HAVE_LIBPCRE
-#   include "pcre.h"
+#       include "pcre.h"
 #else /* HAVE_LIBPCRE */
-#   include <regex.h>
+#       include <regex.h>
 #endif /* HAVE_LIBPCRE */
 
 #include "ylsfunc.h"
 
 
 enum {
-    _OPT_GLOBAL   = 0x01,
+	_OPT_GLOBAL   = 0x01,
 };
 
 static int
 _get_custom_option(const char* optstr) {
-    int         opt = 0;
-    while(*optstr) {
-        switch(*optstr) {
-            case 'g': opt |= _OPT_GLOBAL;     break;
-            /* skip error check intentionally - option string is already verified at '_get_pcre_option' */
-        }
-        optstr++;
-    }
-    return opt;
+	int         opt = 0;
+	while (*optstr) {
+		switch (*optstr) {
+		case 'g': opt |= _OPT_GLOBAL;
+			break;
+			/*
+			 * skip error check intentionally
+			 * - option string is already verified
+			 * at '_get_pcre_option'
+			 */
+		}
+		optstr++;
+	}
+	return opt;
 }
 
 
@@ -68,19 +73,22 @@ _get_custom_option(const char* optstr) {
 
 static int
 _get_pcre_option(const char* optstr) {
-    int         opt = 0;
-    while(*optstr) {
-        switch(*optstr) {
-            case 'i': opt |= PCRE_CASELESS;     break;
-            case 'm': opt |= PCRE_MULTILINE;    break;
-            case 's': opt |= PCRE_DOTALL;       break;
-            case 'g': break; /* do nothing.. this is custom option */
-            default:
-                ylinterp_fail (YLErr_func_fail, "<!pcre_xxx!> Unsupported option! [%c]\n", *optstr);
-        }
-        optstr++;
-    }
-    return opt;
+	int         opt = 0;
+	while (*optstr) {
+		switch (*optstr) {
+		case 'i': opt |= PCRE_CASELESS;     break;
+		case 'm': opt |= PCRE_MULTILINE;    break;
+		case 's': opt |= PCRE_DOTALL;       break;
+		case 'g': break; /* do nothing.. this is custom option */
+		default:
+			ylinterp_fail(
+				YLErr_func_fail,
+				"<!pcre_xxx!> Unsupported option! [%c]\n",
+				*optstr);
+		}
+		optstr++;
+	}
+	return opt;
 }
 
 /*
@@ -89,46 +97,53 @@ _get_pcre_option(const char* optstr) {
  * @3 : option
  */
 YLDEFNF(re_match, 3, 3) {
-    yle_t        *hd, *tl; /* head & tail */
-    pcre*         re;
-    int           err_offset, rc, opt;
-    int           ovect[_OVECCNT];  /* out vector */
-    const char   *pattern, *subject, *errmsg;
+	yle_t        *hd, *tl; /* head & tail */
+	pcre*         re;
+	int           err_offset, rc, opt;
+	int           ovect[_OVECCNT];  /* out vector */
+	const char   *pattern, *subject, *errmsg;
 
-    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
+	ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
-    pattern = ylasym(ylcar(e)).sym;
-    subject = ylasym(ylcadr(e)).sym;
-    opt = _get_pcre_option(ylasym(ylcaddr(e)).sym);
+	pattern = ylasym(ylcar(e)).sym;
+	subject = ylasym(ylcadr(e)).sym;
+	opt = _get_pcre_option(ylasym(ylcaddr(e)).sym);
 
-    re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
-    if (!re)
-        ylnfinterp_fail (YLErr_func_fail,
-                         "PCRE compilation failed.\n"
-                         "    offset %d: %s\n", err_offset, errmsg);
+	re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
+	if (!re)
+		ylnfinterp_fail(YLErr_func_fail,
+				"PCRE compilation failed.\n"
+				"    offset %d: %s\n",
+				err_offset,
+				errmsg);
 
-    rc = pcre_exec(re, NULL, subject, strlen(subject), 0, 0, ovect, _OVECCNT);
+	rc = pcre_exec(re, NULL,
+		       subject, strlen(subject),
+		       0, 0,
+		       ovect, _OVECCNT);
 
-    /* set head as sentinel */
-    hd = tl = ylmp_block();
-    ylpassign(hd, ylnil(), ylnil());
-    if(rc >= 0) {
-        unsigned int     i, len;
-        char*            substr;
-        for(i=0; i<rc; i++) {
-            len = ovect[2*i+1]-ovect[2*i];
-            substr = ylmalloc(len + 1); /* +1 for trailing 0 */
-            memcpy(substr, subject+ovect[2*i], len);
-            substr[len] = 0;
-            ylpsetcdr(tl, ylcons(ylacreate_sym(substr), ylnil()));
-            tl = ylcdr(tl);
-        }
-    } else if(PCRE_ERROR_NOMATCH == rc) {
-        ; /* nothing to do */
-    } else
-        ylnfinterp_fail (YLErr_func_fail, "PCRE error in match [%d]\n", rc);
+	/* set head as sentinel */
+	hd = tl = ylmp_block();
+	ylpassign(hd, ylnil(), ylnil());
+	if (rc >= 0) {
+		unsigned int     i, len;
+		char*            substr;
+		for (i=0; i<rc; i++) {
+			len = ovect[2*i+1]-ovect[2*i];
+			substr = ylmalloc(len + 1); /* +1 for trailing 0 */
+			memcpy(substr, subject+ovect[2*i], len);
+			substr[len] = 0;
+			ylpsetcdr(tl, ylcons(ylacreate_sym(substr), ylnil()));
+			tl = ylcdr(tl);
+		}
+	} else if(PCRE_ERROR_NOMATCH == rc) {
+		; /* nothing to do */
+	} else
+		ylnfinterp_fail(YLErr_func_fail,
+				"PCRE error in match [%d]\n",
+				rc);
 
-    return ylcdr(hd);
+	return ylcdr(hd);
 } YLENDNF(re_match)
 
 
@@ -140,113 +155,124 @@ YLDEFNF(re_match, 3, 3) {
  * @4: option
  */
 YLDEFNF(re_replace, 4, 4) {
-    ylerr_t       interp_err = YLErr_func_fail;
-    pcre*         re;
-    char*         subject = NULL;
+	ylerr_t       interp_err = YLErr_func_fail;
+	pcre*         re;
+	char*         subject = NULL;
+	int           rc, opt;
+	unsigned int  subjlen, substlen;
+	unsigned int  offset; /* starting offset */
+	int           ovect[_OVECCNT];  /* out vector */
+	const char*   subst;
 
-    ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
+	ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
-    { /* Just scope */
-        const char   *pattern, *errmsg;
-        int           err_offset, opt;
-        pattern = ylasym(ylcar(e)).sym;
-        /* get pcre option */
-        opt = _get_pcre_option(ylasym(ylcar(ylcdddr(e))).sym);
+	{ /* Just scope */
+		const char   *pattern, *errmsg;
+		int           err_offset, opt;
+		pattern = ylasym(ylcar(e)).sym;
+		/* get pcre option */
+		opt = _get_pcre_option(ylasym(ylcar(ylcdddr(e))).sym);
 
-        re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
-        if(!re) {
-            ylnflogE ("PCRE compilation failed.\n"
-                      "    offset %d: %s\n", err_offset, errmsg);
-            /* This is a kind of function parameter error!! */
-            goto bail;
-        }
-    }
+		re = pcre_compile(pattern, opt, &errmsg, &err_offset, NULL);
+		if (!re) {
+			ylnflogE("PCRE compilation failed.\n"
+				 "    offset %d: %s\n", err_offset, errmsg);
+			/* This is a kind of function parameter error!! */
+			goto bail;
+		}
+	}
 
-    { /* Just scope */
-        int           rc, opt;
-        unsigned int  subjlen, substlen;
-        unsigned int  offset; /* starting offset */
-        int           ovect[_OVECCNT];  /* out vector */
-        const char*   subst;
+	subst = ylasym(ylcadr(e)).sym;
+	/* get custom option */
+	opt = _get_custom_option(ylasym(ylcar(ylcdddr(e))).sym);
 
-        subst = ylasym(ylcadr(e)).sym;
-        /* get custom option */
-        opt = _get_custom_option(ylasym(ylcar(ylcdddr(e))).sym);
+	/* use copied one */
+	subject = ylmalloc(strlen(ylasym(ylcaddr(e)).sym)+1);
+	if (!subject) {
+		ylnflogE("Out of memory\n");
+		interp_err = YLErr_out_of_memory;
+		goto bail;
+	}
+	strcpy(subject, ylasym(ylcaddr(e)).sym);
+	subjlen = strlen(subject);
+	offset = 0;
 
-        /* use copied one */
-        subject = ylmalloc(strlen(ylasym(ylcaddr(e)).sym)+1);
-        if(!subject) {
-            ylnflogE ("Out of memory\n");
-            interp_err = YLErr_out_of_memory;
-            goto bail;
-        }
-        strcpy(subject, ylasym(ylcaddr(e)).sym);
-        subjlen = strlen(subject);
-        offset = 0;
+	substlen = strlen(subst);
+	/* start replacing */
+	do {
+		rc = pcre_exec(re, NULL,
+			       subject+offset, subjlen-offset,
+			       0, 0,
+			       ovect, _OVECCNT);
+		if (rc >= 0) {
+			unsigned int newsz;
+			char*        newstr = NULL;
+			char*        p;
 
-        substlen = strlen(subst);
-        /* start replacing */
-        do {
-            rc = pcre_exec(re, NULL, subject+offset, subjlen-offset, 0, 0, ovect, _OVECCNT);
-            if(rc >= 0) {
-                unsigned int newsz;
-                char*        newstr = NULL;
-                char*        p;
+			newsz = subjlen - (ovect[1] - ovect[0]) + substlen;
+			/* +1 for trailing NULL */
+			p = newstr = ylmalloc(newsz + 1);
+			if (!p) {
+				ylnflogE("Out of memory\n");
+				interp_err = YLErr_out_of_memory;
+				goto bail;
+			}
+			memcpy(p, subject, ovect[0]+offset);
+			p += ovect[0]+offset;
+			memcpy(p, subst, substlen);
+			p += substlen;
+			memcpy(p,
+			       subject+ovect[1]+offset,
+			       subjlen-ovect[1]-offset);
+			newstr[newsz] = 0; /* trailing NULL */
 
-                newsz = subjlen - (ovect[1] - ovect[0]) + substlen;
-                p = newstr = ylmalloc(newsz +1); /* +1 for trailing NULL */
-                if(!p) {
-                    ylnflogE ("Out of memory\n");
-                    interp_err = YLErr_out_of_memory;
-                    goto bail;
-                }
-                memcpy(p, subject, ovect[0]+offset);
-                p += ovect[0]+offset;
-                memcpy(p, subst, substlen);
-                p += substlen;
-                memcpy(p, subject+ovect[1]+offset, subjlen-ovect[1]-offset);
-                newstr[newsz] = 0; /* trailing NULL */
+			ylfree(subject);
+			subject = newstr;
+			subjlen = strlen(subject);
+			offset = ovect[0]+offset+substlen;
+		} else if(PCRE_ERROR_NOMATCH == rc) {
+			/* nothing to do anymore */
+			break;
+		} else {
+			/* error case */
+			ylnflogE("PCRE error in match [%d]\n", rc);
+			goto bail;
+		}
+	} while (opt & _OPT_GLOBAL);
 
-                ylfree(subject);
-                subject = newstr;
-                subjlen = strlen(subject);
-                offset = ovect[0]+offset+substlen;
-            } else if(PCRE_ERROR_NOMATCH == rc) {
-                /* nothing to do anymore */
-                break;
-            } else {
-                /* error case */
-                ylnflogE ("PCRE error in match [%d]\n", rc);
-                goto bail;
-            }
-        } while (opt & _OPT_GLOBAL);
-    }
-
-    return ylacreate_sym(subject);
+	return ylacreate_sym(subject);
 
  bail:
-    if (subject) ylfree(subject);
-    ylinterpret_undefined (interp_err);
+	if (subject)
+		ylfree(subject);
+	ylinterpret_undefined(interp_err);
 } YLENDNF(re_replace)
 
 #else /* HAVE_LIBPCRE */
 
 static int
 _get_re_option (const char* optstr) {
-    int         opt = REG_EXTENDED | REG_NEWLINE;
-    while (*optstr) {
-        switch (*optstr) {
-            case 'i': opt |= REG_ICASE;       break;
-            case 'm': opt &= ~REG_NEWLINE;    break;
-            case 'g': break; /* do nothing.. this is custom option */
-            default:
-                ylinterp_fail (YLErr_func_fail, "<!re_xxx!> Unsupported option! [%c]\n", *optstr);
-        }
-        optstr++;
-    }
-    return opt;
+	int         opt = REG_EXTENDED | REG_NEWLINE;
+	while (*optstr) {
+		switch (*optstr) {
+		case 'i':
+			opt |= REG_ICASE;
+			break;
+		case 'm':
+			opt &= ~REG_NEWLINE;
+			break;
+		case 'g':
+			/* do nothing.. this is custom option */
+			break;
+		default:
+			ylinterp_fail(YLErr_func_fail,
+				      "<!re_xxx!> Unsupported option! [%c]\n",
+				      *optstr);
+		}
+		optstr++;
+	}
+	return opt;
 }
-
 
 
 #define __ERRBUFSZ 4096
@@ -257,64 +283,68 @@ _get_re_option (const char* optstr) {
  * @3 : option
  */
 YLDEFNF(re_match, 3, 3) {
-    yle_t       *hd, *tl; /* head & tail */
-    char         b[__ERRBUFSZ];
-    regex_t*     re = NULL;
-    regmatch_t*  rm = NULL;
-    int          r, opt;
-    const char  *pattern, *subject;
+	yle_t       *hd, *tl; /* head & tail */
+	char         b[__ERRBUFSZ];
+	regex_t*     re = NULL;
+	regmatch_t*  rm = NULL;
+	int          r, opt;
+	const char  *pattern, *subject;
 
-    ylnfcheck_parameter (ylais_type_chain (e, ylaif_sym ()));
+	ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
-    pattern = ylasym (ylcar (e)).sym;
-    subject = ylasym (ylcadr (e)).sym;
-    opt = _get_re_option (ylasym (ylcaddr (e)).sym);
+	pattern = ylasym(ylcar(e)).sym;
+	subject = ylasym(ylcadr(e)).sym;
+	opt = _get_re_option(ylasym(ylcaddr(e)).sym);
 
-    re = ylmalloc (sizeof (*re));
-    r = regcomp (re, pattern, opt);
-    if (r < 0) {
-        regerror (r, re, b, __ERRBUFSZ);
-        ylnflogE ("RE compilation failed.\n"
-                  "    %s\n", b);
-        goto bail;
-    }
+	re = ylmalloc(sizeof(*re));
+	r = regcomp(re, pattern, opt);
+	if (r < 0) {
+		regerror(r, re, b, __ERRBUFSZ);
+		ylnflogE("RE compilation failed.\n"
+			 "    %s\n", b);
+		goto bail;
+	}
 
-    rm = ylmalloc (sizeof (*rm) * (re->re_nsub + 1));
-    ylassert (rm);
-    r = regexec (re, subject, re->re_nsub + 1, rm, 0);
+	rm = ylmalloc(sizeof(*rm) * (re->re_nsub + 1));
+	ylassert(rm);
+	r = regexec(re, subject, re->re_nsub + 1, rm, 0);
 
-    /* set head as sentinel */
-    hd = tl = ylmp_block ();
-    ylpassign(hd, ylnil (), ylnil ());
-    if (!r) {
-        /* Matched!! */
-        unsigned int     i, len;
-        char*            substr;
-        for (i=0; i<re->re_nsub + 1; i++) {
-            len = rm[i].rm_eo - rm[i].rm_so;
-            substr = ylmalloc (len + 1); /* +1 for trailing 0 */
-            memcpy (substr, subject + rm[i].rm_so, len);
-            substr[len] = 0;
-            ylpsetcdr (tl, ylcons (ylacreate_sym (substr), ylnil ()));
-            tl = ylcdr (tl);
-        }
-    } else if (REG_NOMATCH == r) {
-        ;/* nothing to do at this case */
-    } else {
-        regerror (r, re, b, __ERRBUFSZ);
-        ylnflogE ("RE match failed.\n"
-                  "    %s\n", b);
-        goto bail;
-    }
+	/* set head as sentinel */
+	hd = tl = ylmp_block();
+	ylpassign(hd, ylnil(), ylnil());
+	if (!r) {
+		/* Matched!! */
+		unsigned int     i, len;
+		char*            substr;
+		for (i=0; i<re->re_nsub + 1; i++) {
+			len = rm[i].rm_eo - rm[i].rm_so;
+			substr = ylmalloc(len + 1); /* +1 for trailing 0 */
+			memcpy(substr, subject + rm[i].rm_so, len);
+			substr[len] = 0;
+			ylpsetcdr(tl, ylcons(ylacreate_sym(substr), ylnil()));
+			tl = ylcdr(tl);
+		}
+	} else if (REG_NOMATCH == r) {
+		;/* nothing to do at this case */
+	} else {
+		regerror(r, re, b, __ERRBUFSZ);
+		ylnflogE("RE match failed.\n"
+			 "    %s\n", b);
+		goto bail;
+	}
 
-    regfree (re); ylfree (re);
-    ylfree (rm);
-    return ylcdr (hd);
+	regfree(re); ylfree(re);
+	ylfree(rm);
+	return ylcdr(hd);
 
  bail:
-    if (re) { regfree (re); ylfree (re); }
-    if (rm) ylfree (rm);
-    ylinterpret_undefined (YLErr_func_fail);
+	if (re) {
+		regfree(re);
+		ylfree(re);
+	}
+	if (rm)
+		ylfree(rm);
+	ylinterpret_undefined(YLErr_func_fail);
 } YLENDNF(re_match)
 
 /*
@@ -324,100 +354,105 @@ YLDEFNF(re_match, 3, 3) {
  * @4: option
  */
 YLDEFNF(re_replace, 4, 4) {
-    ylerr_t       interp_err = YLErr_func_fail;
-    int           r;
-    char          b[__ERRBUFSZ];
-    regex_t*      re = NULL;
-    char*         subject = NULL;
+	ylerr_t       interp_err = YLErr_func_fail;
+	int           r;
+	char          b[__ERRBUFSZ];
+	regex_t*      re = NULL;
+	char*         subject = NULL;
 
-    ylnfcheck_parameter (ylais_type_chain (e, ylaif_sym ()));
+	int           opt;
+	unsigned int  subjlen, substlen;
+	unsigned int  offset; /* starting offset */
+	regmatch_t    rm;
+	const char*   subst;
 
-    { /* Just scope */
-        const char   *pattern;
-        int           opt;
-        pattern = ylasym (ylcar (e)).sym;
-        /* get pcre option */
-        opt = _get_re_option (ylasym (ylcar (ylcdddr (e))).sym);
-        re = ylmalloc (sizeof (*re));
+	ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
 
-        r = regcomp (re, pattern, opt);
-        if (r < 0) {
-            regerror (r, re, b, __ERRBUFSZ);
-            ylnflogE ("RE compilation failed.\n"
-                      "    %s\n", b);
-            goto bail;
-        }
-    }
+	{ /* Just scope */
+		const char   *pattern;
+		int           opt;
+		pattern = ylasym(ylcar(e)).sym;
+		/* get pcre option */
+		opt = _get_re_option(ylasym(ylcar(ylcdddr(e))).sym);
+		re = ylmalloc(sizeof(*re));
 
-    { /* Just scope */
-        int           opt;
-        unsigned int  subjlen, substlen;
-        unsigned int  offset; /* starting offset */
-        regmatch_t    rm;
-        const char*   subst;
+		r = regcomp(re, pattern, opt);
+		if (r < 0) {
+			regerror(r, re, b, __ERRBUFSZ);
+			ylnflogE("RE compilation failed.\n"
+				 "    %s\n", b);
+			goto bail;
+		}
+	}
 
-        subst = ylasym (ylcadr (e)).sym;
-        /* get custom option */
-        opt = _get_custom_option (ylasym (ylcar (ylcdddr (e))).sym);
+	subst = ylasym(ylcadr(e)).sym;
+	/* get custom option */
+	opt = _get_custom_option(ylasym(ylcar(ylcdddr(e))).sym);
 
-        /* use copied one */
-        subject = ylmalloc (strlen (ylasym (ylcaddr (e)).sym) + 1);
-        if (!subject) {
-            ylnflogE ("Out of memory\n");
-            interp_err = YLErr_out_of_memory;
-            goto bail;
-        }
-        strcpy (subject, ylasym (ylcaddr (e)).sym);
-        subjlen = strlen (subject);
-        offset = 0;
+	/* use copied one */
+	subject = ylmalloc(strlen(ylasym(ylcaddr(e)).sym) + 1);
+	if (!subject) {
+		ylnflogE("Out of memory\n");
+		interp_err = YLErr_out_of_memory;
+		goto bail;
+	}
+	strcpy(subject, ylasym(ylcaddr(e)).sym);
+	subjlen = strlen(subject);
+	offset = 0;
 
-        substlen = strlen (subst);
-        /* start replacing */
-        do {
-            r = regexec (re, subject + offset, 1, &rm, 0);
-            if (!r) {
-                unsigned int newsz;
-                char*        newstr = NULL;
-                char*        p;
+	substlen = strlen(subst);
+	/* start replacing */
+	do {
+		r = regexec(re, subject + offset, 1, &rm, 0);
+		if (!r) {
+			unsigned int newsz;
+			char*        newstr = NULL;
+			char*        p;
 
-                newsz = subjlen - (rm.rm_eo - rm.rm_so) + substlen;
-                p = newstr = ylmalloc (newsz + 1); /* +1 for trailing NULL */
-                if (!p) {
-                    ylnflogE ("Out of memory\n");
-                    interp_err = YLErr_out_of_memory;
-                    goto bail;
-                }
-                memcpy (p, subject, rm.rm_so + offset);
-                p += rm.rm_so + offset;
-                memcpy (p, subst, substlen);
-                p += substlen;
-                memcpy (p, subject + rm.rm_eo + offset, subjlen - rm.rm_eo - offset);
-                newstr[newsz] = 0; /* trailing NULL */
+			newsz = subjlen - (rm.rm_eo - rm.rm_so) + substlen;
+			/* +1 for trailing NULL */
+			p = newstr = ylmalloc(newsz + 1);
+			if (!p) {
+				ylnflogE("Out of memory\n");
+				interp_err = YLErr_out_of_memory;
+				goto bail;
+			}
+			memcpy(p, subject, rm.rm_so + offset);
+			p += rm.rm_so + offset;
+			memcpy(p, subst, substlen);
+			p += substlen;
+			memcpy(p,
+			       subject + rm.rm_eo + offset,
+			       subjlen - rm.rm_eo - offset);
+			newstr[newsz] = 0; /* trailing NULL */
 
-                ylfree (subject);
-                subject = newstr;
-                subjlen = strlen (subject);
-                offset = rm.rm_so + offset + substlen;
-            } else if(REG_NOMATCH == r) {
-                /* nothing to do anymore */
-                break;
-            } else {
-                /* error case */
-                regerror (r, re, b, __ERRBUFSZ);
-                ylnflogE ("RE compilation failed.\n"
-                          "    %s\n", b);
-                goto bail;
-            }
-        } while (opt & _OPT_GLOBAL);
-    }
+			ylfree(subject);
+			subject = newstr;
+			subjlen = strlen(subject);
+			offset = rm.rm_so + offset + substlen;
+		} else if(REG_NOMATCH == r) {
+			/* nothing to do anymore */
+			break;
+		} else {
+			/* error case */
+			regerror(r, re, b, __ERRBUFSZ);
+			ylnflogE("RE compilation failed.\n"
+				 "    %s\n", b);
+			goto bail;
+		}
+	} while (opt & _OPT_GLOBAL);
 
-    regfree (re); ylfree (re);
-    return ylacreate_sym (subject);
+	regfree(re); ylfree(re);
+	return ylacreate_sym(subject);
 
  bail:
-    if (re) { regfree (re); ylfree (re); }
-    if (subject) ylfree (subject);
-    ylinterpret_undefined (interp_err);
+	if (re) {
+		regfree(re);
+		ylfree(re);
+	}
+	if (subject)
+		ylfree(subject);
+	ylinterpret_undefined(interp_err);
 
 } YLENDNF(re_replace)
 
