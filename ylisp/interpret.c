@@ -156,7 +156,7 @@ _interpret(void* arg) {
 	ret = ylinterpret_internal(&cxt, cxt.stream, cxt.streamsz);
 
 	ylmt_rm(&cxt);
-	yldeinit_thread_context(&cxt);
+	ylexit_thread_context(&cxt);
 
  done:
 	if (req->fcb)
@@ -209,11 +209,16 @@ ylinterpret_undefined(long reason) {
 	pthread_exit((void*)reason);
 }
 
-ylerr_t
-ylinterp_init() {
+static ylerr_t
+_mod_init() {
 	return YLOk;
 }
 
-void
-ylinterp_deinit() {
+static ylerr_t
+_mod_exit() {
+	return YLOk;
 }
+
+YLMODULE_INITFN(nfunc, _mod_init)
+YLMODULE_EXITFN(nfunc, _mod_exit)
+

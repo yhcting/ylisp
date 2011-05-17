@@ -32,6 +32,7 @@
 
 #include "yldef.h"
 
+#define YLLIST_DECL_HEAD(hd) yllist_link_t hd = {&hd, &hd}
 /*
  * Define primitive operation of linked list!
  */

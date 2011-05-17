@@ -185,7 +185,7 @@ ylinit(ylsys_t* sysv);
  * clean ylisp structure
  */
 extern void
-yldeinit();
+ylexit();
 
 extern ylerr_t
 ylinterpret(const unsigned char* stream, unsigned int streamsz);

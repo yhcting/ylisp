@@ -61,6 +61,7 @@
 #       define dbg_mutex(x)
 #endif
 
+
 #include "ylisp.h"
 #include "ylsfunc.h"
 #include "yldynb.h"
@@ -72,6 +73,29 @@
 #include "yltrie.h"
 #include "symlookup.h"
 #include "gsym.h"
+
+
+/*
+ * For modules to register init function.
+ */
+extern void
+ylregister_initfn(ylerr_t (*fn)());
+extern void
+ylregister_exitfn(ylerr_t (*fn)());
+
+#define __YLMODULE_CTORFN(name, definition)			\
+	static void name() __attribute__ ((constructor));	\
+	static void name() {					\
+		definition					\
+	}
+
+#define YLMODULE_INITFN(mod, fn) \
+	__YLMODULE_CTORFN(__##mod##___init_##fn##__, ylregister_initfn(&fn);)
+
+#define YLMODULE_EXITFN(mod, fn) \
+	__YLMODULE_CTORFN(__##mod##___exit_##fn##__, ylregister_exitfn(&fn);)
+
+
 
 /**********************************************
  *
@@ -133,12 +157,6 @@ struct _etcxt {
 	const unsigned char*   stream;   /**< target stream interpreted */
 	unsigned int           streamsz; /**< stream size */
 }; /* Evaluation Thread ConteXT */
-
-extern ylerr_t ylnfunc_init();
-extern ylerr_t ylsfunc_init();
-extern void    ylsfunc_deinit();
-extern ylerr_t ylinterp_init();
-extern void    ylinterp_deinit();
 
 extern void
 yleclean(yle_t* e);
@@ -202,7 +220,7 @@ extern ylerr_t
 ylinit_thread_context(yletcxt_t* cxt);
 
 extern void
-yldeinit_thread_context(yletcxt_t* cxt);
+ylexit_thread_context(yletcxt_t* cxt);
 
 extern pthread_mutexattr_t* ylmutexattr();
 

@@ -102,7 +102,7 @@ main(int argc, char* argv[]) {
 				(unsigned int)strlen(_exp)))
 		return 0;
 
-	yldeinit();
+	ylexit();
 	assert(0 == _get_mblk_size());
 
 	printf("---------------------------\n"

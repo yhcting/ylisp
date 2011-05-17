@@ -38,18 +38,22 @@ static slut_t*		 _t = NULL;
  */
 static pthread_mutex_t	 _m;
 
-ylerr_t
-ylgsym_init() {
+static ylerr_t
+_mod_init() {
 	pthread_mutex_init(&_m, ylmutexattr());
 	_t = ylslu_create();
 	return YLOk;
 }
 
-void
-ylgsym_deinit() {
+static ylerr_t
+_mod_exit() {
 	ylslu_destroy(_t);
 	pthread_mutex_destroy(&_m);
+	return YLOk;
 }
+
+YLMODULE_INITFN(gsym, _mod_init)
+YLMODULE_EXITFN(gsym, _mod_exit)
 
 int
 ylgsym_insert(const char* sym, int sty, yle_t* e) {

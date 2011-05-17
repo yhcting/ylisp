@@ -316,16 +316,16 @@ ylmt_walk_locked(yletcxt_t* cxt, void* user,
 	not_used(cxt);
 }
 
-ylerr_t
-ylmt_init() {
+static ylerr_t
+_mod_init() {
 	yllist_init_link(&_cxtl);
 	yllist_init_link(&_lsnl);
 	pthread_mutex_init(&_m, ylmutexattr());
 	return YLOk;
 }
 
-void
-ylmt_deinit() {
+static ylerr_t
+_mod_exit() {
 	struct _lsn *p, *tmp;
 	ylassert(0 == yllist_size(&_cxtl));
 	pthread_mutex_destroy(&_m);
@@ -333,5 +333,8 @@ ylmt_deinit() {
 		yllist_del(&p->lk);
 		ylfree(p);
 	}
+	return YLOk;
 }
 
+YLMODULE_INITFN(mt, _mod_init)
+YLMODULE_EXITFN(mt, _mod_exit)

@@ -104,7 +104,7 @@ main(int argc, char* argv[]) {
 		return 0;
 
 	/* to check memory status */
-	yldeinit();
+	ylexit();
 
 	assert(0 == _get_mblk_size());
 

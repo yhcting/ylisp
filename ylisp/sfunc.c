@@ -719,8 +719,8 @@ ylapply(yletcxt_t* cxt, yle_t* f, yle_t* args, yle_t* a) {
  * Universal S-functions - END
  *=================================*/
 
-ylerr_t
-ylsfunc_init() {
+static ylerr_t
+_mod_init() {
 	int i;
 	_lfsymtab = yltrie_create(NULL);
 	ylassert(_lfsymtab);
@@ -734,7 +734,11 @@ ylsfunc_init() {
 	return YLOk;
 }
 
-void
-ylsfunc_deinit() {
+static ylerr_t
+_mod_exit() {
 	yltrie_destroy(_lfsymtab);
+	return YLOk;
 }
+
+YLMODULE_INITFN(sfunc, _mod_init)
+YLMODULE_EXITFN(sfunc, _mod_exit)

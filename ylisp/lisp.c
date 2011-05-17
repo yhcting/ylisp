@@ -33,6 +33,11 @@
 #include "lisp.h"
 
 
+struct _fn {
+	ylerr_t        (*fn)();
+	yllist_link_t    lk;
+};
+
 /*=======================
  * Local varaible
  *=======================*/
@@ -50,6 +55,9 @@ static yle_t   _predefined_quote;
 const yle_t* const ylg_predefined_true   = &_predefined_true;
 const yle_t* const ylg_predefined_nil    = &_predefined_nil;
 const yle_t* const ylg_predefined_quote  = &_predefined_quote;
+
+static YLLIST_DECL_HEAD(_initfnl); /* constructor function list */
+static YLLIST_DECL_HEAD(_exitfnl); /* destructor function list */
 
 /*=======================
  * Globally used one
@@ -733,7 +741,7 @@ ylinit_thread_context(yletcxt_t* cxt) {
 }
 
 void
-yldeinit_thread_context(yletcxt_t* cxt) {
+ylexit_thread_context(yletcxt_t* cxt) {
 	yldynb_clean(&cxt->dynb);
 	ylslu_destroy(cxt->slut);
 	ylstk_destroy(cxt->evalstk);
@@ -786,6 +794,38 @@ ylsys_set_default(ylsys_t* sys) {
 	return 0;
 }
 
+/*
+ * Register module function.
+ * This function is called before 'ylinit' is called.
+ * So, we should use standard 'malloc' instead of sys->malloc.
+ */
+static inline void
+_register_modfn(yllist_link_t* head, ylerr_t (*fn)()) {
+	struct _fn* n = malloc(sizeof(*n));
+	n->fn = fn;
+	yllist_add_last(head, &n->lk);
+}
+
+static inline void
+_destroy_fnl(yllist_link_t* head) {
+	yllist_link_t *p, *tmp;
+	yllist_foreach_removal_safe(p, tmp, head) {
+		yllist_del(p);
+		free(container_of(p, struct _fn, lk));
+	}
+}
+
+void
+ylregister_initfn(ylerr_t (*fn)()) {
+	_register_modfn(&_initfnl, fn);
+}
+
+void
+ylregister_exitfn(ylerr_t (*fn)()) {
+	_register_modfn(&_exitfnl, fn);
+}
+
+
 /* init this system */
 /* this SHOULD BE called first */
 ylerr_t
@@ -820,15 +860,14 @@ ylinit(ylsys_t* sysv) {
 			sizeof(double), sizeof(long long), sizeof(int)
 			);
 
-
-	if (YLOk != ylsfunc_init()
-	    || YLOk != ylmt_init()
-	    || YLOk != ylgsym_init()
-	    || YLOk != ylnfunc_init()
-	    || YLOk != ylmp_init()
-	    || YLOk != ylinterp_init())
-		goto bail;
-
+	{ /* just scope */
+		struct _fn* p;
+		yllist_foreach_item(p, &_initfnl, struct _fn, lk) {
+			if (YLOk != (*p->fn)())
+				goto bail;
+		}
+		/* _destroy_fnl(&_initfnl); */
+	} /* just scope */
 	/*
 	 * '_predefined_xxxx' SHOULD NOT be freed!!!!
 	 * So, passing data pointer is OK
@@ -857,11 +896,13 @@ ylinit(ylsys_t* sysv) {
 }
 
 void
-yldeinit() {
+ylexit() {
+	struct _fn* p;
 	pthread_mutexattr_destroy(&_mattr);
-	ylinterp_deinit();
-	ylmp_deinit();
-	ylgsym_deinit();
-	ylmt_deinit();
-	ylsfunc_deinit();
+
+	yllist_foreach_item(p, &_exitfnl, struct _fn, lk) {
+		/* ignore return values */
+		(*p->fn)();
+	}
+	/* _destroy_fnl(&_exitfnl); */
 }

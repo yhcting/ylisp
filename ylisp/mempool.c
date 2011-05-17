@@ -325,8 +325,8 @@ ylmp_gc_enable(int v) {
 	return sv;
 }
 
-ylerr_t
-ylmp_init() {
+static ylerr_t
+_mod_init() {
 	/* init memory pool */
 	register int i;
 
@@ -371,8 +371,8 @@ ylmp_init() {
 	return YLErr_out_of_memory;
 }
 
-void
-ylmp_deinit() {
+static ylerr_t
+_mod_exit() {
 	int    i;
 	_mlock(&_mm);
 	/* Free all elements */
@@ -389,5 +389,9 @@ ylmp_deinit() {
 	pthread_mutex_destroy(&_mbbs);
 	_munlock(&_mm);
 	pthread_mutex_destroy(&_mm);
+	return YLOk;
 }
+
+YLMODULE_INITFN(mp, _mod_init)
+YLMODULE_EXITFN(mp, _mod_exit)
 

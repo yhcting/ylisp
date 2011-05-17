@@ -141,7 +141,7 @@ main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	yldeinit();
+	ylexit();
 	printf("MBLK : %d\n", get_mblk_size());
 
 #ifdef CONFIG_DBG_MEM

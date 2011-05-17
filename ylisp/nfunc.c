@@ -381,8 +381,16 @@ YLDEFNF(interpret_file, 1, 9999) {
 /**********************************************************
  * Functions for managing interpreter internals.
  **********************************************************/
-ylerr_t
-ylnfunc_init() {
+static ylerr_t
+_mod_init() {
 	/* dlopen(0, RTLD_LAZY | RTLD_GLOBAL); */
 	return YLOk;
 }
+
+static ylerr_t
+_mod_exit() {
+	return YLOk;
+}
+
+YLMODULE_INITFN(nfunc, _mod_init)
+YLMODULE_EXITFN(nfunc, _mod_exit)

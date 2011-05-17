@@ -585,7 +585,7 @@ main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	yldeinit();
+	ylexit();
 
 	if (_get_mblk_size()) {
 		printf("\n"
