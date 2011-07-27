@@ -101,7 +101,7 @@ _free(void* p) {
 }
 
 int
-get_mblk_size() {
+get_mblk_size(void) {
 	return _mblk;
 }
 

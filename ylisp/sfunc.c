@@ -59,7 +59,7 @@ static unsigned int _eval_id = 0;
  * For debugging
  * -------------------------------*/
 unsigned int
-yleval_id() { return _eval_id; }
+yleval_id(void) { return _eval_id; }
 
 #endif /* CONFIG_DBG_EVAL */
 
@@ -720,7 +720,7 @@ ylapply(yletcxt_t* cxt, yle_t* f, yle_t* args, yle_t* a) {
  *=================================*/
 
 static ylerr_t
-_mod_init() {
+_mod_init(void) {
 	int i;
 	_lfsymtab = yltrie_create(NULL);
 	ylassert(_lfsymtab);
@@ -735,7 +735,7 @@ _mod_init() {
 }
 
 static ylerr_t
-_mod_exit() {
+_mod_exit(void) {
 	yltrie_destroy(_lfsymtab);
 	return YLOk;
 }

@@ -26,10 +26,10 @@
 #include "lisp.h"
 
 extern ylerr_t
-ylmp_init();
+ylmp_init(void);
 
 extern void
-ylmp_deinit();
+ylmp_deinit(void);
 
 /*
  * enable/disable GC

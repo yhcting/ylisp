@@ -473,7 +473,7 @@ struct yldynb;
 
 /* get system value */
 extern const ylsys_t*
-ylsysv();
+ylsysv(void);
 
 /*
  * Get perthread dynamic buffer.
@@ -502,7 +502,7 @@ ylunregister_nfunc(const char* sym);
  * get yle_t block
  */
 extern yle_t*
-ylmp_block();
+ylmp_block(void);
 
 /*
  * add Base Block
@@ -622,7 +622,7 @@ ylmp_rm_bb(yle_t* e);
  * clean base block set
  */
 extern void
-ylmp_clean_bb();
+ylmp_clean_bb(void);
 
 /* -------------------------------
  * Interface for multi-threaded evaluation

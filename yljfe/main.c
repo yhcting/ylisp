@@ -341,8 +341,8 @@ _start_java(JavaVM* jvm, JNIEnv* jenv, int argc, char* argv[]) {
 }
 
 #ifdef CONFIG_STATIC_CNF
-extern void ylcnf_load_ylbase ();
-extern void ylcnf_load_ylext ();
+extern void ylcnf_load_ylbase (void);
+extern void ylcnf_load_ylext (void);
 #endif /* CONFIG_STATIC_CNF */
 
 int

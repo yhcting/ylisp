@@ -55,7 +55,7 @@ _free(void* p) {
 }
 
 static inline int
-_get_mblk_size() {
+_get_mblk_size(void) {
 	return _mblk;
 }
 

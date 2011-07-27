@@ -603,7 +603,7 @@ _is_in_string(const char* p, char c) {
 #ifdef HAVE_LIBSTDBUF
 
 static int
-_procia_create_prepare_libstdbuf() {
+_procia_create_prepare_libstdbuf(void) {
 	/* FIXME! : don't hardcode */
 #define __MAX_PATH_LEN         1024
 #define __MAX_LD_PRELOAD_LEN   4096

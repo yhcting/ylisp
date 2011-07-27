@@ -317,7 +317,7 @@ ylmt_walk_locked(yletcxt_t* cxt, void* user,
 }
 
 static ylerr_t
-_mod_init() {
+_mod_init(void) {
 	yllist_init_link(&_cxtl);
 	yllist_init_link(&_lsnl);
 	pthread_mutex_init(&_m, ylmutexattr());
@@ -325,7 +325,7 @@ _mod_init() {
 }
 
 static ylerr_t
-_mod_exit() {
+_mod_exit(void) {
 	struct _lsn *p, *tmp;
 	ylassert(0 == yllist_size(&_cxtl));
 	pthread_mutex_destroy(&_m);

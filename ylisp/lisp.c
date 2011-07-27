@@ -34,7 +34,7 @@
 
 
 struct _fn {
-	ylerr_t        (*fn)();
+	ylerr_t        (*fn)(void);
 	yllist_link_t    lk;
 };
 
@@ -396,12 +396,12 @@ ylunregister_nfunc(const char* sym) {
 
 
 const ylsys_t*
-ylsysv() {
+ylsysv(void) {
 	return &_sysv;
 }
 
 pthread_mutexattr_t*
-ylmutexattr() {
+ylmutexattr(void) {
 	return &_mattr;
 }
 
@@ -800,7 +800,7 @@ ylsys_set_default(ylsys_t* sys) {
  * So, we should use standard 'malloc' instead of sys->malloc.
  */
 static inline void
-_register_modfn(yllist_link_t* head, ylerr_t (*fn)()) {
+_register_modfn(yllist_link_t* head, ylerr_t (*fn)(void)) {
 	struct _fn* n = malloc(sizeof(*n));
 	n->fn = fn;
 	yllist_add_last(head, &n->lk);
@@ -816,12 +816,12 @@ _destroy_fnl(yllist_link_t* head) {
 }
 
 void
-ylregister_initfn(ylerr_t (*fn)()) {
+ylregister_initfn(ylerr_t (*fn)(void)) {
 	_register_modfn(&_initfnl, fn);
 }
 
 void
-ylregister_exitfn(ylerr_t (*fn)()) {
+ylregister_exitfn(ylerr_t (*fn)(void)) {
 	_register_modfn(&_exitfnl, fn);
 }
 
@@ -896,7 +896,7 @@ ylinit(ylsys_t* sysv) {
 }
 
 void
-ylexit() {
+ylexit(void) {
 	struct _fn* p;
 	pthread_mutexattr_destroy(&_mattr);
 

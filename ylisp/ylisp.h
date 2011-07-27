@@ -185,7 +185,7 @@ ylinit(ylsys_t* sysv);
  * clean ylisp structure
  */
 extern void
-ylexit();
+ylexit(void);
 
 extern ylerr_t
 ylinterpret(const unsigned char* stream, unsigned int streamsz);
@@ -194,7 +194,7 @@ ylinterpret(const unsigned char* stream, unsigned int streamsz);
  * interrupt current interpreting.
  */
 extern void
-ylforce_stop();
+ylforce_stop(void);
 
 /**************************************************
  * Functions to get value from symbol table

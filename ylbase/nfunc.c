@@ -32,7 +32,7 @@
 static yle_t _elambda, _eprogn;
 
 int
-ylbase_nfunc_init() {
+ylbase_nfunc_init(void) {
 	/*
 	 * Making lambda element
 	 * This element is not from memory full.

@@ -30,7 +30,7 @@ typedef struct _sSlut slut_t;
 
 
 extern slut_t*
-ylslu_create();
+ylslu_create(void);
 
 extern void
 ylslu_destroy(slut_t*);

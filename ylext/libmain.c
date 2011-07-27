@@ -36,7 +36,7 @@
 
 #ifdef CONFIG_STATIC_CNF
 void
-ylcnf_load_ylext() {
+ylcnf_load_ylext(void) {
 	/* return if fail to register */
 #define NFUNC(n, s, type, desc)						\
 	if (YLOk != ylregister_nfunc(YLDEV_VERSION,			\
@@ -50,7 +50,7 @@ ylcnf_load_ylext() {
 }
 
 void
-ylcnf_unload_ylext() {
+ylcnf_unload_ylext(void) {
 #define NFUNC(n, s, type, desc) ylunregister_nfunc(s);
 #       include "nfunc.in"
 #undef NFUNC

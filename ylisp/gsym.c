@@ -39,14 +39,14 @@ static slut_t*		 _t = NULL;
 static pthread_mutex_t	 _m;
 
 static ylerr_t
-_mod_init() {
+_mod_init(void) {
 	pthread_mutex_init(&_m, ylmutexattr());
 	_t = ylslu_create();
 	return YLOk;
 }
 
 static ylerr_t
-_mod_exit() {
+_mod_exit(void) {
 	ylslu_destroy(_t);
 	pthread_mutex_destroy(&_m);
 	return YLOk;
@@ -112,7 +112,7 @@ ylgsym_get(int* outty, const char* sym) {
 }
 
 void
-ylgsym_gcmark() {
+ylgsym_gcmark(void) {
 	/* This is called by only 'GC in Mempool' */
 	if (_t) {
 		_mlock(&_m);

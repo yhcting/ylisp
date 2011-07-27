@@ -210,12 +210,12 @@ ylinterpret_undefined(long reason) {
 }
 
 static ylerr_t
-_mod_init() {
+_mod_init(void) {
 	return YLOk;
 }
 
 static ylerr_t
-_mod_exit() {
+_mod_exit(void) {
 	return YLOk;
 }
 

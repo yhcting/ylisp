@@ -225,7 +225,7 @@ YLDEFNF(help, 1, 9999) {
 
 YLDEFNF(load_cnf, 1, 1) {
 	void*       handle = NULL;
-	void      (*register_cnf)();
+	void      (*register_cnf)(void);
 	const char* fname;
 
 	ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
@@ -261,7 +261,7 @@ YLDEFNF(load_cnf, 1, 1) {
 
 YLDEFNF(unload_cnf, 1, 1) {
 	void*   handle = NULL;
-	void  (*unregister_cnf)();
+	void  (*unregister_cnf)(void);
 	const char* fname;
 
 	ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
@@ -382,13 +382,13 @@ YLDEFNF(interpret_file, 1, 9999) {
  * Functions for managing interpreter internals.
  **********************************************************/
 static ylerr_t
-_mod_init() {
+_mod_init(void) {
 	/* dlopen(0, RTLD_LAZY | RTLD_GLOBAL); */
 	return YLOk;
 }
 
 static ylerr_t
-_mod_exit() {
+_mod_exit(void) {
 	return YLOk;
 }
 

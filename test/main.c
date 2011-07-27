@@ -59,7 +59,7 @@ struct _hn {
 static yllist_link_t _mh[0xffff]; /* memory hash */
 
 static void
-_mhinit() {
+_mhinit(void) {
 	int i;
 	for (i=0; i<0xffff; i++)
 		yllist_init_link(_mh+i);
@@ -88,7 +88,7 @@ _mhdel(const void* addr) {
 }
 
 static void
-_mhdump() {
+_mhdump(void) {
 	yllist_link_t *h, *hend;
 	h = _mh;
 	hend = h + 0xffff;
@@ -132,21 +132,21 @@ _free_thdarg(_interpthd_arg_t* arg) {
 }
 
 static inline void
-_inc_tcnt() {
+_inc_tcnt(void) {
 	pthread_mutex_lock(&_m);
 	__tcnt++;
 	pthread_mutex_unlock(&_m);
 }
 
 static inline void
-_dec_tcnt() {
+_dec_tcnt(void) {
 	pthread_mutex_lock(&_m);
 	__tcnt--;
 	pthread_mutex_unlock(&_m);
 }
 
 static inline unsigned int
-_tcnt() { return __tcnt; }
+_tcnt(void) { return __tcnt; }
 
 /* =================================
  * To parse script
@@ -485,7 +485,7 @@ _free(void* p) {
 }
 
 static int
-_get_mblk_size() {
+_get_mblk_size(void) {
 	return _mblk;
 }
 
@@ -506,8 +506,8 @@ _assert_(int a) {
 
 
 #ifdef CONFIG_STATIC_CNF
-extern void ylcnf_load_ylbase();
-extern void ylcnf_load_ylext();
+extern void ylcnf_load_ylbase(void);
+extern void ylcnf_load_ylext(void);
 #endif /* CONFIG_STATIC_CNF */
 
 int

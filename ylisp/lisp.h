@@ -79,13 +79,13 @@
  * For modules to register init function.
  */
 extern void
-ylregister_initfn(ylerr_t (*fn)());
+ylregister_initfn(ylerr_t (*fn)(void));
 extern void
-ylregister_exitfn(ylerr_t (*fn)());
+ylregister_exitfn(ylerr_t (*fn)(void));
 
 #define __YLMODULE_CTORFN(name, definition)			\
-	static void name() __attribute__ ((constructor));	\
-	static void name() {					\
+	static void name(void) __attribute__ ((constructor));	\
+	static void name(void) {				\
 		definition					\
 	}
 
@@ -173,7 +173,7 @@ ylapply(yletcxt_t* cxt, yle_t* f, yle_t* args, yle_t* a);
  * get current evaluation id.
  */
 extern unsigned int
-yleval_id();
+yleval_id(void);
 
 #endif /* CONFIG_DBG_EVAL */
 
@@ -222,7 +222,7 @@ ylinit_thread_context(yletcxt_t* cxt);
 extern void
 ylexit_thread_context(yletcxt_t* cxt);
 
-extern pthread_mutexattr_t* ylmutexattr();
+extern pthread_mutexattr_t* ylmutexattr(void);
 
 static inline int
 __mtrylock(pthread_mutex_t* m) {

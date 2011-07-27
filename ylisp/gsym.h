@@ -26,10 +26,10 @@
 
 
 extern ylerr_t
-ylgsym_init();
+ylgsym_init(void);
 
 extern void
-ylgsym_deinit();
+ylgsym_deinit(void);
 
 /**
  * @sty : symbol type (see comment of 'YLASymbol attributes' at yldev.h)
@@ -77,7 +77,7 @@ ylgsym_get(int* outty, const char* sym);
  * @return: number of memblock that is marked as 'Reachable'
  */
 extern void
-ylgsym_gcmark();
+ylgsym_gcmark(void);
 
 /**
  * get auto-completed-symbol

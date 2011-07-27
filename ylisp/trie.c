@@ -79,7 +79,7 @@ struct _trie {
 };
 
 static inline struct _node*
-_alloc_node() {
+_alloc_node(void) {
 	struct _node* n = ylmalloc(sizeof(*n));
 	if (!n)
 		/*

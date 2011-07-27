@@ -92,16 +92,16 @@ static pthread_mutex_t  _mm;
 static int              _gc_enabled = 1; /**< 0 means gc is disabled forcely */
 
 static inline int
-_used_block_count() { return ylmpsz() - _m.fbi; }
+_used_block_count(void) { return ylmpsz() - _m.fbi; }
 
 /*
  * Memory usage ratio! (percent.)
  */
 static inline int
-_usage_ratio() { return _used_block_count() * 100 / ylmpsz(); }
+_usage_ratio(void) { return _used_block_count() * 100 / ylmpsz(); }
 
 yle_t*
-ylmp_block() {
+ylmp_block(void) {
 	_mlock(&_mm);
 	if (_m.fbi <= 0) {
 		_munlock(&_mm);
@@ -159,7 +159,7 @@ ylmp_rm_bb(yle_t* e) {
 }
 
 void
-ylmp_clean_bb() {
+ylmp_clean_bb(void) {
 	_mlock(&_mbbs);
 	ylstk_clean(_bbs);
 	_munlock(&_mbbs);
@@ -203,7 +203,7 @@ _gc_perthread_mark(void* user, yletcxt_t* cxt) {
  *    - mthread module is locked!
  */
 static void
-_gc() {
+_gc(void) {
 	unsigned int  cnt, ratio_sv;
 	int           i;
 	yle_t*        e;
@@ -326,7 +326,7 @@ ylmp_gc_enable(int v) {
 }
 
 static ylerr_t
-_mod_init() {
+_mod_init(void) {
 	/* init memory pool */
 	register int i;
 
@@ -372,7 +372,7 @@ _mod_init() {
 }
 
 static ylerr_t
-_mod_exit() {
+_mod_exit(void) {
 	int    i;
 	_mlock(&_mm);
 	/* Free all elements */

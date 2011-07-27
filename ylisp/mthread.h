@@ -76,10 +76,10 @@ typedef struct {
 
 
 extern ylerr_t
-ylmt_init();
+ylmt_init(void);
 
 extern void
-ylmt_deinit();
+ylmt_deinit(void);
 
 extern void
 ylmt_add(yletcxt_t* cxt);

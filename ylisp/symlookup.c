@@ -78,7 +78,7 @@ _free_value(struct _value* v) {
 }
 
 slut_t*
-ylslu_create() {
+ylslu_create(void) {
 	return (slut_t*)yltrie_create( (void(*)(void*))&_free_value );
 }
 

@@ -28,11 +28,11 @@
 #       include "nfunc.in"
 #undef NFUNC
 
-extern int ylbase_nfunc_init();
+extern int ylbase_nfunc_init(void);
 
 #ifdef CONFIG_STATIC_CNF
 void
-ylcnf_load_ylbase() {
+ylcnf_load_ylbase(void) {
 #else /* CONFIG_STATIC_CNF */
 void
 ylcnf_onload(yletcxt_t* cxt) {
@@ -54,7 +54,7 @@ ylcnf_onload(yletcxt_t* cxt) {
 
 #ifdef CONFIG_STATIC_CNF
 void
-ylcnf_unload_ylbase() {
+ylcnf_unload_ylbase(void) {
 #else /* CONFIG_STATIC_CNF */
 void
 ylcnf_onunload(yletcxt_t* cxt) {
