@@ -146,19 +146,21 @@ _list_find(yle_t* x, yle_t* y) {
  * helper function to simplify '_set' function.
  */
 static inline int
-_set_insert(yletcxt_t* cxt, const char* sym, int ty, yle_t* e) {
-	if (styis(ty, STyper_thread))
-		return ylslu_insert(cxt->slut, sym, ty, e);
-	else
+_set_insert(yletcxt_t* cxt, const char* sym, int ty, yle_t* e, int bgsym) {
+	if (bgsym)
 		return ylgsym_insert(sym, ty, e);
+	else
+		return ylslu_insert(cxt->slut, sym, ty, e);
+
 }
 
 static inline int
-_set_description(yletcxt_t* cxt, const char* sym, int ty, const char* desc) {
-	if (styis(ty, STyper_thread))
-		return ylslu_set_description(cxt->slut, sym, desc);
-	else
+_set_description(yletcxt_t* cxt, const char* sym, int ty, const char* desc,
+		 int bgsym) {
+	if (bgsym)
 		return  ylgsym_set_description(sym, desc);
+	else
+		return ylslu_set_description(cxt->slut, sym, desc);
 }
 
 /**
@@ -169,14 +171,14 @@ _set_description(yletcxt_t* cxt, const char* sym, int ty, const char* desc) {
  * @s:     key symbol
  * @val:   any S-expression - value
  * @a:     map list
- * @desc:  description of symbol
+ * @bgsym: boolean: is global symbol? 
  * @attr:  symbol attribute.
  * @return: new value
  */
 static yle_t*
 _set(yletcxt_t* cxt,
      yle_t* s, yle_t* val, yle_t* a,
-     const char* desc, int ty) {
+     const char* desc, int ty, int bgsym) {
 	yle_t* r;
 	if ( !ylais_type(s, ylaif_sym())
 	     || ylnil() == s)
@@ -203,11 +205,11 @@ _set(yletcxt_t* cxt,
 		}
 		/* argument desc is ignored */
 	} else {
-		_set_insert(cxt, ylasym(s).sym, ty, val);
+		_set_insert(cxt, ylasym(s).sym, ty, val, bgsym);
 		/* NULL or strlen (desc) == 0 : only trailing 0 */
 		if (!desc || !desc[0])
 			desc = NULL;
-		_set_description(cxt, ylasym(s).sym, ty, desc);
+		_set_description(cxt, ylasym(s).sym, ty, desc, bgsym);
 	}
 	return val;
 }
@@ -216,7 +218,14 @@ yle_t*
 ylset(yletcxt_t* cxt,
       yle_t* s, yle_t* val, yle_t* a,
       const char* desc, int ty) {
-	return _set(cxt, s, val, a, desc, ty);
+	return _set(cxt, s, val, a, desc, ty, TRUE);
+}
+
+yle_t*
+yltset(yletcxt_t* cxt,
+       yle_t* s, yle_t* val, yle_t* a,
+       const char* desc, int ty) {
+	return _set(cxt, s, val, a, desc, ty, FALSE);
 }
 
 int

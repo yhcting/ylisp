@@ -93,22 +93,22 @@ YLDEFNF(set, 2, 3) {
 YLDEFNF(tset, 2, 3) {
 	if (pcsz > 2) {
 		if (ylais_type(ylcaddr(e), ylaif_sym()))
-			return ylset(cxt,
-				     ylcar(e),
-				     ylcadr(e),
-				     a,
-				     ylasym(ylcaddr(e)).sym, /* desc */
-				     STyper_thread);
+			return yltset(cxt,
+				      ylcar(e),
+				      ylcadr(e),
+				      a,
+				      ylasym(ylcaddr(e)).sym, /* desc */
+				      0);
 		else
 			ylnfinterp_fail(YLErr_func_invalid_param,
 "SET : 3rd parameter should be description string\n");
 	} else
-		return ylset(cxt,
-			     ylcar(e),
-			     ylcadr(e),
-			     a,
-			     NULL,
-			     STyper_thread);
+		return yltset(cxt,
+			      ylcar(e),
+			      ylcadr(e),
+			      a,
+			      NULL,
+			      0);
 } YLENDNF(tset)
 
 YLDEFNF(f_mset, 2, 3) {
@@ -135,22 +135,22 @@ YLDEFNF(f_mset, 2, 3) {
 YLDEFNF(f_tmset, 2, 3) {
 	if (pcsz > 2) {
 		if (ylais_type(ylcaddr(e), ylaif_sym()))
-			return ylset(cxt,
-				     ylcar(e),
-				     ylcadr(e),
-				     a,
-				     ylasym(ylcaddr(e)).sym,
-				     STymac | STyper_thread);
+			return yltset(cxt,
+				      ylcar(e),
+				      ylcadr(e),
+				      a,
+				      ylasym(ylcaddr(e)).sym,
+				      STymac);
 		else
 			ylnfinterp_fail(YLErr_func_invalid_param,
 "MSET : 3rd parameter should be description string\n");
 	} else
-		return ylset(cxt,
-			     ylcar(e),
-			     ylcadr(e),
-			     a,
-			     NULL,
-			     STymac | STyper_thread);
+		return yltset(cxt,
+			      ylcar(e),
+			      ylcadr(e),
+			      a,
+			      NULL,
+			      STymac);
 } YLENDNF(f_tmset)
 
 YLDEFNF(unset, 1, 1) {

@@ -108,7 +108,6 @@ ylregister_exitfn(ylerr_t (*fn)(void));
  */
 enum {
 	STymac        = 0x01, /* macro symbol */
-	STyper_thread = 0x02, /* perthread symbol - 0 for global */
 };
 
 /* -- symbol -- */
@@ -327,5 +326,17 @@ ylset(yletcxt_t* cxt,
       yle_t* a,
       const char* desc,
       int ty);
+
+/**
+ * Set at per-thread symbol table.
+ * See 'ylset' for comments.
+ */
+extern yle_t*
+yltset(yletcxt_t* cxt,
+       yle_t* s,
+       yle_t* val,
+       yle_t* a,
+       const char* desc,
+       int ty);
 
 #endif /* ___LISp_h___ */
