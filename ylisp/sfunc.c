@@ -171,7 +171,7 @@ _set_description(yletcxt_t* cxt, const char* sym, int ty, const char* desc,
  * @s:     key symbol
  * @val:   any S-expression - value
  * @a:     map list
- * @bgsym: boolean: is global symbol? 
+ * @bgsym: boolean: is global symbol?
  * @attr:  symbol attribute.
  * @return: new value
  */
