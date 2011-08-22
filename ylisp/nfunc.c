@@ -225,7 +225,7 @@ YLDEFNF(help, 1, 9999) {
 
 YLDEFNF(load_cnf, 1, 1) {
 	void*       handle = NULL;
-	void      (*register_cnf)(void);
+	void      (*register_cnf)(yletcxt_t*);
 	const char* fname;
 
 	ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
@@ -261,7 +261,7 @@ YLDEFNF(load_cnf, 1, 1) {
 
 YLDEFNF(unload_cnf, 1, 1) {
 	void*   handle = NULL;
-	void  (*unregister_cnf)(void);
+	void  (*unregister_cnf)(yletcxt_t*);
 	const char* fname;
 
 	ylnfcheck_parameter(ylais_type_chain(e, ylaif_sym()));
