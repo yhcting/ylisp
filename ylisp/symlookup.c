@@ -31,8 +31,8 @@
 
 
 struct _value {
-	/* this should matches symbol atom type - see 'yle_t.u.a.u.sym.ty' */
-	int        ty;
+	/* this should matches symbol atom type - see 'yle_t.sty' for symbol */
+	short      ty;
 
 	/* description for this value */
 	char*      desc;
@@ -52,7 +52,7 @@ _free_description(char* desc) {
 }
 
 static inline struct _value*
-_alloc_value(int sty, yle_t* e) {
+_alloc_value(short sty, yle_t* e) {
 	struct _value* v = ylmalloc(sizeof(*v));
 	if (!v)
 		/*
@@ -88,7 +88,7 @@ ylslu_destroy(slut_t* t) {
 }
 
 int
-ylslu_insert(slut_t* t, const char* sym, int sty, yle_t* e) {
+ylslu_insert(slut_t* t, const char* sym, short sty, yle_t* e) {
 	int              ret;
 	struct _value*   v;
 	unsigned int     slen;
@@ -163,7 +163,7 @@ ylslu_get_description(slut_t* t, const char* sym) {
 }
 
 yle_t*
-ylslu_get(slut_t* t, int* outty, const char* sym) {
+ylslu_get(slut_t* t, short* outty, const char* sym) {
 	struct _value*     v;
 	v = yltrie_get((yltrie_t*)t, (unsigned char*)sym, strlen(sym));
 	if (v) {

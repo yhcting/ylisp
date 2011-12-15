@@ -74,11 +74,13 @@
 /* --------------------------
  * YLE types
  * --------------------------*/
-#define YLEPair            0
-#define YLEAtom            0x80000000  /**< 0 means ylpair */
-#define YLEGCMark          0x40000000  /**< Mark used only for GC */
-#define YLEMark            0x20000000  /**< Bit for Mark.
-					    This is for several purpose! */
+enum {
+	YLEPair          = 0,
+	YLEAtom          = 0x8000,  /**< 0 means ylpair */
+	YLEGCMark        = 0x4000,  /**< Mark used only for GC */
+	YLEMark          = 0x2000,  /**< Bit for Mark.
+					 This is for several purpose! */
+};
 
 /*===================================
  *
@@ -168,7 +170,8 @@ typedef struct {
 typedef struct yle* (*ylnfunc_t)(yletcxt_t*, struct yle*, struct yle*);
 
 typedef struct yle {
-	int               t; /**< type */
+	short    t;  /**< main type */
+	short    st; /**< sub type - atom specific. */
 	union {
 		struct {
 			/*
@@ -184,8 +187,11 @@ typedef struct yle {
 			 */
 			union {
 				struct {
-					/**< symbol type - interenally used */
-					int            ty;
+					/**< depends on evaluated result of symbol */
+					union {
+						/* evaluated result - double */
+						double         d;
+					} v;
 					char*          sym;
 				} sym; /**< for YLASymbol */
 
@@ -260,12 +266,14 @@ typedef struct yle {
 
 #define yleset_type(e, ty)      do { (e)->t = (ty); } while (0)
 #define yletype(e)              ((e)->t)
+#define ylestype(e)             ((e)->st)
 #define yleis_atom(e)           ((e)->t & YLEAtom)
 
 /* macros for easy accessing */
 #define yleatom(e)              ((e)->u.a)
 #define ylaif(e)                ((e)->u.a.aif)
 #define ylasym(e)               ((e)->u.a.u.sym)
+#define ylasymd(e)              ((e)->u.a.u.sym.v.d)
 #define ylanfunc(e)             ((e)->u.a.u.nfunc)
 #define yladbl(e)               ((e)->u.a.u.dbl)
 #define ylabin(e)               ((e)->u.a.u.bin)
@@ -304,12 +312,12 @@ typedef struct yle {
 #endif /* CONFIG_ASSERT */
 
 #ifdef CONFIG_LOG
-#       define yllog(lv, x...)  do { ylsysv()->log (lv, x); } while (0)
+#       define yllog(lv, x...)  do { ylsysv()->log(lv, x); } while (0)
 #else /* CONFIG_LOG */
 #       define yllog(lv, x...)  do {} while (0)
 #endif /* CONFIG_LOG */
 
-#define ylprint(x...)   do { ylsysv()->print (x); } while (0)
+#define ylprint(x...)   do { ylsysv()->print(x); } while (0)
 #define ylmode()        (ylsysv()->mode)
 #define ylmpsz()        (ylsysv()->mpsz)
 #define ylgctp()        (ylsysv()->gctp)
@@ -800,7 +808,6 @@ ylaassign_sym(yle_t* e, char* sym) {
 	yleset_type(e, YLEAtom);
 	ylaif(e) = ylaif_sym();
 	ylasym(e).sym = sym;
-	ylasym(e).ty = 0; /* 0 is default */
 }
 
 static inline yle_t*

@@ -204,7 +204,8 @@ _gc_perthread_mark(void* user, yletcxt_t* cxt) {
  */
 static void
 _gc(void) {
-	unsigned int  cnt, ratio_sv;
+	unsigned int  cnt __attribute__ ((unused));
+	unsigned int  ratio_sv __attribute__ ((unused));
 	int           i;
 	yle_t*        e;
 

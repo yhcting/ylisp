@@ -61,6 +61,17 @@
 #       define dbg_mutex(x)
 #endif
 
+/**********************************************
+ *
+ * Symbol type
+ *
+ **********************************************/
+
+enum {
+	YLASym_def      = 0,     /**< default symbol - ylasymi() */
+	YLASym_mac      = 0x01,  /**< symbol represents macro - ylasymi() */
+	YLASym_num      = 0x02,  /**< symbol represents number- ylasymd() */
+};
 
 #include "ylisp.h"
 #include "ylsfunc.h"
@@ -96,24 +107,6 @@ ylregister_exitfn(ylerr_t (*fn)(void));
 	__YLMODULE_CTORFN(__##mod##___exit_##fn##__, ylregister_exitfn(&fn);)
 
 
-
-/**********************************************
- *
- * Symbol type
- *
- **********************************************/
-/*
- * 0 is default symbol attribute
- * ST : Symbol Type
- */
-enum {
-	STymac        = 0x01, /* macro symbol */
-};
-
-/* -- symbol -- */
-#define styis(ty, v)          (!!((ty) & (v)))
-#define styset(ty, v)         ((ty) |= (v))
-#define styclear(ty, v)       ((ty) &= ~(v))
 
 /**********************************************
  *

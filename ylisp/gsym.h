@@ -32,14 +32,14 @@ extern void
 ylgsym_deinit(void);
 
 /**
- * @sty : symbol type (see comment of 'YLASymbol attributes' at yldev.h)
+ * @sty : sub-type of symbol atom
  * @return:
  *   -1: error
  *    0: newly inserted
  *    1: overwritten
  */
 extern int
-ylgsym_insert(const char* sym, int sty, yle_t* e);
+ylgsym_insert(const char* sym, short sty, yle_t* e);
 
 /**
  * @return:
@@ -70,7 +70,7 @@ ylgsym_get_description(char* b, unsigned int bsz, const char* sym);
  * @return     : NULL if @sym is not in trie.
  */
 extern yle_t*
-ylgsym_get(int* outty, const char* sym);
+ylgsym_get(short* outty, const char* sym);
 
 /**
  * Mark memory blocks those can be reachable from Trie for GC.

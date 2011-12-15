@@ -36,14 +36,14 @@ extern void
 ylslu_destroy(slut_t*);
 
 /**
- * @sty : symbol type (see comment of 'YLASymbol attributes' at yldev.h)
+ * @sty : sub-type of symbol
  * @return:
  *   -1: error
  *    0: newly inserted
  *    1: overwritten
  */
 extern int
-ylslu_insert(slut_t* t, const char* sym, int sty, yle_t* e);
+ylslu_insert(slut_t* t, const char* sym, short sty, yle_t* e);
 
 /**
  * @return:
@@ -70,7 +70,7 @@ ylslu_get_description(slut_t* t, const char* sym);
  * @return     : NULL if @sym is not in trie.
  */
 extern yle_t*
-ylslu_get(slut_t* t, int* outty, const char* sym);
+ylslu_get(slut_t* t, short* outty, const char* sym);
 
 /**
  * Mark memory blocks those can be reachable from Trie for GC.

@@ -607,7 +607,8 @@ ylechain_print(struct yldynb* dynb, const yle_t* e) {
 
 #define _YLREADV_PROLOGUE                                               \
 do { /* for scope */							\
-	int      sv, ty;						\
+	int      sv;							\
+	short    ty;							\
 	ylerr_t  ret = YLOk;						\
 	yle_t*   e;							\
                                                                         \

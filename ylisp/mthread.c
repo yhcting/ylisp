@@ -68,8 +68,8 @@ struct _pres {
 
 static pthread_mutex_t  _m;     /**< lock for thread management */
 
-static yllist_link_t    _lsnl;  /**< listener list */
-static yllist_link_t    _cxtl;  /**< thread context list */
+static YLLIST_DECL_HEAD(_lsnl); /* constructor function list */
+static YLLIST_DECL_HEAD(_cxtl); /* destructor function list */
 
 
 static inline int
@@ -318,8 +318,6 @@ ylmt_walk_locked(yletcxt_t* cxt, void* user,
 
 static ylerr_t
 _mod_init(void) {
-	yllist_init_link(&_cxtl);
-	yllist_init_link(&_lsnl);
 	pthread_mutex_init(&_m, ylmutexattr());
 	return YLOk;
 }

@@ -85,6 +85,7 @@ ylmp_clean_block(yle_t* e) {
 	 * Clean-block's value is like this.!
 	 */
 	yleset_type(e, YLEPair);
+	ylestype(e) = 0; /* set to default */
 	dbg_mt( ylanfunc(e).f = (void*)0xdeaddead; );
 	ylpcar(e) = ylpcdr(e) = NULL;
 }

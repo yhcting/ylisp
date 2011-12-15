@@ -56,7 +56,7 @@ YLMODULE_INITFN(gsym, _mod_init)
 YLMODULE_EXITFN(gsym, _mod_exit)
 
 int
-ylgsym_insert(const char* sym, int sty, yle_t* e) {
+ylgsym_insert(const char* sym, short sty, yle_t* e) {
 	int    ret;
 	_mlock(&_m);
 	ret = ylslu_insert(_t, sym, sty, e);
@@ -103,7 +103,7 @@ ylgsym_get_description(char* b, unsigned int bsz, const char* sym) {
 }
 
 yle_t*
-ylgsym_get(int* outty, const char* sym) {
+ylgsym_get(short* outty, const char* sym) {
 	yle_t*	  ret;
 	_mlock(&_m);
 	ret = ylslu_get(_t, outty, sym);

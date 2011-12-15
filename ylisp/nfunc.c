@@ -81,13 +81,13 @@ YLDEFNF(set, 2, 3) {
 				     ylcadr(e),
 				     a,
 				     ylasym(ylcaddr(e)).sym, /* desc */
-				     0);
+				     YLASym_def);
 		else
 			ylnfinterp_fail(YLErr_func_invalid_param,
 "SET : 3rd parameter should be description string\n");
 
 	} else
-		return ylset(cxt, ylcar(e), ylcadr(e), a, NULL, 0);
+		return ylset(cxt, ylcar(e), ylcadr(e), a, NULL, YLASym_def);
 } YLENDNF(set)
 
 YLDEFNF(tset, 2, 3) {
@@ -98,7 +98,7 @@ YLDEFNF(tset, 2, 3) {
 				      ylcadr(e),
 				      a,
 				      ylasym(ylcaddr(e)).sym, /* desc */
-				      0);
+				      YLASym_def);
 		else
 			ylnfinterp_fail(YLErr_func_invalid_param,
 "SET : 3rd parameter should be description string\n");
@@ -108,7 +108,7 @@ YLDEFNF(tset, 2, 3) {
 			      ylcadr(e),
 			      a,
 			      NULL,
-			      0);
+			      YLASym_def);
 } YLENDNF(tset)
 
 YLDEFNF(f_mset, 2, 3) {
@@ -119,7 +119,7 @@ YLDEFNF(f_mset, 2, 3) {
 				     ylcadr(e),
 				     a,
 				     ylasym(ylcaddr(e)).sym,
-				     STymac);
+				     YLASym_mac);
 		else
 			ylnfinterp_fail(YLErr_func_invalid_param,
 "MSET : 3rd parameter should be description string\n");
@@ -129,7 +129,7 @@ YLDEFNF(f_mset, 2, 3) {
 			     ylcadr(e),
 			     a,
 			     NULL,
-			     STymac);
+			     YLASym_mac);
 } YLENDNF(f_mset)
 
 YLDEFNF(f_tmset, 2, 3) {
@@ -140,7 +140,7 @@ YLDEFNF(f_tmset, 2, 3) {
 				      ylcadr(e),
 				      a,
 				      ylasym(ylcaddr(e)).sym,
-				      STymac);
+				      YLASym_mac);
 		else
 			ylnfinterp_fail(YLErr_func_invalid_param,
 "MSET : 3rd parameter should be description string\n");
@@ -150,7 +150,7 @@ YLDEFNF(f_tmset, 2, 3) {
 			      ylcadr(e),
 			      a,
 			      NULL,
-			      STymac);
+			      YLASym_mac);
 } YLENDNF(f_tmset)
 
 YLDEFNF(unset, 1, 1) {
@@ -170,7 +170,7 @@ YLDEFNF(tunset, 1, 1) {
 } YLENDNF(unset)
 
 YLDEFNF(is_set, 1, 1) {
-    int temp;
+    short temp;
     ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
     /* check global symbol */
     return (ylgsym_get(&temp,
@@ -180,7 +180,7 @@ YLDEFNF(is_set, 1, 1) {
 } YLENDNF(is_set)
 
 YLDEFNF(is_tset, 1, 1) {
-    int temp;
+    short temp;
     ylnfcheck_parameter(ylais_type(ylcar(e), ylaif_sym()));
     return (ylslu_get(cxt->slut,
 		      &temp,
@@ -205,7 +205,7 @@ YLDEFNF(help, 1, 9999) {
 				"Cannot find symbol\n",
 				ylasym(ylcar(e)).sym);
 		else {
-			int	   outty;
+			short	   outty;
 			yle_t*	   v;
 			v = ylgsym_get(&outty, ylasym(ylcar(e)).sym);
 			ylprint("\n======== %s Desc =========\n"
@@ -214,7 +214,7 @@ YLDEFNF(help, 1, 9999) {
 				"%s : %s\n"
 				, ylasym(ylcar(e)).sym
 				, desc
-				, styis(outty, STymac)? "M": ""
+				, (YLASym_mac == outty)? "M": ""
 				, ylechain_print(ylethread_buf(cxt), v));
 		}
 		e = ylcdr(e);

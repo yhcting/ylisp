@@ -65,7 +65,9 @@ static void*  _pcrelib;
 #endif /* HAVE_LIBPCRE */
 
 
+#ifdef HAVE_LIBM
 static void*  _libmhandle;
+#endif
 
 #ifdef CONFIG_DBG_GEN
 

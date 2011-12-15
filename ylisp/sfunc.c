@@ -146,7 +146,7 @@ _list_find(yle_t* x, yle_t* y) {
  * helper function to simplify '_set' function.
  */
 static inline int
-_set_insert(yletcxt_t* cxt, const char* sym, int ty, yle_t* e, int bgsym) {
+_set_insert(yletcxt_t* cxt, const char* sym, short ty, yle_t* e, int bgsym) {
 	if (bgsym)
 		return ylgsym_insert(sym, ty, e);
 	else
@@ -155,7 +155,7 @@ _set_insert(yletcxt_t* cxt, const char* sym, int ty, yle_t* e, int bgsym) {
 }
 
 static inline int
-_set_description(yletcxt_t* cxt, const char* sym, int ty, const char* desc,
+_set_description(yletcxt_t* cxt, const char* sym, short ty, const char* desc,
 		 int bgsym) {
 	if (bgsym)
 		return  ylgsym_set_description(sym, desc);
@@ -171,14 +171,14 @@ _set_description(yletcxt_t* cxt, const char* sym, int ty, const char* desc,
  * @s:     key symbol
  * @val:   any S-expression - value
  * @a:     map list
+ * @ty:    subtype of symbol
  * @bgsym: boolean: is global symbol?
- * @attr:  symbol attribute.
  * @return: new value
  */
 static yle_t*
 _set(yletcxt_t* cxt,
      yle_t* s, yle_t* val, yle_t* a,
-     const char* desc, int ty, int bgsym) {
+     const char* desc, short ty, int bgsym) {
 	yle_t* r;
 	if ( !ylais_type(s, ylaif_sym())
 	     || ylnil() == s)
@@ -199,7 +199,7 @@ _set(yletcxt_t* cxt,
 				      "unexpected set operation!\n");
 		else  {
 			ylassert(ylais_type(ylcar(r), ylaif_sym()));
-			ylasym(ylcar(r)).ty = ty;
+			ylestype(ylcar(r)) = ty;
 			/* change value of local map yllist */
 			ylpsetcdr(r, ylcons(val, ylnil()));
 		}
@@ -231,7 +231,7 @@ yltset(yletcxt_t* cxt,
 int
 ylis_set(yletcxt_t* cxt, yle_t* a, const char* sym) {
 	yle_t  etmp;
-	int    temp;
+	short  temp;
 	/* etmp is never cleaned. So, sym can be used directly here */
 	ylaassign_sym(&etmp, (char*)sym);
 	return NULL != _list_find(&etmp, a) ||
@@ -298,7 +298,7 @@ _mreplace(yle_t* e, yle_t* a) {
  * < additional constraints : x is atomic >
  */
 static const yle_t*
-_assoc(yletcxt_t* cxt, int* ovty, yle_t* x, yle_t* y) {
+_assoc(yletcxt_t* cxt, short* ovty, yle_t* x, yle_t* y) {
 	yle_t* r;
 	if (!ylais_type(x, ylaif_sym()))
 		ylinterp_fail(YLErr_eval_undefined,
@@ -334,7 +334,7 @@ _assoc(yletcxt_t* cxt, int* ovty, yle_t* x, yle_t* y) {
 		if (r) {
 			/* Found! in local association list */
 			ylassert(ylais_type(ylcar(r), ylaif_sym()));
-			*ovty = ylasym(ylcar(r)).ty;
+			*ovty = ylestype(ylcar(r));
 			r = ylcadr(r);
 			break;
 		}
@@ -349,7 +349,7 @@ _assoc(yletcxt_t* cxt, int* ovty, yle_t* x, yle_t* y) {
 	} while (0);
 
 	if (r)
-		return styis(*ovty, STymac)? _list_clone(r): r;
+		return (*ovty == YLASym_mac)? _list_clone(r): r;
 
 	/* check that this is numeric symbol */
 	{ /* Just Scope */
@@ -386,10 +386,10 @@ _evatom_form(yletcxt_t* cxt, yle_t* e, yle_t* a) {
 	 * 'e' is atom
 	 */
 	yle_t*  r = NULL;
-	int     vty;
+	short   vty;
 	if (ylaif_sym() == ylaif(e)) {
 		r = (yle_t*)_assoc(cxt, &vty, e, a);
-		if (styis(vty, STymac))
+		if (YLASym_mac == vty)
 			r = yleval(cxt, r, a);
 	} else
 		ylinterp_fail(YLErr_eval_undefined,
@@ -405,13 +405,13 @@ _evfunc_form(yletcxt_t* cxt, yle_t* e, yle_t* a) {
 	 * 'ylcar(e)' is atom.
 	 */
 	yle_t*   r = NULL;
-	int      vty;
+	short    vty;
 
 	if (ylaif_sym() != ylaif(ylcar(e)))
 		goto bail;
 
 	r = (yle_t*)_assoc(cxt, &vty, ylcar(e), a);
-	if (styis(vty, STymac))
+	if (YLASym_mac == vty)
 		/*
 		 * This is macro symbol! replace target expression with symbol.
 		 * And evaluate it with replaced value!
@@ -592,7 +592,7 @@ _evlf_flabel(yletcxt_t* cxt, yle_t* e, yle_t* a) {
 		ylinterp_fail(YLErr_eval_undefined,
 			      "flabel name should be symbol!\n");
 	/* set symbol type as macro */
-	styset(ylasym(fln).ty, STymac);
+	ylestype(fln) = YLASym_mac;
 	param_assoc = ylpair(fla, ylevlis(cxt, flp, a));
 	return yleval(cxt, fle, ylcons(yllist(fln, fl), param_assoc));
 }

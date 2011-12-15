@@ -176,7 +176,7 @@ _is_ws(char c) {
  */
 static char*
 _trim(char* s) {
-	char        *p, *ns, *r;
+	char        *p, *ns = NULL, *r;
 	unsigned int sz;
 
 	/* printf("trim IN \"%s\"\n", s); */
@@ -531,8 +531,8 @@ main(int argc, char* argv[]) {
 	ylinit(&sys);
 
 #ifdef CONFIG_STATIC_CNF
-	ylcnf_load_ylbase(NULL);
-	ylcnf_load_ylext(NULL);
+	ylcnf_load_ylbase();
+	ylcnf_load_ylext();
 #endif /* CONFIG_STATIC_CNF */
 
 	srand( time(NULL) );

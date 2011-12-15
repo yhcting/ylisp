@@ -220,8 +220,8 @@ main(int argc, const char* argv[]) {
 		}
 
 #ifdef CONFIG_STATIC_CNF
-		ylcnf_load_ylbase(NULL);
-		ylcnf_load_ylext(NULL);
+		ylcnf_load_ylbase();
+		ylcnf_load_ylext();
 #endif /* CONFIG_STATIC_CNF */
 
 	} /* Just scope */

@@ -225,7 +225,7 @@ YLDEFNF(atom, 1, 1) {
 
 YLDEFNF(type, 1, 1) {
 #define __SZ (1024) /* This is big enough */
-	int    bw;
+	int    bw __attribute__ ((unused));
 	char   b[__SZ]; /* even 128bit machine, 32bit is enough */
 	if (yleis_atom(ylcar(e))) {
 		bw = snprintf(b, __SZ, "%p", ylaif(ylcar(e)));
@@ -429,7 +429,7 @@ YLDEFNF(prlog, 2, 9999) {
 	}
 
 	do {
-		yllog(loglv, "%s", ylechain_print(ylethread_buf(cxt), e));
+		ylsysv()->log(loglv, "%s", ylechain_print(ylethread_buf(cxt), e));
 		e = ylcdr(e);
 	} while (!yleis_nil(e));
 	return ylt();
