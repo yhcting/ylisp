@@ -5,20 +5,12 @@
 
 (load-file "~/.emacs-cedet.el")
 
-(defun yhc.compile.debug ()
+(defun yhc.compile ()
     "Using make file in top directory"
     (interactive)
     (let ((cmd ""))
         (set 'cmd (concat "cd " yhc.topdir
-                          "; make DEFS=\"-D__LISPTEST__ -D__LISPDEBUG__\"  debug"))
-        ;(message cmd)))
-        (compile cmd)))
-
-(defun yhc.compile.release ()
-    "Using make file in top directory"
-    (interactive)
-    (let ((cmd ""))
-        (set 'cmd (concat "cd " yhc.topdir "; make release"))
+                          "; make DEFS=\"-D__LISPTEST__ -D__LISPDEBUG__\""))
         ;(message cmd)))
         (compile cmd)))
 
@@ -31,8 +23,7 @@
         (gdb cmd)))
 
 ;; override ede's key map for compile...
-(global-set-key [f9] 'yhc.compile.debug)
-(global-set-key [f10] 'yhc.compile.release)
+(global-set-key [f9] 'yhc.compile)
 (global-set-key [f8] 'yhc.gdb)
 
 (ede-cpp-root-project (concat yhc.target "-root")

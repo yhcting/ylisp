@@ -35,43 +35,15 @@
 
 #include "lisp.h"
 
-struct _blk {
-	unsigned int i;     /**< index of free block pointer */
-	yle_t        e;
-};
+
+typedef yle_t _mbtublk_t;
+
+#include "blktbl.h"
 
 /*
- * memory pool
- *     * U(used) / F(free)
- *
- *                fbp
- *             +-------+
- *             |   U   | <- index [ylmpsz()-1]
- *             +-------+
- *             |   U   |
- *             +-------+
- *             |  ...  |
- *             +-------+
- *             |   U   |
- *             +-------+
- *      fbi -> |   U   |
- *             +-------+
- *             |   F   |
- *             +-------+
- *             |  ...  |
- *             +-------+
- *             |   F   |
- *             +-------+
- *             |   F   | <- index [0]
- *             +-------+
- *
+ * Memory pool.
  */
-static struct {
-	struct _blk*   pool;    /**< pool */
-	yle_t**        fbp;     /**< Free Block Pointers */
-	int            fbi;     /**< Free Block Index - grow to bottom */
-} _m; /**< s-Expression PooL */
-
+struct _mbt* _m;
 
 /*
  * Stack is enough!
@@ -91,31 +63,27 @@ static pthread_mutex_t  _mm;
 
 static int              _gc_enabled = 1; /**< 0 means gc is disabled forcely */
 
-static inline int
-_used_block_count(void) { return ylmpsz() - _m.fbi; }
-
 /*
  * Memory usage ratio! (percent.)
  */
 static inline int
-_usage_ratio(void) { return _used_block_count() * 100 / ylmpsz(); }
+_usage_ratio(void) { return _mbt_nr_used_blk(_m) * 100 / _m->sz; }
 
 yle_t*
 ylmp_block(void) {
+	yle_t* e;
 	_mlock(&_mm);
-	if (_m.fbi <= 0) {
-		_munlock(&_mm);
+	e = _mbt_get(_m);
+	_munlock(&_mm);
+	if (!e) {
+		/*
+		 * size of _m is constant.
+		 * So, we don't need to lock when read '_m->sz'
+		 */
 		yllogE("Not enough Memory Pool.. Current size is %d\n",
-		       ylmpsz());
+		       _m->sz);
 		ylassert(0);
-		return NULL; /* to make compiler happy */
 	} else {
-		yle_t*  e;
-		--_m.fbi;
-		/* it's taken out from pool! */
-		e = _m.fbp[_m.fbi];
-		_munlock(&_mm);
-
 		dbg_mem(e->evid = yleval_id(););
 		/*
 		 * initialize block (make car and cdr be NULL)
@@ -123,8 +91,8 @@ ylmp_block(void) {
 		 * => This is important!
 		 */
 		ylmp_clean_block(e);
-		return e;
 	}
+	return e;
 }
 
 void
@@ -172,21 +140,7 @@ static void
 _clean_block(yle_t* e) {
 	ylassert(e != ylnil() && e != ylt() && e != ylq());
 	yleclean(e);
-
-	/* swap free block pointer */
-	{ /* Just scope */
-		struct _blk* b1 = container_of(e, struct _blk, e);
-		struct _blk* b2 = container_of(_m.fbp[_m.fbi], struct _blk, e);
-		unsigned int ti; /* Temp I */
-
-		/* swap fbp index */
-		ti = b1->i; b1->i = b2->i; b2->i = ti;
-
-		/* set fbp accordingly */
-		_m.fbp[b1->i] = &b1->e;
-		_m.fbp[b2->i] = &b2->e;
-	}
-	_m.fbi++;
+	_mbt_put(_m, e);
 }
 
 
@@ -210,8 +164,8 @@ _gc(void) {
 	yle_t*        e;
 
 	/* clear all GC mark */
-	for (i=_m.fbi; i<ylmpsz(); i++)
-		yleclear_gcmark(_m.fbp[i]);
+	for (i = _m->fbi; i < _m->sz; i++)
+		yleclear_gcmark(_m->fbp[i]);
 
 	_mlock(&_mbbs);
 	/* we should keep memory blocks reachable from base blocks */
@@ -232,10 +186,10 @@ _gc(void) {
 	ratio_sv = _usage_ratio();
 	cnt = 0;
 	/* Collect unmarked memory blocks */
-	for (i=_m.fbi; i<ylmpsz(); i++)
-		if (!yleis_gcmark(_m.fbp[i])) {
+	for (i = _m->fbi; i < _m->sz; i++)
+		if (!yleis_gcmark(_m->fbp[i])) {
 			cnt++;
-			_clean_block(_m.fbp[i]);
+			_clean_block(_m->fbp[i]);
 		}
 
 	yllogD("GC Triggered (%d\% -> %d\%) :\n"
@@ -332,30 +286,21 @@ _mod_init(void) {
 	register int i;
 
 	/* initialise pointers requiring mem. alloc. */
-	_m.pool = NULL; _m.fbp = NULL;
 	_bbs = NULL;
 
 	pthread_mutex_init(&_mm, ylmutexattr());
 	pthread_mutex_init(&_mbbs, ylmutexattr());
 
 	/* allocated memory pool */
-	_m.pool = ylmalloc(sizeof(struct _blk) * ylmpsz());
-	if (!_m.pool)
+	_m = _mbt_create(ylmpsz());
+	if (!_m)
 		goto bail;
-	_m.fbp = ylmalloc(sizeof(yle_t*) * ylmpsz());
-	if (!_m.fbp)
-		goto bail;
-	_bbs = ylstk_create(ylmpsz()/2, NULL);
+	_bbs = ylstk_create(_m->sz/2, NULL);
 	if (!_bbs)
 		goto bail;
 
-	_m.fbi = ylmpsz(); /* from start */
-
-	for (i=0; i<ylmpsz(); i++) {
-		ylmp_clean_block(&_m.pool[i].e);
-		_m.fbp[i] = &_m.pool[i].e;
-		_m.pool[i].i = i;
-	}
+	for (i = 0; i < _m->sz; i++)
+		ylmp_clean_block(&_m->pool[i].b);
 
 	/* register to mt module to support Muti-Threading */
 	ylmt_register_listener(&_mtlsnr);
@@ -363,10 +308,8 @@ _mod_init(void) {
 	return YLOk;
 
  bail:
-	if (_m.pool)
-		ylfree(_m.pool);
-	if (_m.fbp)
-		ylfree(_m.fbp);
+	if (_m)
+		_mbt_destroy(_m);
 	if (_bbs)
 		ylstk_destroy(_bbs);
 	return YLErr_out_of_memory;
@@ -377,15 +320,13 @@ _mod_exit(void) {
 	int    i;
 	_mlock(&_mm);
 	/* Free all elements */
-	for (i=_m.fbi; i<ylmpsz(); i++)
-		yleclean(_m.fbp[i]);
+	for (i = _m->fbi; i < _m->sz; i++)
+		yleclean(_m->fbp[i]);
 
 	if (_bbs)
 		ylstk_destroy(_bbs);
-	if (_m.pool)
-		ylfree(_m.pool);
-	if (_m.fbp)
-		ylfree(_m.fbp);
+
+	_mbt_destroy(_m);
 
 	pthread_mutex_destroy(&_mbbs);
 	_munlock(&_mm);

@@ -1,3 +1,2 @@
 (interpret-file '../yls/init.yl
-                '../test/test_base.yl
-                '../test/test_ext.yl)
+                '../test/test_base.yl);
