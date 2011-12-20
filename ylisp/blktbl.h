@@ -129,10 +129,9 @@ _mbt_destroy(struct _mbt* bt) {
 static inline _mbtublk_t*
 _mbt_get(struct _mbt* bt) {
 	if (bt->fbi <= 0)
-		return NULL; /* not enough mem pool size */
-	else {
+		return NULL; /* not enough mem pool */
+	else
 		return bt->fbp[--bt->fbi];
-	}
 }
 
 static void
