@@ -161,9 +161,9 @@ _mbt_nr_used_blk(struct _mbt* bt) {
  * @blk   : <_mbtublk_t*> for iteration
  */
 #define _mbt_foreach(bt, i, blk)		\
-	for (i = 0, blk = &bt->pool[0].b;	\
-	     i < bt->sz;			\
-	     i++, blk = &bt->pool[i].b)
+	for ((i) = 0, (blk) = &(bt)->pool[0].b;	\
+	     (i) < (bt)->sz;			\
+	     (i)++, (blk) = &(bt)->pool[i].b)
 
 /*
  * Order is almost ramdom.
@@ -171,7 +171,7 @@ _mbt_nr_used_blk(struct _mbt* bt) {
  * @i     : <int> index to use for interation.
  * @blk   : <_mbtublk_t*> for iteration
  */
-#define _mbt_foreach_used(bt, i, blk)		\
-	for (i = bt->fbi, blk = bt->fbp[i];	\
-	     i < bt->sz;			\
-	     ++i, blk = bt->fbp[i])
+#define _mbt_foreach_used(bt, i, blk)			\
+	for ((i) = (bt)->fbi, (blk) = (bt)->fbp[i];	\
+	     (i) < (bt)->sz;				\
+	     ++(i), (blk) = (bt)->fbp[i])
