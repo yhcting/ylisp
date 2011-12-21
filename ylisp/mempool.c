@@ -110,7 +110,7 @@ ylmp_rm_bb(yle_t* e) {
 	register int i;
 	_mlock(&_mbbs);
 	i = ylstk_size(_bbs)-1; /* top */
-	for (;i>=0; i--) {
+	for (;i >= 0; i --) {
 		if (_bbs->item[i] == (void*)e) {
 			/* we found! */
 			memmove(&_bbs->item[i], &_bbs->item[i+1],
@@ -164,8 +164,8 @@ _gc(void) {
 	yle_t*        e;
 
 	/* clear all GC mark */
-	for (i = _m->fbi; i < _m->sz; i++)
-		yleclear_gcmark(_m->fbp[i]);
+	_mbt_foreach_used(_m, i, e)
+		yleclear_gcmark(e);
 
 	_mlock(&_mbbs);
 	/* we should keep memory blocks reachable from base blocks */
@@ -186,10 +186,10 @@ _gc(void) {
 	ratio_sv = _usage_ratio();
 	cnt = 0;
 	/* Collect unmarked memory blocks */
-	for (i = _m->fbi; i < _m->sz; i++)
-		if (!yleis_gcmark(_m->fbp[i])) {
+	_mbt_foreach_used(_m, i, e)
+		if (!yleis_gcmark(e)) {
 			cnt++;
-			_clean_block(_m->fbp[i]);
+			_clean_block(e);
 		}
 
 	yllogD("GC Triggered (%d\% -> %d\%) :\n"
@@ -284,6 +284,7 @@ static ylerr_t
 _mod_init(void) {
 	/* init memory pool */
 	register int i;
+	yle_t*       e;
 
 	/* initialise pointers requiring mem. alloc. */
 	_bbs = NULL;
@@ -294,34 +295,33 @@ _mod_init(void) {
 	/* allocated memory pool */
 	_m = _mbt_create(ylmpsz());
 	if (!_m)
-		goto bail;
+		goto bail_m;
 	_bbs = ylstk_create(_m->sz/2, NULL);
 	if (!_bbs)
-		goto bail;
+		goto bail_bbs;
 
-	for (i = 0; i < _m->sz; i++)
-		ylmp_clean_block(&_m->pool[i].b);
+	_mbt_foreach(_m, i, e)
+		ylmp_clean_block(e);
 
 	/* register to mt module to support Muti-Threading */
 	ylmt_register_listener(&_mtlsnr);
 
 	return YLOk;
 
- bail:
-	if (_m)
-		_mbt_destroy(_m);
-	if (_bbs)
-		ylstk_destroy(_bbs);
+ bail_bbs:
+	_mbt_destroy(_m);
+ bail_m:
 	return YLErr_out_of_memory;
 }
 
 static ylerr_t
 _mod_exit(void) {
 	int    i;
+	yle_t* e;
 	_mlock(&_mm);
 	/* Free all elements */
-	for (i = _m->fbi; i < _m->sz; i++)
-		yleclean(_m->fbp[i]);
+	_mbt_foreach_used(_m, i, e)
+		yleclean(e);
 
 	if (_bbs)
 		ylstk_destroy(_bbs);

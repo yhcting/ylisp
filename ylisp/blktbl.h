@@ -153,3 +153,25 @@ static inline int
 _mbt_nr_used_blk(struct _mbt* bt) {
 	return bt->sz - bt->fbi;
 }
+
+/*
+ * Iterates pool from start to end (ascending in terms of memory address).
+ * @bt    : <struct _mbt*>
+ * @i     : <int> index to use for interation.
+ * @blk   : <_mbtublk_t*> for iteration
+ */
+#define _mbt_foreach(bt, i, blk)		\
+	for (i = 0, blk = &bt->pool[0].b;	\
+	     i < bt->sz;			\
+	     i++, blk = &bt->pool[i].b)
+
+/*
+ * Order is almost ramdom.
+ * @bt    : <struct _mbt*>
+ * @i     : <int> index to use for interation.
+ * @blk   : <_mbtublk_t*> for iteration
+ */
+#define _mbt_foreach_used(bt, i, blk)		\
+	for (i = bt->fbi, blk = bt->fbp[i];	\
+	     i < bt->sz;			\
+	     ++i, blk = bt->fbp[i])
